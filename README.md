@@ -56,29 +56,13 @@ npm install framer-motion @shadcn/ui howler
 ---
 
 ### **3️⃣ Implement Game Logic**  
+- Check and review the entire codebase
+- Followed the logic used in the previous version
 - **Game Board UI:** Create a `GameBoard.tsx` inside `components/`  
 - **Image Rendering:** Fetch images dynamically from `/public/{level}/`  
 - **Dragging & Slashing Logic:** Implement touch & click-based actions  
 
----
-
-### **4️⃣ Wallet Connection (Base + Smart Wallet)**  
-Install `wagmi` & `Coinbase nChainKit`:  
-```bash
-npm install wagmi viem @coinbase/nchainkit
-```
-Use **Coinbase Smart Wallet** for easy onboarding:  
-```tsx
-import { useAccount, useConnect } from 'wagmi';
-
-export function WalletConnect() {
-  const { connect, connectors } = useConnect();
-  return (
-    <button onClick={() => connect(connectors[0])}>Connect Wallet</button>
-  );
-}
-```
-
+--
 ---
 
 ### **5️⃣ Add Power-Ups**  
