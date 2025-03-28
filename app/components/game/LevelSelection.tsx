@@ -23,6 +23,22 @@ const LevelSelection: React.FC<LevelSelectionProps> = ({
     }
   };
 
+  // Get the background image for a region
+  const getRegionBackgroundImage = (region: Region): string => {
+    switch (region) {
+      case Region.LATAM:
+        return '/latam.jpg';
+      case Region.AFRICA:
+        return '/africa.jpg';
+      case Region.SOUTHEAST_ASIA:
+        return '/southeastasia.jpg';
+      case Region.INDIA:
+        return '/india.jpg';
+      default:
+        return '/around-the-world.jpg';
+    }
+  };
+
   return (
     <div className="level-selection p-4 bg-white rounded-lg shadow-md">
       <h2 className="text-2xl font-bold mb-6 text-center">Select a Region</h2>
@@ -31,6 +47,7 @@ const LevelSelection: React.FC<LevelSelectionProps> = ({
         {levels.map((level, index) => {
           const isUnlocked = index <= unlockedLevels;
           const isActive = index === currentLevel;
+          const backgroundImage = getRegionBackgroundImage(level.region);
           
           return (
             <div
@@ -54,7 +71,7 @@ const LevelSelection: React.FC<LevelSelectionProps> = ({
               <div className="level-image-container h-32 mb-3 overflow-hidden rounded-md">
                 <div 
                   className="level-image h-full w-full bg-cover bg-center"
-                  style={{ backgroundImage: `url(/${level.region}/profile.png)` }}
+                  style={{ backgroundImage: `url(${backgroundImage})` }}
                 ></div>
               </div>
               
