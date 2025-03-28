@@ -52,6 +52,8 @@ const Game: React.FC = () => {
       if (currentLevel === unlockedLevels) {
         setUnlockedLevels(prev => Math.min(prev + 1, levels.length - 1));
       }
+    } else if (newState === GameState.GAME_OVER) {
+      playSound('gameOver');
     }
   };
 
@@ -206,6 +208,38 @@ const Game: React.FC = () => {
               >
                 Next Level
               </button>
+            </div>
+          </div>
+        );
+        
+      case GameState.GAME_OVER:
+        return (
+          <div className="game-over-screen p-4">
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-bold mb-4 text-red-600">Game Over</h1>
+              <p className="text-xl mb-2">Score: {score}</p>
+              <p className="text-lg mb-4">Target: {currentLevelConfig.targetScore}</p>
+              <div className="flex justify-center space-x-4">
+                <button 
+                  className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                  onClick={() => {
+                    // Retry the current level
+                    setGameState(GameState.PLAYING);
+                    setScore(0);
+                  }}
+                >
+                  Try Again
+                </button>
+                <button 
+                  className="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                  onClick={() => {
+                    // Go back to level selection
+                    setGameState(GameState.INTRO);
+                  }}
+                >
+                  Back to Menu
+                </button>
+              </div>
             </div>
           </div>
         );
