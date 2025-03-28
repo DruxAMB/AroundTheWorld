@@ -62,7 +62,6 @@ npm install framer-motion @shadcn/ui howler
 - **Image Rendering:** Fetch images dynamically from `/public/{level}/`  
 - **Dragging & Slashing Logic:** Implement touch & click-based actions  
 
---
 ---
 
 ### **5️⃣ Add Power-Ups**  
