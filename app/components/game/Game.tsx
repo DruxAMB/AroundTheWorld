@@ -58,10 +58,9 @@ const Game: React.FC = () => {
   // Handle level completion
   const handleLevelComplete = () => {
     if (currentLevel < levels.length - 1) {
-      // Move to next level
-      setCurrentLevel(prev => prev + 1);
-      setGameState(GameState.PLAYING);
-      setScore(0);
+      // Show level complete screen first, then allow user to proceed to next level
+      // The actual level transition happens in the GameBoard component's "Next Level" button
+      setGameState(GameState.LEVEL_COMPLETE);
     } else {
       // Game completed
       setGameState(GameState.GAME_WON);
@@ -89,7 +88,7 @@ const Game: React.FC = () => {
     switch (gameState) {
       case GameState.INTRO:
         return (
-          <div className="intro-screen p-4">
+          <div className="intro-screen">
             <div className="text-center mb-8">
               <h1 className="text-3xl font-bold mb-2">Around The World</h1>
               <p className="text-lg text-gray-600">Match & Slash Game on Base</p>
@@ -187,6 +186,27 @@ const Game: React.FC = () => {
               targetScore={currentLevelConfig.targetScore}
               timeLimit={currentLevelConfig.timeLimit}
             />
+          </div>
+        );
+        
+      case GameState.LEVEL_COMPLETE:
+        return (
+          <div className="level-complete-screen p-4">
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-bold mb-4">Level Complete!</h1>
+              <p className="text-xl mb-2">Score: {score}</p>
+              <button 
+                className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                onClick={() => {
+                  // Move to next level
+                  setCurrentLevel(prev => prev + 1);
+                  setGameState(GameState.PLAYING);
+                  setScore(0);
+                }}
+              >
+                Next Level
+              </button>
+            </div>
           </div>
         );
         

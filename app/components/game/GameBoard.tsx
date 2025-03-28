@@ -365,7 +365,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
       
       {/* Game state overlays */}
       {gameState === GameState.LEVEL_COMPLETE && (
-        <div className="level-complete-overlay absolute inset-0 flex items-center justify-center bg-black bg-opacity-70 z-20">
+        <div className="level-complete-overlay fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
           <div className="bg-white p-6 rounded-lg text-center">
             <h2 className="text-2xl font-bold mb-4">Level Complete!</h2>
             <p className="text-lg mb-2">Score: {score}</p>
@@ -380,9 +380,9 @@ const GameBoard: React.FC<GameBoardProps> = ({
       )}
       
       {gameState === GameState.GAME_OVER && (
-        <div className="game-over-overlay absolute inset-0 flex items-center justify-center bg-black bg-opacity-70 z-20">
+        <div className="game-over-overlay fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
           <div className="bg-white p-6 rounded-lg text-center">
-            <h2 className="text-2xl font-bold mb-4">Game Over</h2>
+            <h2 className="text-2xl font-bold mb-4 text-red-600">Game Over</h2>
             <p className="text-lg mb-2">Score: {score}</p>
             <p className="text-md mb-4">Target: {targetScore}</p>
             <button 

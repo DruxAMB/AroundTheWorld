@@ -52,7 +52,7 @@ const LevelSelection: React.FC<LevelSelectionProps> = ({
           return (
             <div
               key={index}
-              className={`level-card p-4 rounded-lg border-2 transition-all duration-200 relative ${
+              className={`level-card p-4 rounded-lg border-2 transition-all duration-200 relative cursor-pointer ${
                 isUnlocked 
                   ? isActive 
                     ? 'border-blue-500 bg-blue-50' 
