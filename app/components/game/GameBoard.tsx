@@ -68,6 +68,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
           } else {
             setGameState(GameState.GAME_OVER);
             onGameStateChange(GameState.GAME_OVER);
+            playSound('gameOver'); // Play a dedicated game over sound
           }
           return 0;
         }

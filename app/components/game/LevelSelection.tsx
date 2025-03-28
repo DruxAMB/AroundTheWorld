@@ -35,7 +35,7 @@ const LevelSelection: React.FC<LevelSelectionProps> = ({
           return (
             <div
               key={index}
-              className={`level-card p-4 rounded-lg border-2 transition-all duration-200 ${
+              className={`level-card p-4 rounded-lg border-2 transition-all duration-200 relative ${
                 isUnlocked 
                   ? isActive 
                     ? 'border-blue-500 bg-blue-50' 
@@ -70,7 +70,7 @@ const LevelSelection: React.FC<LevelSelectionProps> = ({
               </div>
               
               {!isUnlocked && (
-                <div className="locked-overlay absolute inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50 rounded-lg">
+                <div className="locked-overlay absolute inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50 rounded-lg z-10">
                   <div className="flex items-center bg-white px-3 py-2 rounded-full">
                     <span className="text-lg mr-2">🔒</span>
                     <span className="font-medium">Complete previous level</span>

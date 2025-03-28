@@ -21,6 +21,10 @@ const sounds = {
   powerUp: new Howl({
     src: ['/sounds/power-up.mp3'],
     volume: 0.8
+  }),
+  gameOver: new Howl({
+    src: ['/sounds/game-over.mp3'],
+    volume: 1.0
   })
 };
 
