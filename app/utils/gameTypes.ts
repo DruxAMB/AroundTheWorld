@@ -85,7 +85,7 @@ export interface MatchResult {
 
 // Leaderboard entry
 export interface LeaderboardEntry {
-  address: string;
+  address: `0x${string}`;
   score: number;
   level: number;
   timestamp: number;
