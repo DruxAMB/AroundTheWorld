@@ -55,8 +55,11 @@ const Game: React.FC = () => {
 
   // Handle wallet connection
   const handleWalletConnect = (address: string) => {
+    // Only play the sound if the player address is changing
+    if (!playerAddress) {
+      playSound('transactionSuccess');
+    }
     setPlayerAddress(address as `0x${string}`);
-    playSound('transactionSuccess');
     // In a real app, we would fetch the player's progress from the blockchain here
   };
 
