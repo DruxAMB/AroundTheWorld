@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { PowerUp, PowerUpType } from '../../utils/gameTypes';
-import { powerUps } from '../../utils/gameData';
 import { playSound } from '../../utils/sound';
 
 interface PowerUpsProps {

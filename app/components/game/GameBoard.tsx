@@ -5,6 +5,7 @@ import { Cell, Position, GameItem, PowerUp, PowerUpType, GameState } from '../..
 import { createGrid, areAdjacent, swapCells, checkMatches, markMatchedCells, removeMatchedAndRefill, createPowerUp, checkPossibleMoves, shuffleGrid, applyPowerUp } from '../../utils/gameEngine';
 import { playSound, playComboSound } from '../../utils/sound';
 import PowerUps from './PowerUps';
+import Image from 'next/image';
 
 interface GameBoardProps {
   level: number;
@@ -376,7 +377,9 @@ const GameBoard: React.FC<GameBoardProps> = ({
             >
               {cell.item && (
                 <div className="w-full h-full p-1">
-                  <img 
+                  <Image
+                  height={100}
+                  width={100} 
                     src={cell.item.image} 
                     alt={cell.item.type}
                     className="w-full h-full object-cover rounded"

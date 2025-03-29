@@ -8,10 +8,8 @@ import GameBoard from './GameBoard';
 import WalletConnection from './WalletConnection';
 import LevelSelection from './LevelSelection';
 import Leaderboard from './Leaderboard';
-import PowerUps from './PowerUps';
-import { useAccount } from "wagmi";
 
-const SCHEMA_UID = "0xdc3cf7f28b4b5255ce732cbf99fe906a5bc13fbd764e2463ba6034b4e1881835";
+// const SCHEMA_UID = "0xdc3cf7f28b4b5255ce732cbf99fe906a5bc13fbd764e2463ba6034b4e1881835";
 
 const Game: React.FC = () => {
   // Game state
@@ -181,7 +179,7 @@ const Game: React.FC = () => {
                 <div className="free-play-option p-4 bg-white rounded-lg shadow-md">
                   <h2 className="text-xl font-bold mb-2">Free-to-Play Mode</h2>
                   <p className="text-sm text-gray-600 mb-4">
-                    Play without connecting a wallet. Your progress won't be saved.
+                    Play without connecting a wallet. Your progress won&apos;t be saved.
                   </p>
                   <button 
                     onClick={() => handleLevelSelect(0)}
@@ -306,7 +304,7 @@ const Game: React.FC = () => {
           <div className="game-won-screen flex flex-col items-center justify-center p-4">
             <div className="text-center mb-8">
               <h1 className="text-4xl font-bold mb-4">Congratulations!</h1>
-              <p className="text-xl mb-2">You've completed all levels!</p>
+              <p className="text-xl mb-2">You&apos;ve completed all levels!</p>
               <p className="text-2xl font-bold mb-6">Final Score: {score}</p>
               
               {playerAddress && (

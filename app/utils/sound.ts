@@ -18,6 +18,10 @@ const soundEffects = {
     src: ['/sounds/slash.mp3'],
     volume: 0.5
   }),
+  shuffle: new Howl({
+    src: ['/sounds/shuffle.mp3'],
+    volume: 0.6
+  }),
   
   // Combo Sounds
   combo2: new Howl({
@@ -184,7 +188,8 @@ export const setMute = (muted: boolean): void => {
   Howler.mute(muted);
 };
 
-export default {
+// Export the sound utility functions
+const soundUtils = {
   soundEffects,
   backgroundMusic,
   playSound,
@@ -196,3 +201,5 @@ export default {
   setSoundEffectsVolume,
   setMute
 };
+
+export default soundUtils;

@@ -4,9 +4,7 @@ import {
   GameItem, 
   MatchResult, 
   PowerUpType,
-  GameState
 } from './gameTypes';
-import { getItemsByRegion } from './gameData';
 import { playSound } from './sound';
 
 // Create a new game grid
@@ -285,41 +283,52 @@ export const removeMatchedAndRefill = (grid: Cell[][], items: GameItem[]): Cell[
 };
 
 // Apply power-up effect to the grid
-export const applyPowerUp = (grid: Cell[][], position: Position, powerUpType: PowerUpType, items: GameItem[]): { grid: Cell[][], score: number } => {
+export const applyPowerUp = (
+  grid: Cell[][], 
+  position: Position, 
+  powerUpType: PowerUpType,
+  // Items parameter is unused but kept for API compatibility
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _items: GameItem[]
+): { grid: Cell[][], score: number } => {
   const rows = grid.length;
   const cols = grid[0].length;
-  const newGrid = [...grid];
   let score = 0;
-  const affectedPositions: Position[] = [];
+  
+  // Create a copy of the grid
+  const newGrid = JSON.parse(JSON.stringify(grid));
   
   switch (powerUpType) {
     case PowerUpType.ROW_CLEAR:
-      // Clear entire row
+      // Clear the entire row
       for (let col = 0; col < cols; col++) {
         if (newGrid[position.row][col].item) {
-          affectedPositions.push({ row: position.row, col });
           score += 10;
+          newGrid[position.row][col].item = null;
+          newGrid[position.row][col].isMatched = true;
         }
       }
       break;
       
     case PowerUpType.COLUMN_CLEAR:
-      // Clear entire column
+      // Clear the entire column
       for (let row = 0; row < rows; row++) {
         if (newGrid[row][position.col].item) {
-          affectedPositions.push({ row, col: position.col });
           score += 10;
+          newGrid[row][position.col].item = null;
+          newGrid[row][position.col].isMatched = true;
         }
       }
       break;
       
     case PowerUpType.AREA_CLEAR:
-      // Clear 3x3 area around the position
+      // Clear a 3x3 area around the power-up
       for (let row = Math.max(0, position.row - 1); row <= Math.min(rows - 1, position.row + 1); row++) {
         for (let col = Math.max(0, position.col - 1); col <= Math.min(cols - 1, position.col + 1); col++) {
           if (newGrid[row][col].item) {
-            affectedPositions.push({ row, col });
             score += 10;
+            newGrid[row][col].item = null;
+            newGrid[row][col].isMatched = true;
           }
         }
       }
@@ -329,17 +338,11 @@ export const applyPowerUp = (grid: Cell[][], position: Position, powerUpType: Po
       break;
   }
   
-  // Mark affected positions as matched
-  affectedPositions.forEach(pos => {
-    newGrid[pos.row][pos.col].isMatched = true;
-  });
-  
-  // Play power-up sound
-  playSound('powerUp');
-  
-  // Remove the power-up from the cell
+  // Remove the power-up itself
+  newGrid[position.row][position.col].item = null;
+  newGrid[position.row][position.col].isMatched = true;
   newGrid[position.row][position.col].isPowerUp = false;
-  newGrid[position.row][position.col].powerUpType = undefined;
+  newGrid[position.row][position.col].powerUpType = null;
   
   return { grid: newGrid, score };
 };

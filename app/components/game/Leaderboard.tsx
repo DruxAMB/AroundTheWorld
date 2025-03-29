@@ -13,7 +13,7 @@ const EAS_GRAPHQL_URL = "https://base.easscan.org/graphql";
 
 const Leaderboard: React.FC<LeaderboardProps> = ({ playerAddress }) => {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Fetch leaderboard data
@@ -49,23 +49,24 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ playerAddress }) => {
         
         // Parse attestations into leaderboard entries
         const entries = (data?.attestations ?? [])
-          .map((attestation: any) => {
+          .map((attestation: Record<string, unknown>) => {
             try {
-              const parsedData = JSON.parse(attestation?.decodedDataJson ?? "[]");
+              const parsedData = JSON.parse(attestation?.decodedDataJson as string ?? "[]");
               const pattern = /(0x[a-fA-F0-9]{40}) scored (\d+) on level (\d+)/;
               const match = parsedData[0]?.value?.value?.match(pattern);
               
               if (match) {
-                const [_, address, score, level] = match;
+                const [matchAddress, score, level] = match;
                 return {
-                  address: address as `0x${string}`,
+                  address: matchAddress as `0x${string}`,
                   score: parseInt(score),
                   level: parseInt(level),
-                  timestamp: new Date(attestation.time).getTime()
+                  timestamp: new Date(attestation.time as string).getTime()
                 };
               }
               return null;
-            } catch (err) {
+            } catch (error) {
+              console.error("Error parsing attestation:", error);
               return null;
             }
           })
