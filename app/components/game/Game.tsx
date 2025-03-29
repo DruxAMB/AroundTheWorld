@@ -1,19 +1,21 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { GameState, Region } from '../../utils/gameTypes';
+import React, { useState, useEffect, useCallback } from 'react';
+import { GameState, Region, LeaderboardEntry } from '../../utils/gameTypes';
 import { levels, getLevel } from '../../utils/gameData';
 import { playSound, setMute, playBackgroundMusic, stopBackgroundMusic, setMusicVolume } from '../../utils/sound';
 import GameBoard from './GameBoard';
-import WalletConnection from './WalletConnection';
 import LevelSelection from './LevelSelection';
+import WalletConnection from './WalletConnection';
 import Leaderboard from './Leaderboard';
+import RewardsService from '../../services/rewardsService';
 
 // const SCHEMA_UID = "0xdc3cf7f28b4b5255ce732cbf99fe906a5bc13fbd764e2463ba6034b4e1881835";
 
 const Game: React.FC = () => {
   // Game state
   const [gameState, setGameState] = useState<GameState>(GameState.INTRO);
+  const [region, setRegion] = useState<Region>(Region.LATAM);
   const [currentLevel, setCurrentLevel] = useState<number>(0);
   const [unlockedLevels, setUnlockedLevels] = useState<number>(0);
   const [score, setScore] = useState<number>(0);
@@ -48,6 +50,9 @@ const Game: React.FC = () => {
     }
   }, [gameState, currentLevel]);
 
+  // Initialize rewards service
+  const rewardsService = RewardsService.getInstance();
+
   // Handle wallet connection
   const handleWalletConnect = (address: string) => {
     setPlayerAddress(address as `0x${string}`);
@@ -73,7 +78,7 @@ const Game: React.FC = () => {
   };
 
   // Handle game state changes
-  const handleGameStateChange = (newState: GameState) => {
+  const handleGameStateChange = useCallback((newState: GameState) => {
     setGameState(newState);
     
     if (newState === GameState.LEVEL_COMPLETE) {
@@ -84,8 +89,39 @@ const Game: React.FC = () => {
       }
     } else if (newState === GameState.GAME_OVER) {
       playSound('gameOver');
+    } else if (newState === GameState.GAME_WON) {
+      playSound('win');
+      
+      // Check if player is eligible for NFT reward
+      if (playerAddress) {
+        // This would normally fetch the actual leaderboard from the backend
+        // For demo purposes, we'll create a mock leaderboard
+        const mockLeaderboard: LeaderboardEntry[] = [
+          { address: playerAddress, score, level: region as unknown as number, timestamp: Date.now() },
+          // Add some mock entries
+          { address: '0x1234567890123456789012345678901234567890' as `0x${string}`, score: score - 1000, level: 0, timestamp: Date.now() },
+          { address: '0x2345678901234567890123456789012345678901' as `0x${string}`, score: score - 2000, level: 1, timestamp: Date.now() },
+          { address: '0x3456789012345678901234567890123456789012' as `0x${string}`, score: score - 3000, level: 2, timestamp: Date.now() },
+        ];
+        
+        // Check if it's time to distribute weekly rewards
+        if (rewardsService.isTimeToDistributeRewards()) {
+          // Distribute weekly rewards
+          rewardsService.distributeWeeklyRewards(mockLeaderboard)
+            .then(claimableLinks => {
+              if (claimableLinks.length > 0) {
+                console.log('Weekly rewards distributed:', claimableLinks);
+                // Play reward sound
+                playSound('reward');
+              }
+            })
+            .catch(error => {
+              console.error('Error distributing weekly rewards:', error);
+            });
+        }
+      }
     }
-  };
+  }, [currentLevel, unlockedLevels, playerAddress, score, region]);
 
   // Handle level completion
   const handleLevelComplete = () => {
@@ -101,7 +137,7 @@ const Game: React.FC = () => {
   };
 
   // Toggle sound mute
-  const toggleMute = () => {
+  const handleToggleMute = () => {
     playSound('click');
     const newMuteState = !isSoundMuted;
     setIsSoundMuted(newMuteState);
@@ -109,7 +145,7 @@ const Game: React.FC = () => {
   };
 
   // Adjust music volume
-  const adjustMusicVolume = (volume: number) => {
+  const handleMusicVolumeChange = (volume: number) => {
     playSound('click');
     setMusicVolumeState(volume);
     setMusicVolume(volume);
@@ -145,7 +181,7 @@ const Game: React.FC = () => {
                   <div className="flex justify-between items-center mb-3">
                     <span>Sound</span>
                     <button 
-                      onClick={toggleMute}
+                      onClick={handleToggleMute}
                       className="p-2 rounded-full hover:bg-gray-100"
                     >
                       {isSoundMuted ? '🔇' : '🔊'}
@@ -160,7 +196,7 @@ const Game: React.FC = () => {
                       max="1"
                       step="0.1"
                       value={musicVolume}
-                      onChange={(e) => adjustMusicVolume(parseFloat(e.target.value))}
+                      onChange={(e) => handleMusicVolumeChange(parseFloat(e.target.value))}
                       className="w-24"
                     />
                   </div>
@@ -222,7 +258,7 @@ const Game: React.FC = () => {
               </h1>
               
               <button 
-                onClick={toggleMute}
+                onClick={handleToggleMute}
                 className="sound-button p-2 rounded-full hover:bg-gray-100"
               >
                 {isSoundMuted ? '🔇' : '🔊'}

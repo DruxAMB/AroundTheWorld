@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { Identity, Name, Avatar } from "@coinbase/onchainkit/identity";
 import { LeaderboardEntry } from '../../utils/gameTypes';
+import { playSound } from '../../utils/sound';
+import NFTRewards from './NFTRewards';
 
 interface LeaderboardProps {
   playerAddress?: `0x${string}`;
@@ -110,7 +112,10 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ playerAddress }) => {
           <p>{error}</p>
           <button 
             className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-            onClick={() => window.location.reload()}
+            onClick={() => {
+              playSound('click');
+              window.location.reload();
+            }}
           >
             Retry
           </button>
@@ -176,6 +181,9 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ playerAddress }) => {
               })}
             </div>
           </div>
+          
+          {/* NFT Rewards Section */}
+          <NFTRewards playerAddress={playerAddress} leaderboard={leaderboard} />
         </>
       )}
     </div>
