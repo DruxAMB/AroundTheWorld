@@ -18,8 +18,10 @@ const LevelSelection: React.FC<LevelSelectionProps> = ({
 }) => {
   const handleLevelSelect = (levelIndex: number) => {
     if (levelIndex <= unlockedLevels) {
-      playSound('slash');
+      playSound('click');
       onSelectLevel(levelIndex);
+    } else {
+      playSound('transactionFailure');
     }
   };
 

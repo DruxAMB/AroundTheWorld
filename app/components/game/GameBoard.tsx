@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Cell, Position, GameItem, PowerUp, PowerUpType, GameState } from '../../utils/gameTypes';
 import { createGrid, areAdjacent, swapCells, checkMatches, markMatchedCells, removeMatchedAndRefill, createPowerUp, checkPossibleMoves, shuffleGrid, applyPowerUp } from '../../utils/gameEngine';
-import { playSound } from '../../utils/sound';
+import { playSound, playComboSound } from '../../utils/sound';
 import PowerUps from './PowerUps';
 
 interface GameBoardProps {
@@ -193,6 +193,17 @@ const GameBoard: React.FC<GameBoardProps> = ({
       const markedGrid = markMatchedCells(currentGrid, matchResult.matched);
       setGrid(markedGrid);
       
+      // Play match sound based on match size
+      if (matchResult.matched.length >= 5) {
+        playComboSound(4); // Big combo
+      } else if (matchResult.matched.length >= 4) {
+        playComboSound(3); // Medium combo
+      } else if (matchResult.matched.length >= 3) {
+        playComboSound(2); // Small combo
+      } else {
+        playSound('match');
+      }
+      
       // Update score with multiplier
       const scoreToAdd = matchResult.score * scoreMultiplier;
       setScore(prevScore => {
@@ -220,6 +231,9 @@ const GameBoard: React.FC<GameBoardProps> = ({
         // Create power-up in the grid
         const gridWithPowerUp = createPowerUp(markedGrid, powerUpPosition, powerUpType);
         setGrid(gridWithPowerUp);
+        
+        // Play power-up creation sound
+        playSound('powerUp');
       }
       
       // Remove matched cells and refill after a delay
@@ -254,18 +268,34 @@ const GameBoard: React.FC<GameBoardProps> = ({
       case PowerUpType.EXTRA_TIME:
         // Add 15 seconds to the timer
         setTimeRemaining(prev => prev + 15);
+        playSound('powerUp');
         break;
         
       case PowerUpType.SCORE_MULTIPLIER:
         // Double score for 30 seconds
         setScoreMultiplier(2);
         setMultiplierTimeRemaining(30);
+        playSound('powerUp');
+        break;
+        
+      case PowerUpType.ROW_CLEAR:
+        // Play specific sound for row clear power-up
+        playSound('rowClear');
+        break;
+        
+      case PowerUpType.COLUMN_CLEAR:
+        // Play specific sound for column clear power-up
+        playSound('columnClear');
+        break;
+        
+      case PowerUpType.AREA_CLEAR:
+        // Play specific sound for area clear power-up
+        playSound('areaClear');
         break;
         
       default:
-        // For other power-ups, they need a target cell
-        // We'll handle this in the UI by changing the game mode
-        // to "power-up selection" mode
+        // Generic power-up sound
+        playSound('powerUp');
         break;
     }
   }, [gameState]);

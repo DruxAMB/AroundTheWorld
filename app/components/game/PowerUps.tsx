@@ -12,7 +12,7 @@ interface PowerUpsProps {
 
 const PowerUps: React.FC<PowerUpsProps> = ({ availablePowerUps, onUsePowerUp }) => {
   const handleUsePowerUp = (powerUp: PowerUp) => {
-    playSound('powerUp');
+    playSound('click');
     onUsePowerUp(powerUp);
   };
 

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { GameState, Region } from '../../utils/gameTypes';
 import { levels, getLevel } from '../../utils/gameData';
-import { playSound, setMute } from '../../utils/sound';
+import { playSound, setMute, playBackgroundMusic, stopBackgroundMusic, setMusicVolume } from '../../utils/sound';
 import GameBoard from './GameBoard';
 import WalletConnection from './WalletConnection';
 import LevelSelection from './LevelSelection';
@@ -21,20 +21,52 @@ const Game: React.FC = () => {
   const [score, setScore] = useState<number>(0);
   const [playerAddress, setPlayerAddress] = useState<`0x${string}` | undefined>();
   const [isSoundMuted, setIsSoundMuted] = useState<boolean>(false);
+  const [musicVolume, setMusicVolumeState] = useState<number>(0.4);
   const [showLeaderboard, setShowLeaderboard] = useState<boolean>(false);
+
+  // Initialize background music
+  useEffect(() => {
+    // Play menu music when component mounts
+    playBackgroundMusic('menu');
+    
+    // Clean up when component unmounts
+    return () => {
+      stopBackgroundMusic();
+    };
+  }, []);
+
+  // Handle game state changes and play appropriate music
+  useEffect(() => {
+    if (gameState === GameState.PLAYING) {
+      // Play region-specific music when game starts
+      const region = getLevel(currentLevel).region;
+      playBackgroundMusic(region);
+    } else if (gameState === GameState.INTRO || 
+               gameState === GameState.LEVEL_COMPLETE || 
+               gameState === GameState.GAME_OVER || 
+               gameState === GameState.GAME_WON) {
+      // Play menu music for non-gameplay states
+      playBackgroundMusic('menu');
+    }
+  }, [gameState, currentLevel]);
 
   // Handle wallet connection
   const handleWalletConnect = (address: string) => {
     setPlayerAddress(address as `0x${string}`);
+    playSound('transactionSuccess');
     // In a real app, we would fetch the player's progress from the blockchain here
   };
 
   // Handle level selection
   const handleLevelSelect = (levelIndex: number) => {
+    playSound('click');
     setCurrentLevel(levelIndex);
     setGameState(GameState.PLAYING);
     setScore(0);
-    playSound('slash');
+    
+    // Play region-specific music
+    const region = getLevel(levelIndex).region;
+    playBackgroundMusic(region);
   };
 
   // Handle score updates
@@ -47,7 +79,7 @@ const Game: React.FC = () => {
     setGameState(newState);
     
     if (newState === GameState.LEVEL_COMPLETE) {
-      playSound('win');
+      playSound('levelComplete');
       // Unlock next level if this is the highest level completed
       if (currentLevel === unlockedLevels) {
         setUnlockedLevels(prev => Math.min(prev + 1, levels.length - 1));
@@ -72,13 +104,22 @@ const Game: React.FC = () => {
 
   // Toggle sound mute
   const toggleMute = () => {
+    playSound('click');
     const newMuteState = !isSoundMuted;
     setIsSoundMuted(newMuteState);
     setMute(newMuteState);
   };
 
+  // Adjust music volume
+  const adjustMusicVolume = (volume: number) => {
+    playSound('click');
+    setMusicVolumeState(volume);
+    setMusicVolume(volume);
+  };
+
   // Toggle leaderboard visibility
   const toggleLeaderboard = () => {
+    playSound('click');
     setShowLeaderboard(prev => !prev);
   };
 
@@ -111,6 +152,19 @@ const Game: React.FC = () => {
                     >
                       {isSoundMuted ? '🔇' : '🔊'}
                     </button>
+                  </div>
+                  
+                  <div className="flex justify-between items-center mb-3">
+                    <span>Music Volume</span>
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.1"
+                      value={musicVolume}
+                      onChange={(e) => adjustMusicVolume(parseFloat(e.target.value))}
+                      className="w-24"
+                    />
                   </div>
                   
                   <div className="flex justify-between items-center">
@@ -200,6 +254,7 @@ const Game: React.FC = () => {
               <button 
                 className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
                 onClick={() => {
+                  playSound('click');
                   // Move to next level
                   setCurrentLevel(prev => prev + 1);
                   setGameState(GameState.PLAYING);
@@ -223,6 +278,7 @@ const Game: React.FC = () => {
                 <button 
                   className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
                   onClick={() => {
+                    playSound('click');
                     // Retry the current level
                     setGameState(GameState.PLAYING);
                     setScore(0);
@@ -233,6 +289,7 @@ const Game: React.FC = () => {
                 <button 
                   className="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
                   onClick={() => {
+                    playSound('click');
                     // Go back to level selection
                     setGameState(GameState.INTRO);
                   }}
@@ -257,6 +314,7 @@ const Game: React.FC = () => {
                   <button 
                     className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
                     onClick={() => {
+                      playSound('reward');
                       // In a real implementation, this would submit the score to the blockchain
                       alert(`Score submitted: ${score} points on level ${currentLevel + 1}`);
                     }}
@@ -267,7 +325,10 @@ const Game: React.FC = () => {
               )}
               
               <button 
-                onClick={() => setGameState(GameState.INTRO)}
+                onClick={() => {
+                  playSound('click');
+                  setGameState(GameState.INTRO);
+                }}
                 className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
               >
                 Back to Home
