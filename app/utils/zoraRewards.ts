@@ -1,11 +1,15 @@
-import { createPublicClient, createWalletClient, http, encodeFunctionData } from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
-import { base } from 'viem/chains';
-import { zoraNFTCreatorV1ABI } from '@/app/constants/zoraNFTCreatorV1ABI';
+// Import only what we need for the types
 import { LeaderboardEntry } from './gameTypes';
 
-// Zora NFT Creator contract address on Base
+// Zora NFT Creator contract address on Base (kept for reference)
 const ZORA_NFT_CREATOR_ADDRESS = '0x04E2516A2c207E84a1839755675dfd8eF6302F0a';
+
+/*
+// These imports and variables are commented out since we're in simulation mode
+// They will be uncommented when implementing real blockchain interactions
+import { createPublicClient, createWalletClient, http } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
+import { base } from 'viem/chains';
 
 // Environment variables should be set in .env.local
 const ADMIN_PRIVATE_KEY = process.env.ADMIN_PRIVATE_KEY as `0x${string}`;
@@ -28,6 +32,7 @@ const walletClient = account
       transport: http(RPC_URL),
     })
   : undefined;
+*/
 
 // Interface for NFT metadata
 interface NFTMetadata {

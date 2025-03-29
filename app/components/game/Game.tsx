@@ -15,7 +15,8 @@ import RewardsService from '../../services/rewardsService';
 const Game: React.FC = () => {
   // Game state
   const [gameState, setGameState] = useState<GameState>(GameState.INTRO);
-  const [region, setRegion] = useState<Region>(Region.LATAM);
+  // Keep region state for background music and level theming
+  const [region] = useState<Region>(Region.LATAM);
   const [currentLevel, setCurrentLevel] = useState<number>(0);
   const [unlockedLevels, setUnlockedLevels] = useState<number>(0);
   const [score, setScore] = useState<number>(0);
@@ -124,7 +125,7 @@ const Game: React.FC = () => {
         }
       }
     }
-  }, [currentLevel, unlockedLevels, playerAddress, score, region]);
+  }, [currentLevel, unlockedLevels, playerAddress, score, region, rewardsService]);
 
   // Handle level completion
   const handleLevelComplete = () => {
