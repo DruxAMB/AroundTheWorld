@@ -416,6 +416,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
         <div className="game-over-overlay fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
           <div className="bg-white p-6 rounded-lg text-center">
             <h2 className="text-2xl font-bold mb-4 text-red-600">Game Over</h2>
+            <p className='text-5xl mb-2'>😖</p>
             <p className="text-lg mb-2">Score: {score}</p>
             <p className="text-md mb-4">Target: {targetScore}</p>
             <button 
