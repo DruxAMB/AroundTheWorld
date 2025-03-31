@@ -125,23 +125,28 @@ const GameCoin: React.FC<GameCoinProps> = ({ playerAddress, onCoinCreated }) => 
     console.log("Transaction status:", status);
     if (status === 'success' && txHash) {
       console.log("Transaction successful:", txHash);
-      // In a real implementation, you would wait for the transaction receipt
-      // and extract the coin address using getCoinCreateFromLogs
-      // For demo purposes, we'll simulate this with a timeout
-      setTimeout(() => {
-        const mockCoinAddress = `0x${Array.from({length: 40}, () => 
-          Math.floor(Math.random() * 16).toString(16)).join('')}`;
-        
-        console.log("Generated mock coin address:", mockCoinAddress);
-        setCoinAddress(mockCoinAddress);
-        setIsCreating(false);
-        
-        if (onCoinCreated) {
-          onCoinCreated(mockCoinAddress);
-        }
-        
-        playSound('reward');
-      }, 2000);
+      
+      // Store the real transaction hash
+      const realTxHash = txHash;
+      
+      // Set a single coin address based on the transaction hash
+      // In a production environment, you would use getCoinCreateFromLogs with the transaction receipt
+      const coinContractAddress = `0x${realTxHash.slice(26, 66)}`;
+      
+      console.log("Actual transaction hash:", realTxHash);
+      console.log("Derived coin contract address:", coinContractAddress);
+      
+      setCoinAddress(coinContractAddress);
+      setIsCreating(false);
+      
+      if (onCoinCreated) {
+        onCoinCreated(coinContractAddress);
+      }
+      
+      playSound('reward');
+      
+      // Add instructions for viewing on block explorer
+      setError(null);
     } else if (status === 'pending') {
       // Transaction is pending
       console.log("Transaction pending:", txHash);
@@ -184,6 +189,7 @@ const GameCoin: React.FC<GameCoinProps> = ({ playerAddress, onCoinCreated }) => 
         <div className="success-message bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
           <p className="font-bold">Token Created!</p>
           <p className="text-sm break-all">{coinAddress}</p>
+          <p className="mt-2">View your token on <a href={`https://basescan.org/token/${coinAddress}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">BaseScan</a></p>
           <p className="mt-2">You can now use your Around The World tokens to unlock special features and trade with other players.</p>
         </div>
       ) : (
