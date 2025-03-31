@@ -49,7 +49,13 @@ const GameCoin: React.FC<GameCoinProps> = ({ playerAddress, onCoinCreated }) => 
     
     try {
       playSound('transactionSuccess');
-      writeContract?.(writeConfig);
+      if (writeConfig?.request) {
+        writeContract(writeConfig.request);
+      } else {
+        setError("Failed to prepare transaction. Please try again.");
+        playSound('transactionFailure');
+        setIsCreating(false);
+      }
     } catch (err) {
       console.error("Error creating coin:", err);
       setError("Failed to create coin. Please try again.");
