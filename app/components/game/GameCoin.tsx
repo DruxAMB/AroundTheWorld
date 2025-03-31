@@ -17,14 +17,28 @@ const GameCoin: React.FC<GameCoinProps> = ({ playerAddress, onCoinCreated }) => 
   const [isCreating, setIsCreating] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
+  // Log player address for debugging
+  React.useEffect(() => {
+    console.log("Current player address:", playerAddress);
+  }, [playerAddress]);
+
   // Define coin parameters for Around The World game token
   const coinParams = {
     name: "Around The World Token",
     symbol: "ATW",
-    uri: "ipfs://bafybeigoxzqzbnxsn35vq7lls3ljxdcwjafxvbvkivprsodzrptpiguysy", // Replace with your actual metadata URI
+    uri: "ipfs://bafkreiedwy5jqodx7tec3xtb6jzkrxpyrorzdduls7skr7is6s4ks4jkgu", // metadata URI
     payoutRecipient: playerAddress || "0x434d6c335a1739f6d18362Dd13B282930aBbdCDe" as Address, // Default to druxamb.base.eth if no player address
     platformReferrer: "0x434d6c335a1739f6d18362Dd13B282930aBbdCDe" as Address, // Optional platform referrer
   };
+
+  // Log coin parameters for debugging
+  React.useEffect(() => {
+    console.log("Coin parameters:", {
+      ...coinParams,
+      payoutRecipient: coinParams.payoutRecipient.toString(),
+      platformReferrer: coinParams.platformReferrer.toString()
+    });
+  }, [coinParams.payoutRecipient]);
 
   // Create configuration for wagmi
   const contractCallParams = createCoinCall(coinParams);
@@ -33,6 +47,16 @@ const GameCoin: React.FC<GameCoinProps> = ({ playerAddress, onCoinCreated }) => 
   const { data: writeConfig, error: simulateError } = useSimulateContract({
     ...contractCallParams,
   });
+
+  // Log simulation results
+  React.useEffect(() => {
+    if (simulateError) {
+      console.error("Simulation error:", simulateError);
+    }
+    if (writeConfig) {
+      console.log("Write config available:", !!writeConfig);
+    }
+  }, [writeConfig, simulateError]);
 
   // Setup contract write
   const { writeContract, status, data: txHash, error: writeError } = useWriteContract();
@@ -66,7 +90,9 @@ const GameCoin: React.FC<GameCoinProps> = ({ playerAddress, onCoinCreated }) => 
 
   // Watch for transaction status changes
   React.useEffect(() => {
+    console.log("Transaction status:", status);
     if (status === 'success' && txHash) {
+      console.log("Transaction successful:", txHash);
       // In a real implementation, you would wait for the transaction receipt
       // and extract the coin address using getCoinCreateFromLogs
       // For demo purposes, we'll simulate this with a timeout
@@ -74,6 +100,7 @@ const GameCoin: React.FC<GameCoinProps> = ({ playerAddress, onCoinCreated }) => 
         const mockCoinAddress = `0x${Array.from({length: 40}, () => 
           Math.floor(Math.random() * 16).toString(16)).join('')}`;
         
+        console.log("Generated mock coin address:", mockCoinAddress);
         setCoinAddress(mockCoinAddress);
         setIsCreating(false);
         
@@ -83,12 +110,21 @@ const GameCoin: React.FC<GameCoinProps> = ({ playerAddress, onCoinCreated }) => 
         
         playSound('reward');
       }, 2000);
+    } else if (status === 'pending') {
+      // Transaction is pending
+      console.log("Transaction pending:", txHash);
     } else if (status === 'error') {
-      setError("Transaction failed. Please try again.");
+      console.error("Transaction error details:", {
+        error: writeError,
+        message: writeError?.message,
+        name: writeError?.name,
+        stack: writeError?.stack
+      });
+      setError(`Transaction failed: ${writeError?.message || "Unknown error"}`);
       setIsCreating(false);
       playSound('transactionFailure');
     }
-  }, [status, txHash, onCoinCreated]);
+  }, [status, txHash, onCoinCreated, writeError]);
 
   return (
     <div className="game-coin p-4 bg-white rounded-lg shadow-md">
