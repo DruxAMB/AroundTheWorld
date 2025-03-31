@@ -13,6 +13,7 @@
     "@shadcn/ui": "^0.0.4",
     "@tanstack/react-query": "^5",
     "@upstash/redis": "^1.34.4",
+    "@zoralabs/coins-sdk": "^0.0.3",
     "@zoralabs/zora-721-contracts": "^1.15.4",
     "framer-motion": "^12.6.2",
     "howler": "^2.2.4",

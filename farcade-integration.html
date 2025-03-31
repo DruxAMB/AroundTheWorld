@@ -389,6 +389,39 @@
       click: new Audio('https://assets.mixkit.co/sfx/preview/mixkit-select-click-1109.mp3')
     };
 
+    // Background music
+    let backgroundMusic = null;
+    const musicTracks = {
+      // Replace this URL with the actual Pixabay audio URL when available
+      menu: 'https://cdn.pixabay.com/download/audio/2022/03/10/audio_99ccb0f805.mp3?filename=game-music-loop-7-145285.mp3',
+      latam: 'https://cdn.pixabay.com/download/audio/2022/03/10/audio_99ccb0f805.mp3?filename=game-music-loop-7-145285.mp3',
+      africa: 'https://cdn.pixabay.com/download/audio/2022/03/10/audio_99ccb0f805.mp3?filename=game-music-loop-7-145285.mp3',
+      'southeast-asia': 'https://cdn.pixabay.com/download/audio/2022/03/10/audio_99ccb0f805.mp3?filename=game-music-loop-7-145285.mp3',
+      india: 'https://cdn.pixabay.com/download/audio/2022/03/10/audio_99ccb0f805.mp3?filename=game-music-loop-7-145285.mp3'
+    };
+
+    // Play background music
+    function playBackgroundMusic(track) {
+      stopBackgroundMusic();
+      
+      if (isMuted) return;
+      
+      if (musicTracks[track]) {
+        backgroundMusic = new Audio(musicTracks[track]);
+        backgroundMusic.loop = true;
+        backgroundMusic.volume = 0.3;
+        backgroundMusic.play().catch(error => console.log('Background music play error:', error));
+      }
+    }
+
+    // Stop background music
+    function stopBackgroundMusic() {
+      if (backgroundMusic) {
+        backgroundMusic.pause();
+        backgroundMusic = null;
+      }
+    }
+
     // Play sound function
     function playSound(soundName) {
       if (!isMuted && sounds[soundName]) {
@@ -527,6 +560,8 @@
         case GameState.INTRO:
           startScreen.style.display = 'flex';
           stopTimer();
+          stopBackgroundMusic();
+          playBackgroundMusic('menu');
           break;
         case GameState.PLAYING:
           // Game is already visible
@@ -577,6 +612,9 @@
       
       // Set game state to playing
       setGameState(GameState.PLAYING);
+      
+      // Play background music for the region
+      playBackgroundMusic(level.region);
     }
 
     // Create a new game grid
