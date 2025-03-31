@@ -32,7 +32,6 @@ const GameCoin: React.FC<GameCoinProps> = ({ playerAddress, onCoinCreated }) => 
   // Simulate contract call
   const { data: writeConfig, error: simulateError } = useSimulateContract({
     ...contractCallParams,
-    enabled: !!playerAddress,
   });
 
   // Setup contract write
