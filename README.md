@@ -139,6 +139,9 @@ Players who complete all levels can create their own ERC20 tokens:
 - Custom token parameters including name, symbol, and metadata
 - Tokens can be used for future game features and trading
 - Implementation uses @zoralabs/coins-sdk for seamless token creation
+- Players earn royalties as the `payoutRecipient` for their created tokens
+
+### Token Creation Parameters
 
 ```tsx
 // Example of Zora Coins SDK integration
@@ -153,6 +156,17 @@ const coinParams = {
 // Create configuration for wagmi
 const contractCallParams = createCoinCall(coinParams);
 ```
+
+### Royalty Distribution
+
+The `payoutRecipient` address in the token creation parameters serves several important functions:
+
+1. **Creator Royalties**: This address receives a portion of fees generated whenever someone buys or sells the token
+2. **Permanent Assignment**: Once set during token creation, it cannot be changed later
+3. **Player Benefits**: By setting the player's wallet as the `payoutRecipient`, they earn royalties from any future economic activity involving their token
+4. **Default Fallback**: If no player address is available, it defaults to the game creator's address
+
+This incentivizes players to connect their wallets before creating tokens, as they'll directly benefit from the token's future usage and trading activity.
 
 ## 🎵 Sound Effects
 

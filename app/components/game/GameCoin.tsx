@@ -22,7 +22,7 @@ const GameCoin: React.FC<GameCoinProps> = ({ playerAddress, onCoinCreated }) => 
     name: "Around The World Token",
     symbol: "ATW",
     uri: "ipfs://bafybeigoxzqzbnxsn35vq7lls3ljxdcwjafxvbvkivprsodzrptpiguysy", // Replace with your actual metadata URI
-    payoutRecipient: playerAddress || "0xaf59B12ea11914A0373ffbb13FF8b03F8537C599" as Address, // Default to druxamb if no player address
+    payoutRecipient: playerAddress || "0x434d6c335a1739f6d18362Dd13B282930aBbdCDe" as Address, // Default to druxamb.base.eth if no player address
     platformReferrer: "0x434d6c335a1739f6d18362Dd13B282930aBbdCDe" as Address, // Optional platform referrer
   };
 
