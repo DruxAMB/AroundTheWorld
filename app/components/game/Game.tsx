@@ -9,6 +9,7 @@ import LevelSelection from './LevelSelection';
 import WalletConnection from './WalletConnection';
 import Leaderboard from './Leaderboard';
 import RewardsService from '../../services/rewardsService';
+import GameCoin from './GameCoin';
 
 // const SCHEMA_UID = "0xdc3cf7f28b4b5255ce732cbf99fe906a5bc13fbd764e2463ba6034b4e1881835";
 
@@ -16,7 +17,7 @@ const Game: React.FC = () => {
   // Game state
   const [gameState, setGameState] = useState<GameState>(GameState.INTRO);
   // Keep region state for background music and level theming
-  const [region] = useState<Region>(Region.LATAM);
+  const [region, setRegion] = useState<Region>(Region.LATAM);
   const [currentLevel, setCurrentLevel] = useState<number>(0);
   const [unlockedLevels, setUnlockedLevels] = useState<number>(0);
   const [score, setScore] = useState<number>(0);
@@ -24,6 +25,8 @@ const Game: React.FC = () => {
   const [isSoundMuted, setIsSoundMuted] = useState<boolean>(false);
   const [musicVolume, setMusicVolumeState] = useState<number>(0.4);
   const [showLeaderboard, setShowLeaderboard] = useState<boolean>(false);
+  const [showCoinCreator, setShowCoinCreator] = useState<boolean>(false);
+  const [playerCoinAddress, setPlayerCoinAddress] = useState<string | null>(null);
 
   // Initialize background music
   useEffect(() => {
@@ -159,6 +162,19 @@ const Game: React.FC = () => {
   const toggleLeaderboard = () => {
     playSound('click');
     setShowLeaderboard(prev => !prev);
+  };
+
+  // Handle coin creation
+  const handleCoinCreated = (coinAddress: string) => {
+    setPlayerCoinAddress(coinAddress);
+    playSound('reward');
+    console.log(`Player created coin at address: ${coinAddress}`);
+  };
+
+  // Toggle coin creator visibility
+  const toggleCoinCreator = () => {
+    playSound('click');
+    setShowCoinCreator(prev => !prev);
   };
 
   // Get the current level configuration
@@ -348,17 +364,29 @@ const Game: React.FC = () => {
               <p className="text-2xl font-bold mb-6">Final Score: {score}</p>
               
               {playerAddress && (
-                <div className="submit-score mb-6">
-                  <button 
-                    className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                    onClick={() => {
-                      playSound('reward');
-                      // In a real implementation, this would submit the score to the blockchain
-                      alert(`Score submitted: ${score} points on level ${currentLevel + 1}`);
-                    }}
+                <div className="flex flex-col space-y-4">
+                  <button
+                    onClick={toggleCoinCreator}
+                    className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
                   >
-                    Submit Score to Leaderboard
+                    {showCoinCreator ? 'Hide Token Creator' : 'Create Your Game Token'}
                   </button>
+                  
+                  {showCoinCreator && (
+                    <div className="mt-4">
+                      <GameCoin 
+                        playerAddress={playerAddress} 
+                        onCoinCreated={handleCoinCreated} 
+                      />
+                    </div>
+                  )}
+                  
+                  {playerCoinAddress && (
+                    <div className="mt-4 p-4 bg-green-100 text-green-800 rounded-lg">
+                      <p className="font-bold">Your Game Token Created!</p>
+                      <p className="text-sm break-all">{playerCoinAddress}</p>
+                    </div>
+                  )}
                 </div>
               )}
               
