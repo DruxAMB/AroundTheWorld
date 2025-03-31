@@ -4,7 +4,8 @@ import * as React from "react";
 import { createCoinCall } from "@zoralabs/coins-sdk";
 import { getCoinCreateFromLogs } from "@zoralabs/coins-sdk";
 import { Address } from "viem";
-import { useWriteContract, useSimulateContract } from "wagmi";
+import { useWriteContract, useSimulateContract, useSwitchChain, useChainId } from "wagmi";
+import { base } from "wagmi/chains";
 import { playSound } from "../../utils/sound";
 
 interface GameCoinProps {
@@ -16,6 +17,20 @@ const GameCoin: React.FC<GameCoinProps> = ({ playerAddress, onCoinCreated }) => 
   const [coinAddress, setCoinAddress] = React.useState<string | null>(null);
   const [isCreating, setIsCreating] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const currentChainId = useChainId();
+  const { switchChain } = useSwitchChain();
+  const [needsChainSwitch, setNeedsChainSwitch] = React.useState(false);
+
+  // Check if we're on the correct chain (Base)
+  React.useEffect(() => {
+    if (currentChainId !== base.id) {
+      setNeedsChainSwitch(true);
+      console.log(`Wrong chain detected. Current: ${currentChainId}, Expected: ${base.id} (Base)`);
+    } else {
+      setNeedsChainSwitch(false);
+      console.log("Connected to Base chain correctly");
+    }
+  }, [currentChainId]);
 
   // Log player address for debugging
   React.useEffect(() => {
@@ -46,6 +61,7 @@ const GameCoin: React.FC<GameCoinProps> = ({ playerAddress, onCoinCreated }) => 
   // Simulate contract call
   const { data: writeConfig, error: simulateError } = useSimulateContract({
     ...contractCallParams,
+    chainId: base.id,
   });
 
   // Log simulation results
@@ -61,10 +77,26 @@ const GameCoin: React.FC<GameCoinProps> = ({ playerAddress, onCoinCreated }) => 
   // Setup contract write
   const { writeContract, status, data: txHash, error: writeError } = useWriteContract();
 
+  // Handle chain switching
+  const handleSwitchChain = () => {
+    try {
+      switchChain({ chainId: base.id });
+    } catch (err) {
+      console.error("Error switching chain:", err);
+      setError("Failed to switch to Base network. Please switch manually in your wallet.");
+    }
+  };
+
   // Handle coin creation
   const handleCreateCoin = () => {
     if (!playerAddress) {
       setError("Please connect your wallet first");
+      return;
+    }
+
+    // Check if we need to switch chains first
+    if (currentChainId !== base.id) {
+      handleSwitchChain();
       return;
     }
 
@@ -133,6 +165,18 @@ const GameCoin: React.FC<GameCoinProps> = ({ playerAddress, onCoinCreated }) => 
       {error && (
         <div className="error-message bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
           {error}
+        </div>
+      )}
+      
+      {needsChainSwitch && (
+        <div className="chain-switch-message bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-4">
+          <p>You need to switch to the Base network to create tokens.</p>
+          <button 
+            onClick={handleSwitchChain}
+            className="mt-2 bg-yellow-500 hover:bg-yellow-600 text-white py-1 px-3 rounded transition-colors"
+          >
+            Switch to Base
+          </button>
         </div>
       )}
       
