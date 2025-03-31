@@ -1,0 +1,1347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Around The World</title>
+  <script src="https://unpkg.com/@farcade/game-sdk@latest/dist/index.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background: #000;
+      font-family: 'Arial', sans-serif;
+    }
+
+    .emulator-frame {
+      position: relative;
+      width: 100%;
+      max-width: 400px;
+      background: #1a1a1a;
+      border-radius: 10px;
+      padding: 1px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .emulator-header {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 6px;
+      color: white;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    p {
+      margin: 0;
+    }
+
+    .game-container {
+      position: relative;
+      width: 100%;
+      padding-top: 160%;
+      background: #000;
+      overflow: hidden;
+      border-radius: 0 0 10px 0;
+    }
+
+    #gameCanvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #fff;
+      border-radius: 0 0 10px 0;
+    }
+
+    .game-info {
+      position: absolute;
+      top: 10px;
+      left: 0;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      padding: 10px;
+      color: #333;
+      font-weight: bold;
+      z-index: 10;
+    }
+
+    .game-grid {
+      position: absolute;
+      top: 60px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: grid;
+      gap: 4px;
+      background: rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+      padding: 8px;
+    }
+
+    .game-cell {
+      width: 40px;
+      height: 40px;
+      background: white;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .game-cell.selected {
+      transform: scale(1.1);
+      box-shadow: 0 0 10px rgba(0, 100, 255, 0.8);
+      z-index: 2;
+    }
+
+    .game-cell.matched {
+      opacity: 0.5;
+    }
+
+    .game-cell.power-up {
+      background: rgba(100, 200, 255, 0.2);
+    }
+
+    .cell-image {
+      width: 90%;
+      height: 90%;
+      object-fit: cover;
+      border-radius: 4px;
+    }
+
+    .power-up-icon {
+      position: absolute;
+      font-size: 20px;
+    }
+
+    .screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      z-index: 20;
+    }
+
+    .screen h1 {
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+
+    .screen p {
+      margin-bottom: 15px;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      margin: 5px;
+      border: none;
+      border-radius: 20px;
+      background: #4a90e2;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn:hover {
+      background: #3a80d2;
+    }
+
+    .region-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 10px;
+      width: 120px;
+    }
+
+    .region-img {
+      width: 80px;
+      height: 80px;
+      border-radius: 10px;
+      margin-bottom: 5px;
+      object-fit: cover;
+    }
+
+    .power-ups {
+      position: absolute;
+      top: 500px;
+      left: 0;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      z-index: 10;
+    }
+
+    .power-up-btn {
+      width: 40px;
+      height: 40px;
+      background: rgba(100, 200, 255, 0.2);
+      border: 2px solid #4a90e2;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      cursor: pointer;
+    }
+
+    .mute-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 30px;
+      height: 30px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 30;
+    }
+  </style>
+</head>
+<body>
+  <div class="emulator-frame">
+    <div class="emulator-header">
+      <div>Farcade</div>
+      <p style="font-size: 12px; color: #888">Mini App</p>
+    </div>
+    <div class="game-container">
+      <div id="gameCanvas">
+        <div class="game-info">
+          <div id="score">Score: 0</div>
+          <div id="timer">Time: 2:00</div>
+        </div>
+        <div id="gameGrid" class="game-grid"></div>
+        <div id="powerUps" class="power-ups"></div>
+        <div id="muteBtn" class="mute-btn">🔊</div>
+      </div>
+      <div id="startScreen" class="screen">
+        <h1>AROUND THE WORLD</h1>
+        <p>Match 3 or more items to score points!</p>
+        <div id="regionSelection"></div>
+      </div>
+      <div id="levelCompleteScreen" class="screen" style="display: none;">
+        <h1>LEVEL COMPLETE!</h1>
+        <p>Score: <span id="levelScore">0</span></p>
+        <button id="nextLevelBtn" class="btn">Next Level</button>
+      </div>
+      <div id="gameOverScreen" class="screen" style="display: none;">
+        <h1>GAME OVER</h1>
+        <p>Score: <span id="finalScore">0</span></p>
+        <button id="tryAgainBtn" class="btn">Try Again</button>
+        <button id="homeBtn" class="btn">Home</button>
+      </div>
+      <div id="gameWonScreen" class="screen" style="display: none;">
+        <h1>CONGRATULATIONS!</h1>
+        <p>You've completed all levels!</p>
+        <p>Final Score: <span id="winScore">0</span></p>
+        <button id="playAgainBtn" class="btn">Play Again</button>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Game state variables
+    const GameState = {
+      INTRO: 'intro',
+      PLAYING: 'playing',
+      LEVEL_COMPLETE: 'level_complete',
+      GAME_OVER: 'game_over',
+      GAME_WON: 'game_won'
+    };
+
+    const Region = {
+      LATAM: 'latam',
+      AFRICA: 'africa',
+      SOUTHEAST_ASIA: 'southeast-asia',
+      INDIA: 'india'
+    };
+
+    const PowerUpType = {
+      ROW_CLEAR: 'row_clear',
+      COLUMN_CLEAR: 'column_clear',
+      AREA_CLEAR: 'area_clear',
+      EXTRA_TIME: 'extra_time',
+      SCORE_MULTIPLIER: 'score_multiplier'
+    };
+
+    // Game state
+    let gameState = GameState.INTRO;
+    let currentLevel = 0;
+    let score = 0;
+    let timeRemaining = 120;
+    let timerInterval = null;
+    let grid = [];
+    let selectedCell = null;
+    let availablePowerUps = [];
+    let scoreMultiplier = 1;
+    let multiplierTimeRemaining = 0;
+    let isMuted = false;
+
+    // DOM elements
+    const gameCanvas = document.getElementById('gameCanvas');
+    const gameGridElement = document.getElementById('gameGrid');
+    const scoreElement = document.getElementById('score');
+    const timerElement = document.getElementById('timer');
+    const startScreen = document.getElementById('startScreen');
+    const levelCompleteScreen = document.getElementById('levelCompleteScreen');
+    const gameOverScreen = document.getElementById('gameOverScreen');
+    const gameWonScreen = document.getElementById('gameWonScreen');
+    const regionSelectionElement = document.getElementById('regionSelection');
+    const levelScoreElement = document.getElementById('levelScore');
+    const finalScoreElement = document.getElementById('finalScore');
+    const winScoreElement = document.getElementById('winScore');
+    const nextLevelBtn = document.getElementById('nextLevelBtn');
+    const tryAgainBtn = document.getElementById('tryAgainBtn');
+    const homeBtn = document.getElementById('homeBtn');
+    const playAgainBtn = document.getElementById('playAgainBtn');
+    const powerUpsElement = document.getElementById('powerUps');
+    const muteBtn = document.getElementById('muteBtn');
+
+    // Game data
+    const levels = [
+      {
+        region: Region.LATAM,
+        gridSize: { rows: 8, cols: 8 },
+        targetScore: 1000,
+        timeLimit: 120,
+        items: [
+          { id: 'latam-1', type: 'taco', image: '/latam/aneri.jpg', region: Region.LATAM },
+          { id: 'latam-2', type: 'empanada', image: '/latam/bobby.jpg', region: Region.LATAM },
+          { id: 'latam-3', type: 'acai', image: '/latam/david.jpg', region: Region.LATAM },
+          { id: 'latam-4', type: 'churro', image: '/latam/jacob.jpg', region: Region.LATAM },
+          { id: 'latam-5', type: 'guacamole', image: '/latam/jesse.jpg', region: Region.LATAM },
+          { id: 'latam-6', type: 'ceviche', image: '/latam/poet.jpg', region: Region.LATAM }
+        ]
+      },
+      {
+        region: Region.AFRICA,
+        gridSize: { rows: 8, cols: 8 },
+        targetScore: 2000,
+        timeLimit: 120,
+        items: [
+          { id: 'africa-1', type: 'lion', image: '/africa/dami.jpg', region: Region.AFRICA },
+          { id: 'africa-2', type: 'drum', image: '/africa/defidevrel.jpg', region: Region.AFRICA },
+          { id: 'africa-3', type: 'mask', image: '/africa/iamcharis.jpg', region: Region.AFRICA },
+          { id: 'africa-4', type: 'baobab', image: '/africa/kcpele.jpg', region: Region.AFRICA },
+          { id: 'africa-5', type: 'zebra', image: '/africa/kokocodes.jpg', region: Region.AFRICA },
+          { id: 'africa-6', type: 'giraffe', image: '/africa/njokuscript.jpg', region: Region.AFRICA }
+        ]
+      },
+      {
+        region: Region.SOUTHEAST_ASIA,
+        gridSize: { rows: 9, cols: 9 },
+        targetScore: 3000,
+        timeLimit: 150,
+        items: [
+          { id: 'sea-1', type: 'padthai', image: '/southeast-asia/aneri.jpg', region: Region.SOUTHEAST_ASIA },
+          { id: 'sea-2', type: 'satay', image: '/southeast-asia/bobby.jpg', region: Region.SOUTHEAST_ASIA },
+          { id: 'sea-3', type: 'boba', image: '/southeast-asia/dami.jpg', region: Region.SOUTHEAST_ASIA },
+          { id: 'sea-4', type: 'springroll', image: '/southeast-asia/jacob.jpg', region: Region.SOUTHEAST_ASIA },
+          { id: 'sea-5', type: 'curry', image: '/southeast-asia/jesse.jpg', region: Region.SOUTHEAST_ASIA },
+          { id: 'sea-6', type: 'noodle', image: '/southeast-asia/nabu.jpg', region: Region.SOUTHEAST_ASIA }
+        ]
+      },
+      {
+        region: Region.INDIA,
+        gridSize: { rows: 10, cols: 10 },
+        targetScore: 5000,
+        timeLimit: 180,
+        items: [
+          { id: 'india-1', type: 'jalebi', image: '/india/akhil.jpg', region: Region.INDIA },
+          { id: 'india-2', type: 'chai', image: '/india/gayatri.jpg', region: Region.INDIA },
+          { id: 'india-3', type: 'samosa', image: '/india/kabir.jpg', region: Region.INDIA },
+          { id: 'india-4', type: 'biryani', image: '/india/saxenasaheb.jpg', region: Region.INDIA },
+          { id: 'india-5', type: 'naan', image: '/southeast-asia/statuette.jpg', region: Region.INDIA },
+          { id: 'india-6', type: 'curry', image: '/africa/yele.jpg', region: Region.INDIA }
+        ]
+      }
+    ];
+
+    // Sound effects
+    const sounds = {
+      match: new Audio('/sounds/match.mp3'),
+      slash: new Audio('/sounds/slash.mp3'),
+      win: new Audio('/sounds/win.mp3'),
+      levelComplete: new Audio('/sounds/levelComplete.mp3'),
+      powerUp: new Audio('/sounds/powerUp.mp3'),
+      gameOver: new Audio('/sounds/gameOver.mp3'),
+      click: new Audio('/sounds/click.mp3')
+    };
+
+    // Play sound function
+    function playSound(soundName) {
+      if (!isMuted && sounds[soundName]) {
+        sounds[soundName].currentTime = 0;
+        sounds[soundName].play().catch(error => console.log('Audio play error:', error));
+      }
+    }
+
+    // Set muted state
+    function setMuted(muted) {
+      isMuted = muted;
+      muteBtn.textContent = isMuted ? '🔇' : '🔊';
+    }
+
+    // Initialize the game
+    function init() {
+      // Set up event listeners
+      nextLevelBtn.addEventListener('click', () => {
+        playSound('click');
+        currentLevel++;
+        if (currentLevel < levels.length) {
+          startLevel(currentLevel);
+        } else {
+          setGameState(GameState.GAME_WON);
+        }
+      });
+
+      tryAgainBtn.addEventListener('click', () => {
+        playSound('click');
+        startLevel(currentLevel);
+      });
+
+      homeBtn.addEventListener('click', () => {
+        playSound('click');
+        setGameState(GameState.INTRO);
+      });
+
+      playAgainBtn.addEventListener('click', () => {
+        playSound('click');
+        currentLevel = 0;
+        setGameState(GameState.INTRO);
+      });
+
+      muteBtn.addEventListener('click', () => {
+        setMuted(!isMuted);
+        playSound('click');
+      });
+
+      // Create region selection buttons
+      createRegionSelection();
+
+      // Initialize Farcade SDK
+      window.FarcadeSDK.singlePlayer.actions.ready();
+
+      // Handle play again requests
+      window.FarcadeSDK.on('play_again', () => {
+        resetGame();
+      });
+
+      // Handle mute/unmute
+      window.FarcadeSDK.on('toggle_mute', (data) => {
+        setMuted(data.isMuted);
+      });
+    }
+
+    // Create region selection buttons
+    function createRegionSelection() {
+      regionSelectionElement.innerHTML = '';
+      
+      levels.forEach((level, index) => {
+        const regionBtn = document.createElement('div');
+        regionBtn.className = 'region-btn';
+        
+        const img = document.createElement('img');
+        img.className = 'region-img';
+        img.src = level.items[0].image;
+        img.alt = getRegionName(level.region);
+        
+        const name = document.createElement('div');
+        name.textContent = getRegionName(level.region);
+        
+        regionBtn.appendChild(img);
+        regionBtn.appendChild(name);
+        
+        regionBtn.addEventListener('click', () => {
+          playSound('click');
+          currentLevel = index;
+          startLevel(index);
+        });
+        
+        regionSelectionElement.appendChild(regionBtn);
+      });
+    }
+
+    // Get region name
+    function getRegionName(region) {
+      switch (region) {
+        case Region.LATAM: return 'Latin America';
+        case Region.AFRICA: return 'Africa';
+        case Region.SOUTHEAST_ASIA: return 'Southeast Asia';
+        case Region.INDIA: return 'India';
+        default: return 'Unknown';
+      }
+    }
+
+    // Set game state
+    function setGameState(state) {
+      gameState = state;
+      
+      // Hide all screens
+      startScreen.style.display = 'none';
+      levelCompleteScreen.style.display = 'none';
+      gameOverScreen.style.display = 'none';
+      gameWonScreen.style.display = 'none';
+      
+      // Show the appropriate screen
+      switch (state) {
+        case GameState.INTRO:
+          startScreen.style.display = 'flex';
+          stopTimer();
+          break;
+        case GameState.PLAYING:
+          // Game is already visible
+          break;
+        case GameState.LEVEL_COMPLETE:
+          levelScoreElement.textContent = score;
+          levelCompleteScreen.style.display = 'flex';
+          stopTimer();
+          playSound('levelComplete');
+          break;
+        case GameState.GAME_OVER:
+          finalScoreElement.textContent = score;
+          gameOverScreen.style.display = 'flex';
+          stopTimer();
+          playSound('gameOver');
+          window.FarcadeSDK.singlePlayer.actions.gameOver({ score: score });
+          break;
+        case GameState.GAME_WON:
+          winScoreElement.textContent = score;
+          gameWonScreen.style.display = 'flex';
+          stopTimer();
+          playSound('win');
+          window.FarcadeSDK.singlePlayer.actions.gameOver({ score: score });
+          break;
+      }
+    }
+        // Start a level
+        function startLevel(levelIndex) {
+      const level = levels[levelIndex];
+      
+      // Reset game state
+      score = 0;
+      timeRemaining = level.timeLimit;
+      selectedCell = null;
+      availablePowerUps = [];
+      scoreMultiplier = 1;
+      multiplierTimeRemaining = 0;
+      
+      // Update UI
+      scoreElement.textContent = `Score: ${score}`;
+      updateTimerDisplay();
+      
+      // Create grid
+      createGrid(level.gridSize.rows, level.gridSize.cols, level.items);
+      
+      // Start timer
+      startTimer();
+      
+      // Set game state to playing
+      setGameState(GameState.PLAYING);
+    }
+
+    // Create a new game grid
+    function createGrid(rows, cols, items) {
+      // Clear the grid
+      grid = [];
+      gameGridElement.innerHTML = '';
+      
+      // Set grid style
+      gameGridElement.style.gridTemplateColumns = `repeat(${cols}, 40px)`;
+      gameGridElement.style.gridTemplateRows = `repeat(${rows}, 40px)`;
+      
+      // Create cells
+      for (let row = 0; row < rows; row++) {
+        grid[row] = [];
+        for (let col = 0; col < cols; col++) {
+          // Get random item for this cell
+          const randomIndex = Math.floor(Math.random() * items.length);
+          const item = items[randomIndex];
+          
+          // Create cell object
+          grid[row][col] = {
+            item: item,
+            position: { row, col },
+            isSelected: false,
+            isMatched: false,
+            isPowerUp: false,
+            powerUpType: null
+          };
+          
+          // Create cell element
+          const cellElement = document.createElement('div');
+          cellElement.className = 'game-cell';
+          cellElement.dataset.row = row;
+          cellElement.dataset.col = col;
+          
+          // Create image element
+          const imgElement = document.createElement('img');
+          imgElement.className = 'cell-image';
+          imgElement.src = item.image;
+          imgElement.alt = item.type;
+          
+          cellElement.appendChild(imgElement);
+          
+          // Add click event
+          cellElement.addEventListener('click', () => {
+            if (gameState === GameState.PLAYING) {
+              handleCellClick({ row, col });
+            }
+          });
+          
+          gameGridElement.appendChild(cellElement);
+        }
+      }
+      
+      // Ensure no matches exist at the start
+      ensureNoInitialMatches();
+      renderGrid();
+    }
+
+    // Ensure no matches exist at the start of the game
+    function ensureNoInitialMatches() {
+      const rows = grid.length;
+      const cols = grid[0].length;
+      const items = levels[currentLevel].items;
+      
+      for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+          // Check horizontal matches of 3
+          if (col >= 2) {
+            if (
+              grid[row][col].item.type === grid[row][col-1].item.type &&
+              grid[row][col].item.type === grid[row][col-2].item.type
+            ) {
+              // Replace current cell with a different item
+              const currentType = grid[row][col].item.type;
+              let newItem;
+              do {
+                const randomIndex = Math.floor(Math.random() * items.length);
+                newItem = items[randomIndex];
+              } while (newItem.type === currentType);
+              
+              grid[row][col].item = newItem;
+            }
+          }
+          
+          // Check vertical matches of 3
+          if (row >= 2) {
+            if (
+              grid[row][col].item.type === grid[row-1][col].item.type &&
+              grid[row][col].item.type === grid[row-2][col].item.type
+            ) {
+              // Replace current cell with a different item
+              const currentType = grid[row][col].item.type;
+              let newItem;
+              do {
+                const randomIndex = Math.floor(Math.random() * items.length);
+                newItem = items[randomIndex];
+              } while (newItem.type === currentType);
+              
+              grid[row][col].item = newItem;
+            }
+          }
+        }
+      }
+    }
+
+    // Check if two positions are adjacent
+    function areAdjacent(pos1, pos2) {
+      const rowDiff = Math.abs(pos1.row - pos2.row);
+      const colDiff = Math.abs(pos1.col - pos2.col);
+      
+      // Adjacent if they're next to each other horizontally or vertically (not diagonally)
+      return (rowDiff === 1 && colDiff === 0) || (rowDiff === 0 && colDiff === 1);
+    }
+
+    // Handle cell click
+    function handleCellClick(position) {
+      // If the clicked cell contains a power-up, activate it
+      const clickedCell = grid[position.row][position.col];
+      if (clickedCell.isPowerUp && clickedCell.powerUpType) {
+        const result = applyPowerUp(position, clickedCell.powerUpType);
+        
+        // Update score with multiplier
+        const scoreToAdd = result.score * scoreMultiplier;
+        updateScore(scoreToAdd);
+        
+        // Process matches after power-up
+        setTimeout(() => {
+          removeMatchedAndRefill();
+          
+          // Check for new matches after refill
+          processMatches();
+        }, 500);
+        
+        return;
+      }
+
+      // If no cell is selected, select this one
+      if (!selectedCell) {
+        selectedCell = position;
+        // Update grid to show selection
+        grid[position.row][position.col].isSelected = true;
+        renderGrid();
+        return;
+      }
+
+      // If the same cell is clicked again, deselect it
+      if (position.row === selectedCell.row && position.col === selectedCell.col) {
+        grid[position.row][position.col].isSelected = false;
+        selectedCell = null;
+        renderGrid();
+        return;
+      }
+
+      // Check if the cells are adjacent
+      if (areAdjacent(selectedCell, position)) {
+        // Swap the cells
+        swapCells(selectedCell, position);
+        
+        // Clear selection
+        grid[selectedCell.row][selectedCell.col].isSelected = false;
+        selectedCell = null;
+        
+        // Check for matches after swap
+        const matchResult = checkMatches();
+        
+        // If no matches, swap back
+        if (matchResult.matched.length === 0) {
+          setTimeout(() => {
+            swapCells(selectedCell, position);
+            renderGrid();
+          }, 300);
+          return;
+        }
+        
+        // Process the matches
+        renderGrid();
+        processMatches();
+        
+        // Provide haptic feedback for successful match
+        window.FarcadeSDK.singlePlayer.actions.hapticFeedback();
+      } else {
+        // Not adjacent, select the new cell instead
+        grid[selectedCell.row][selectedCell.col].isSelected = false;
+        grid[position.row][position.col].isSelected = true;
+        selectedCell = position;
+        renderGrid();
+      }
+    }
+
+    // Swap two cells in the grid
+    function swapCells(pos1, pos2) {
+      // Swap items
+      const tempItem = grid[pos1.row][pos1.col].item;
+      grid[pos1.row][pos1.col].item = grid[pos2.row][pos2.col].item;
+      grid[pos2.row][pos2.col].item = tempItem;
+      
+      // Swap power-up status
+      const tempIsPowerUp = grid[pos1.row][pos1.col].isPowerUp;
+      const tempPowerUpType = grid[pos1.row][pos1.col].powerUpType;
+      
+      grid[pos1.row][pos1.col].isPowerUp = grid[pos2.row][pos2.col].isPowerUp;
+      grid[pos1.row][pos1.col].powerUpType = grid[pos2.row][pos2.col].powerUpType;
+      
+      grid[pos2.row][pos2.col].isPowerUp = tempIsPowerUp;
+      grid[pos2.row][pos2.col].powerUpType = tempPowerUpType;
+      
+      // Play sound effect
+      playSound('slash');
+    }
+
+    // Check for matches in the grid
+    function checkMatches() {
+      const rows = grid.length;
+      const cols = grid[0].length;
+      const matched = [];
+      let score = 0;
+      const powerUps = [];
+      
+      // Check horizontal matches
+      for (let row = 0; row < rows; row++) {
+        let matchCount = 1;
+        let matchType = grid[row][0].item.type;
+        
+        for (let col = 1; col < cols; col++) {
+          const currentType = grid[row][col].item.type;
+          
+          if (currentType === matchType) {
+            matchCount++;
+          } else {
+            // Check if we have a match of 3 or more
+            if (matchCount >= 3) {
+              // Add matched positions
+              for (let i = col - matchCount; i < col; i++) {
+                matched.push({ row, col: i });
+              }
+              
+              // Calculate score (more matches = more points)
+              score += matchCount * 10;
+              
+              // Create power-up for matches of 4 or more
+              if (matchCount >= 4) {
+                powerUps.push(matchCount === 4 ? PowerUpType.ROW_CLEAR : PowerUpType.AREA_CLEAR);
+              }
+            }
+            
+            // Reset match tracking
+            matchCount = 1;
+            matchType = currentType;
+          }
+        }
+        
+        // Check for match at the end of the row
+        if (matchCount >= 3) {
+          for (let i = cols - matchCount; i < cols; i++) {
+            matched.push({ row, col: i });
+          }
+          score += matchCount * 10;
+          
+          if (matchCount >= 4) {
+            powerUps.push(matchCount === 4 ? PowerUpType.ROW_CLEAR : PowerUpType.AREA_CLEAR);
+          }
+        }
+      }
+      
+      // Check vertical matches
+      for (let col = 0; col < cols; col++) {
+        let matchCount = 1;
+        let matchType = grid[0][col].item.type;
+        
+        for (let row = 1; row < rows; row++) {
+          const currentType = grid[row][col].item.type;
+          
+          if (currentType === matchType) {
+            matchCount++;
+          } else {
+            // Check if we have a match of 3 or more
+            if (matchCount >= 3) {
+              // Add matched positions
+              for (let i = row - matchCount; i < row; i++) {
+                // Avoid duplicating positions already counted in horizontal matches
+                if (!matched.some(pos => pos.row === i && pos.col === col)) {
+                  matched.push({ row: i, col });
+                }
+              }
+              
+              // Calculate score
+              score += matchCount * 10;
+              
+              // Create power-up for matches of 4 or more
+              if (matchCount >= 4) {
+                powerUps.push(matchCount === 4 ? PowerUpType.COLUMN_CLEAR : PowerUpType.AREA_CLEAR);
+              }
+            }
+            
+            // Reset match tracking
+            matchCount = 1;
+            matchType = currentType;
+          }
+        }
+        
+        // Check for match at the end of the column
+        if (matchCount >= 3) {
+          for (let i = rows - matchCount; i < rows; i++) {
+            // Avoid duplicating positions
+            if (!matched.some(pos => pos.row === i && pos.col === col)) {
+              matched.push({ row: i, col });
+            }
+          }
+          score += matchCount * 10;
+          
+          if (matchCount >= 4) {
+            powerUps.push(matchCount === 4 ? PowerUpType.COLUMN_CLEAR : PowerUpType.AREA_CLEAR);
+          }
+        }
+      }
+      
+      return { matched, score, powerUps };
+    }
+
+    // Process matches in the grid
+    function processMatches() {
+      const matchResult = checkMatches();
+      
+      if (matchResult.matched.length > 0) {
+        // Mark matched cells
+        markMatchedCells(matchResult.matched);
+        
+        // Play match sound
+        if (matchResult.matched.length >= 5) {
+          playSound('powerUp'); // Big combo
+        } else {
+          playSound('match');
+        }
+        
+        // Update score with multiplier
+        const scoreToAdd = matchResult.score * scoreMultiplier;
+        updateScore(scoreToAdd);
+        
+        // Create power-ups if applicable
+        if (matchResult.powerUps.length > 0) {
+          // Create power-up at the first matched position
+          const powerUpPosition = matchResult.matched[0];
+          const powerUpType = matchResult.powerUps[0];
+          
+          // Add to available power-ups
+          const newPowerUp = {
+            type: powerUpType,
+            icon: getPowerUpIcon(powerUpType),
+            description: getPowerUpDescription(powerUpType)
+          };
+          
+          availablePowerUps.push(newPowerUp);
+          
+          // Create power-up in the grid
+          createPowerUp(powerUpPosition, powerUpType);
+          
+          // Update power-ups display
+          renderPowerUps();
+          
+          // Play power-up creation sound
+          playSound('powerUp');
+        }
+        
+        // Remove matched cells and refill after a delay
+        setTimeout(() => {
+          removeMatchedAndRefill();
+          
+          // Check for new matches after refill
+          setTimeout(() => {
+            const cascadeMatchResult = checkMatches();
+            if (cascadeMatchResult.matched.length > 0) {
+              processMatches();
+            } else if (!checkPossibleMoves()) {
+              // No more possible moves, shuffle the grid
+              shuffleGrid();
+            }
+          }, 300);
+        }, 500);
+      }
+    }
+
+    // Mark matched cells in the grid
+    function markMatchedCells(matched) {
+      matched.forEach(pos => {
+        grid[pos.row][pos.col].isMatched = true;
+      });
+      renderGrid();
+    }
+
+    // Remove matched cells and refill the grid
+    function removeMatchedAndRefill() {
+      const rows = grid.length;
+      const cols = grid[0].length;
+      const items = levels[currentLevel].items;
+      
+      // Step 1: Remove matched cells (set to null)
+      for (let col = 0; col < cols; col++) {
+        for (let row = 0; row < rows; row++) {
+          if (grid[row][col].isMatched) {
+            grid[row][col].item = null;
+            grid[row][col].isMatched = false;
+            grid[row][col].isPowerUp = false;
+            grid[row][col].powerUpType = null;
+          }
+        }
+      }
+      
+      // Step 2: Move cells down to fill empty spaces
+      for (let col = 0; col < cols; col++) {
+        let emptyRow = -1;
+        
+        for (let row = rows - 1; row >= 0; row--) {
+          if (grid[row][col].item === null && emptyRow === -1) {
+            emptyRow = row;
+          } else if (grid[row][col].item !== null && emptyRow !== -1) {
+            // Move this item down to the empty row
+            grid[emptyRow][col].item = grid[row][col].item;
+            grid[emptyRow][col].isPowerUp = grid[row][col].isPowerUp;
+            grid[emptyRow][col].powerUpType = grid[row][col].powerUpType;
+            
+            // Clear the original cell
+            grid[row][col].item = null;
+            grid[row][col].isPowerUp = false;
+            grid[row][col].powerUpType = null;
+            
+            // Look for the next empty row
+            emptyRow--;
+            row++; // Check this row again
+          }
+        }
+      }
+      
+      // Step 3: Fill empty spaces at the top with new items
+      for (let col = 0; col < cols; col++) {
+        for (let row = 0; row < rows; row++) {
+          if (grid[row][col].item === null) {
+            const randomIndex = Math.floor(Math.random() * items.length);
+            grid[row][col].item = items[randomIndex];
+          }
+        }
+      }
+      
+      renderGrid();
+    }
+
+    // Create a power-up in the grid
+    function createPowerUp(position, powerUpType) {
+      grid[position.row][position.col].isPowerUp = true;
+      grid[position.row][position.col].powerUpType = powerUpType;
+    }
+
+    // Apply power-up effect to the grid
+    function applyPowerUp(position, powerUpType) {
+      const rows = grid.length;
+      const cols = grid[0].length;
+      let score = 0;
+      
+      switch (powerUpType) {
+        case PowerUpType.ROW_CLEAR:
+          // Clear entire row
+          for (let col = 0; col < cols; col++) {
+            grid[position.row][col].isMatched = true;
+            score += 10;
+          }
+          playSound('powerUp');
+          break;
+          
+        case PowerUpType.COLUMN_CLEAR:
+          // Clear entire column
+          for (let row = 0; row < rows; row++) {
+            grid[row][position.col].isMatched = true;
+            score += 10;
+          }
+          playSound('powerUp');
+          break;
+          
+        case PowerUpType.AREA_CLEAR:
+          // Clear 3x3 area around the position
+          for (let row = Math.max(0, position.row - 1); row <= Math.min(rows - 1, position.row + 1); row++) {
+            for (let col = Math.max(0, position.col - 1); col <= Math.min(cols - 1, position.col + 1); col++) {
+              grid[row][col].isMatched = true;
+              score += 10;
+            }
+          }
+          playSound('powerUp');
+          break;
+          
+        case PowerUpType.EXTRA_TIME:
+          // Add 15 seconds to the timer
+          timeRemaining += 15;
+          updateTimerDisplay();
+          playSound('powerUp');
+          break;
+          
+        case PowerUpType.SCORE_MULTIPLIER:
+          // Double score for 30 seconds
+          scoreMultiplier = 2;
+          multiplierTimeRemaining = 30;
+          playSound('powerUp');
+          break;
+      }
+      
+      renderGrid();
+      return { score };
+    }
+
+    // Check if there are any possible moves left
+    function checkPossibleMoves() {
+      const rows = grid.length;
+      const cols = grid[0].length;
+      
+      // Try swapping each cell with its neighbors and check for matches
+      for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+          // Check right neighbor
+          if (col < cols - 1) {
+            // Swap
+            swapCells({ row, col }, { row, col: col + 1 });
+            
+            // Check for matches
+            const matchResult = checkMatches();
+            
+            // Swap back
+            swapCells({ row, col }, { row, col: col + 1 });
+            
+            if (matchResult.matched.length > 0) {
+              return true;
+            }
+          }
+          
+          // Check bottom neighbor
+          if (row < rows - 1) {
+            // Swap
+            swapCells({ row, col }, { row: row + 1, col });
+            
+            // Check for matches
+            const matchResult = checkMatches();
+            
+            // Swap back
+            swapCells({ row, col }, { row: row + 1, col });
+            
+            if (matchResult.matched.length > 0) {
+              return true;
+            }
+          }
+        }
+      }
+      
+      return false;
+    }
+
+    // Shuffle the grid when no moves are available
+    function shuffleGrid() {
+      const rows = grid.length;
+      const cols = grid[0].length;
+      const items = levels[currentLevel].items;
+      
+      // Collect all items
+      const allItems = [];
+      for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+          allItems.push(grid[row][col].item);
+        }
+      }
+      
+      // Shuffle items
+      for (let i = allItems.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [allItems[i], allItems[j]] = [allItems[j], allItems[i]];
+      }
+      
+      // Redistribute items
+      let index = 0;
+      for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+          grid[row][col].item = allItems[index++];
+          grid[row][col].isMatched = false;
+          grid[row][col].isPowerUp = false;
+          grid[row][col].powerUpType = null;
+        }
+      }
+      
+      // Ensure no matches exist after shuffling
+      ensureNoInitialMatches();
+      renderGrid();
+    }
+
+    // Render the grid
+    function renderGrid() {
+      const cells = gameGridElement.querySelectorAll('.game-cell');
+      
+      for (let i = 0; i < cells.length; i++) {
+        const cell = cells[i];
+        const row = parseInt(cell.dataset.row);
+        const col = parseInt(cell.dataset.col);
+        const gridCell = grid[row][col];
+        
+        // Update cell classes
+        cell.className = 'game-cell';
+        if (gridCell.isSelected) cell.classList.add('selected');
+        if (gridCell.isMatched) cell.classList.add('matched');
+        if (gridCell.isPowerUp) cell.classList.add('power-up');
+        
+        // Update cell content
+        const img = cell.querySelector('img');
+        if (img && gridCell.item) {
+          img.src = gridCell.item.image;
+          img.alt = gridCell.item.type;
+        }
+        
+        // Add power-up icon if needed
+        if (gridCell.isPowerUp && gridCell.powerUpType) {
+          let powerUpIcon = cell.querySelector('.power-up-icon');
+          if (!powerUpIcon) {
+            powerUpIcon = document.createElement('div');
+            powerUpIcon.className = 'power-up-icon';
+            cell.appendChild(powerUpIcon);
+          }
+          powerUpIcon.textContent = getPowerUpIcon(gridCell.powerUpType);
+        } else {
+          const powerUpIcon = cell.querySelector('.power-up-icon');
+          if (powerUpIcon) {
+            cell.removeChild(powerUpIcon);
+          }
+        }
+      }
+    }
+
+    // Render available power-ups
+    function renderPowerUps() {
+      powerUpsElement.innerHTML = '';
+      
+      availablePowerUps.forEach((powerUp, index) => {
+        const powerUpBtn = document.createElement('div');
+        powerUpBtn.className = 'power-up-btn';
+        powerUpBtn.textContent = powerUp.icon;
+        powerUpBtn.title = powerUp.description;
+        
+        powerUpBtn.addEventListener('click', () => {
+          if (gameState === GameState.PLAYING) {
+            // Remove the power-up from available ones
+            availablePowerUps.splice(index, 1);
+            
+            // Apply power-up effect based on type
+            handleUsePowerUp(powerUp);
+            
+            // Update display
+            renderPowerUps();
+          }
+        });
+        
+        powerUpsElement.appendChild(powerUpBtn);
+      });
+    }
+
+    // Handle power-up usage
+    function handleUsePowerUp(powerUp) {
+      switch (powerUp.type) {
+        case PowerUpType.EXTRA_TIME:
+          // Add 15 seconds to the timer
+          timeRemaining += 15;
+          updateTimerDisplay();
+          playSound('powerUp');
+          break;
+          
+        case PowerUpType.SCORE_MULTIPLIER:
+          // Double score for 30 seconds
+          scoreMultiplier = 2;
+          multiplierTimeRemaining = 30;
+          playSound('powerUp');
+          break;
+          
+        default:
+          // For other power-ups, we need to wait for user to select a cell
+          alert(`Select a cell to use the ${powerUp.description} power-up`);
+          break;
+      }
+    }
+
+    // Helper functions for power-ups
+    function getPowerUpIcon(type) {
+      switch (type) {
+        case PowerUpType.ROW_CLEAR: return '↔️';
+        case PowerUpType.COLUMN_CLEAR: return '↕️';
+        case PowerUpType.AREA_CLEAR: return '💥';
+        case PowerUpType.EXTRA_TIME: return '⏱️';
+        case PowerUpType.SCORE_MULTIPLIER: return '✖️';
+        default: return '';
+      }
+    }
+    
+    function getPowerUpDescription(type) {
+      switch (type) {
+        case PowerUpType.ROW_CLEAR: return 'Clears an entire row';
+        case PowerUpType.COLUMN_CLEAR: return 'Clears an entire column';
+        case PowerUpType.AREA_CLEAR: return 'Clears a 3x3 area';
+        case PowerUpType.EXTRA_TIME: return 'Adds 15 seconds to the timer';
+        case PowerUpType.SCORE_MULTIPLIER: return 'Doubles points for 30 seconds';
+        default: return '';
+      }
+    }
+
+    // Update score
+    function updateScore(points) {
+      score += points;
+      scoreElement.textContent = `Score: ${score}`;
+      
+      // Check for level completion
+      const level = levels[currentLevel];
+      if (score >= level.targetScore) {
+        if (currentLevel < levels.length - 1) {
+          setGameState(GameState.LEVEL_COMPLETE);
+        } else {
+          setGameState(GameState.GAME_WON);
+        }
+      }
+    }
+
+    // Timer functions
+    function startTimer() {
+      stopTimer(); // Clear any existing timer
+      
+      timerInterval = setInterval(() => {
+        timeRemaining--;
+        updateTimerDisplay();
+        
+        // Update score multiplier timer if active
+        if (multiplierTimeRemaining > 0) {
+          multiplierTimeRemaining--;
+          if (multiplierTimeRemaining === 0) {
+            scoreMultiplier = 1;
+          }
+        }
+        
+        if (timeRemaining <= 0) {
+          stopTimer();
+          
+          // Check if player reached target score
+          const level = levels[currentLevel];
+          if (score >= level.targetScore) {
+            if (currentLevel < levels.length - 1) {
+              setGameState(GameState.LEVEL_COMPLETE);
+            } else {
+              setGameState(GameState.GAME_WON);
+            }
+          } else {
+            setGameState(GameState.GAME_OVER);
+          }
+        }
+      }, 1000);
+    }
+    
+    function stopTimer() {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+    }
+    
+    function updateTimerDisplay() {
+      const minutes = Math.floor(timeRemaining / 60);
+      const seconds = timeRemaining % 60;
+      timerElement.textContent = `Time: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+      
+      // Add warning color when time is running low
+      if (timeRemaining <= 10) {
+        timerElement.style.color = 'red';
+      } else {
+        timerElement.style.color = '';
+      }
+    }
+
+    // Reset game
+    function resetGame() {
+      currentLevel = 0;
+      score = 0;
+      setGameState(GameState.INTRO);
+    }
+
+    // Initialize game when page loads
+    window.addEventListener('load', init);
+  </script>
+</body>
+</html>
