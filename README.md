@@ -131,6 +131,29 @@ Players can earn unique NFTs through gameplay:
 - All NFTs are minted using Zora SDK on Base
 - Gasless minting experience for seamless user experience
 
+## 🪙 Custom Game Tokens with Zora Coins SDK
+
+Players who complete all levels can create their own ERC20 tokens:
+- Create personalized "Around The World Token" (ATW) using Zora Coins SDK
+- Tokens are minted directly to the player's connected wallet
+- Custom token parameters including name, symbol, and metadata
+- Tokens can be used for future game features and trading
+- Implementation uses @zoralabs/coins-sdk for seamless token creation
+
+```tsx
+// Example of Zora Coins SDK integration
+const coinParams = {
+  name: "Around The World Token",
+  symbol: "ATW",
+  uri: "ipfs://bafybeigoxzqzbnxsn35vq7lls3ljxdcwjafxvbvkivprsodzrptpiguysy",
+  payoutRecipient: playerAddress as Address,
+  platformReferrer: "0x434d6c335a1739f6d18362Dd13B282930aBbdCDe" as Address,
+};
+
+// Create configuration for wagmi
+const contractCallParams = createCoinCall(coinParams);
+```
+
 ## 🎵 Sound Effects
 
 Sound effects enhance the gaming experience:
