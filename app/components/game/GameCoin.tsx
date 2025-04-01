@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { createCoinCall } from "@zoralabs/coins-sdk";
-import { getCoinCreateFromLogs } from "@zoralabs/coins-sdk";
 import { Address } from "viem";
 import { useWriteContract, useSimulateContract, useSwitchChain, useChainId } from "wagmi";
 import { base } from "wagmi/chains";
