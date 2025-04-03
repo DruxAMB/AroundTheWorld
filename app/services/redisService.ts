@@ -1,6 +1,13 @@
 import { redis } from '../../lib/redis';
 import { LeaderboardEntry } from '../utils/gameTypes';
 
+// Interface for user score history items
+interface UserScoreHistoryItem {
+  score: number;
+  level: number;
+  timestamp: number;
+}
+
 // Redis key prefixes
 const LEADERBOARD_KEY = 'leaderboard';
 const USER_DATA_KEY_PREFIX = 'user:';
@@ -162,7 +169,7 @@ class RedisService {
   /**
    * Get user's score history
    */
-  public async getUserScoreHistory(address: string, limit: number = 10): Promise<any[]> {
+  public async getUserScoreHistory(address: string, limit: number = 10): Promise<UserScoreHistoryItem[]> {
     if (!redis) return [];
 
     try {
@@ -171,7 +178,7 @@ class RedisService {
         rev: true // Reverse order (most recent first)
       });
 
-      return scores.map(item => JSON.parse(item as string));
+      return scores.map(item => JSON.parse(item as string) as UserScoreHistoryItem);
     } catch (error) {
       console.error('Error getting user score history:', error);
       return [];

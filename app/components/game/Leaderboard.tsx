@@ -11,7 +11,7 @@ interface LeaderboardProps {
 }
 
 const SCHEMA_UID = "0xdc3cf7f28b4b5255ce732cbf99fe906a5bc13fbd764e2463ba6034b4e1881835";
-const EAS_GRAPHQL_URL = "https://base.easscan.org/graphql";
+// const EAS_GRAPHQL_URL = "https://base.easscan.org/graphql";
 
 const Leaderboard: React.FC<LeaderboardProps> = ({ playerAddress }) => {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);

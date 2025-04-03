@@ -18,7 +18,7 @@ const Game: React.FC = () => {
   // Game state
   const [gameState, setGameState] = useState<GameState>(GameState.INTRO);
   // Keep region state for background music and level theming
-  const [region] = useState<Region>(Region.LATAM);
+  // const [region] = useState<Region>(Region.LATAM);
   const [currentLevel, setCurrentLevel] = useState<number>(0);
   const [unlockedLevels, setUnlockedLevels] = useState<number>(0);
   const [score, setScore] = useState<number>(0);
