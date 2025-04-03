@@ -10,6 +10,7 @@ import WalletConnection from './WalletConnection';
 import Leaderboard from './Leaderboard';
 import RewardsService from '../../services/rewardsService';
 import GameCoin from './GameCoin';
+import { UserData } from '../../services/redisService';
 
 // const SCHEMA_UID = "0xdc3cf7f28b4b5255ce732cbf99fe906a5bc13fbd764e2463ba6034b4e1881835";
 
@@ -58,13 +59,27 @@ const Game: React.FC = () => {
   const rewardsService = RewardsService.getInstance();
 
   // Handle wallet connection
-  const handleWalletConnect = (address: string) => {
+  const handleWalletConnect = async (address: string) => {
     // Only play the sound if the player address is changing
     if (!playerAddress) {
       playSound('transactionSuccess');
     }
     setPlayerAddress(address as `0x${string}`);
-    // In a real app, we would fetch the player's progress from the blockchain here
+    
+    // Fetch user data from Redis
+    try {
+      const response = await fetch(`/api/user?address=${address}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.userData) {
+          // Update game state with user's progress
+          setUnlockedLevels(data.userData.highestLevel || 0);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+    }
   };
 
   // Handle level selection
@@ -93,28 +108,39 @@ const Game: React.FC = () => {
       // Unlock next level if this is the highest level completed
       if (currentLevel === unlockedLevels) {
         setUnlockedLevels(prev => Math.min(prev + 1, levels.length - 1));
+        
+        // Save user progress to Redis
+        if (playerAddress) {
+          saveUserData();
+        }
       }
     } else if (newState === GameState.GAME_OVER) {
       playSound('gameOver');
     } else if (newState === GameState.GAME_WON) {
       playSound('win');
       
-      // Check if player is eligible for NFT reward
+      // Save score to leaderboard
       if (playerAddress) {
-        // This would normally fetch the actual leaderboard from the backend
-        // For demo purposes, we'll create a mock leaderboard
-        const mockLeaderboard: LeaderboardEntry[] = [
-          { address: playerAddress, score, level: region as unknown as number, timestamp: Date.now() },
-          // Add some mock entries
-          { address: '0x1234567890123456789012345678901234567890' as `0x${string}`, score: score - 1000, level: 0, timestamp: Date.now() },
-          { address: '0x2345678901234567890123456789012345678901' as `0x${string}`, score: score - 2000, level: 1, timestamp: Date.now() },
-          { address: '0x3456789012345678901234567890123456789012' as `0x${string}`, score: score - 3000, level: 2, timestamp: Date.now() },
-        ];
+        // Create leaderboard entry
+        const entry: LeaderboardEntry = {
+          address: playerAddress,
+          score,
+          level: currentLevel,
+          timestamp: Date.now()
+        };
+        
+        // Save to Redis
+        saveScoreToLeaderboard(entry);
         
         // Check if it's time to distribute weekly rewards
         if (rewardsService.isTimeToDistributeRewards()) {
-          // Distribute weekly rewards
-          rewardsService.distributeWeeklyRewards(mockLeaderboard)
+          // Fetch actual leaderboard from Redis
+          fetch('/api/leaderboard?limit=10')
+            .then(response => response.json())
+            .then(data => {
+              // Distribute weekly rewards
+              return rewardsService.distributeWeeklyRewards(data.leaderboard || []);
+            })
             .then(claimableLinks => {
               if (claimableLinks.length > 0) {
                 console.log('Weekly rewards distributed:', claimableLinks);
@@ -128,7 +154,72 @@ const Game: React.FC = () => {
         }
       }
     }
-  }, [currentLevel, unlockedLevels, playerAddress, score, region, rewardsService]);
+  }, [currentLevel, unlockedLevels, playerAddress, score, rewardsService]);
+  
+  // Save user data to Redis
+  const saveUserData = async () => {
+    if (!playerAddress) return;
+    
+    try {
+      // Get current user data first
+      const response = await fetch(`/api/user?address=${playerAddress}`);
+      let userData: UserData = {
+        address: playerAddress,
+        highestLevel: unlockedLevels,
+        highestScore: score,
+        totalGamesPlayed: 1,
+        lastPlayed: Date.now()
+      };
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.userData) {
+          // Update existing data
+          userData = {
+            ...data.userData,
+            highestLevel: Math.max(data.userData.highestLevel || 0, unlockedLevels),
+            highestScore: Math.max(data.userData.highestScore || 0, score),
+            totalGamesPlayed: (data.userData.totalGamesPlayed || 0) + 1,
+            lastPlayed: Date.now()
+          };
+        }
+      }
+      
+      // Save updated user data
+      await fetch('/api/user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(userData)
+      });
+      
+      console.log('User data saved successfully');
+    } catch (error) {
+      console.error('Error saving user data:', error);
+    }
+  };
+  
+  // Save score to leaderboard
+  const saveScoreToLeaderboard = async (entry: LeaderboardEntry) => {
+    try {
+      const response = await fetch('/api/leaderboard', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(entry)
+      });
+      
+      if (response.ok) {
+        console.log('Score saved to leaderboard');
+      } else {
+        console.error('Failed to save score to leaderboard');
+      }
+    } catch (error) {
+      console.error('Error saving score to leaderboard:', error);
+    }
+  };
 
   // Handle level completion
   const handleLevelComplete = () => {

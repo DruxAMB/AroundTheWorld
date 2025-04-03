@@ -24,58 +24,15 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ playerAddress }) => {
       try {
         setIsLoading(true);
         
-        // Query for attestations
-        const query = `
-          query GetAttestations {
-            attestations(
-              where: { schemaId: { equals: "${SCHEMA_UID}" } }
-              orderBy: { time: desc }
-              take: 10
-            ) {
-              decodedDataJson
-              attester
-              time
-              id
-              txid
-            }
-          }
-        `;
-
-        const response = await fetch(EAS_GRAPHQL_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query }),
-        });
-
-        const { data } = await response.json();
+        // Fetch from our Redis-backed API
+        const response = await fetch('/api/leaderboard?limit=10');
         
-        // Parse attestations into leaderboard entries
-        const entries = (data?.attestations ?? [])
-          .map((attestation: Record<string, unknown>) => {
-            try {
-              const parsedData = JSON.parse(attestation?.decodedDataJson as string ?? "[]");
-              const pattern = /(0x[a-fA-F0-9]{40}) scored (\d+) on level (\d+)/;
-              const match = parsedData[0]?.value?.value?.match(pattern);
-              
-              if (match) {
-                const [matchAddress, score, level] = match;
-                return {
-                  address: matchAddress as `0x${string}`,
-                  score: parseInt(score),
-                  level: parseInt(level),
-                  timestamp: new Date(attestation.time as string).getTime()
-                };
-              }
-              return null;
-            } catch (error) {
-              console.error("Error parsing attestation:", error);
-              return null;
-            }
-          })
-          .filter(Boolean)
-          .sort((a: LeaderboardEntry, b: LeaderboardEntry) => b.score - a.score);
+        if (!response.ok) {
+          throw new Error('Failed to fetch leaderboard');
+        }
         
-        setLeaderboard(entries);
+        const data = await response.json();
+        setLeaderboard(data.leaderboard || []);
         setIsLoading(false);
       } catch (err) {
         console.error("Error fetching leaderboard:", err);
@@ -87,16 +44,28 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ playerAddress }) => {
     fetchLeaderboard();
   }, []);
 
-  // Get player rank
-  const getPlayerRank = (): number => {
-    if (!playerAddress) return -1;
+  // State for player rank
+  const [playerRank, setPlayerRank] = useState<number>(-1);
+  
+  // Fetch player rank
+  useEffect(() => {
+    const fetchPlayerRank = async () => {
+      if (!playerAddress) return;
+      
+      try {
+        const response = await fetch(`/api/user?address=${playerAddress}`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          setPlayerRank(data.rank || -1);
+        }
+      } catch (error) {
+        console.error('Error fetching player rank:', error);
+      }
+    };
     
-    const index = leaderboard.findIndex(entry => 
-      entry.address.toLowerCase() === playerAddress.toLowerCase()
-    );
-    
-    return index !== -1 ? index + 1 : -1;
-  };
+    fetchPlayerRank();
+  }, [playerAddress]);
 
   return (
     <div className="leaderboard p-4 bg-white rounded-lg shadow-md">
@@ -126,10 +95,10 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ playerAddress }) => {
         </div>
       ) : (
         <>
-          {playerAddress && getPlayerRank() !== -1 && (
+          {playerAddress && playerRank !== -1 && (
             <div className="player-rank bg-blue-50 p-3 rounded-lg mb-4 border border-blue-200">
               <p className="text-center font-medium">
-                Your Rank: <span className="font-bold text-blue-600">#{getPlayerRank()}</span>
+                Your Rank: <span className="font-bold text-blue-600">#{playerRank}</span>
               </p>
             </div>
           )}
