@@ -8,7 +8,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAccount } from "wagmi";
 import Game from "./components/game/Game";
-import Check from "./svg/Check";
+import Check from "@/public/svg/Check";
 
 // const SCHEMA_UID =
 //   "0x7889a09fb295b0a0c63a3d7903c4f00f7896cca4fa64d2c1313f8547390b7d39";
