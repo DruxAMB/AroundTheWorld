@@ -3,10 +3,11 @@
 import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { soundManager } from "../utils/soundManager";
+import { Level, checkLevelObjectives, unlockNextLevel } from "../data/levels";
 
 // Game configuration
 const GRID_SIZE = 6;
-const CANDY_TYPES = ['🍎', '🍊', '🍋', '🍇', '🍓', '🍒'];
+const DEFAULT_CANDY_TYPES = ['🍎', '🍊', '🍋', '🍇', '🍓', '🍒'];
 const SPECIAL_CANDIES = {
   STRIPED_H: '🟦', // Horizontal striped
   STRIPED_V: '🟨', // Vertical striped
@@ -34,22 +35,30 @@ interface GameState {
   matchedCandies: Position[];
   candyIds: string[][];
   soundEnabled: boolean;
+  specialCandiesCreated: number;
+  gameStatus: 'playing' | 'won' | 'lost';
 }
 
-// Generate random candy
-const getRandomCandy = (): CandyType => {
-  return CANDY_TYPES[Math.floor(Math.random() * CANDY_TYPES.length)];
+interface Match3GameProps {
+  level: Level;
+  onLevelComplete: (success: boolean, score: number) => void;
+  onBackToLevels: () => void;
+}
+
+// Generate random candy from current theme
+const getRandomCandy = (candyTypes: CandyType[]): CandyType => {
+  return candyTypes[Math.floor(Math.random() * candyTypes.length)];
 };
 
 // Create initial grid with unique IDs
-const createInitialGrid = (): { grid: GameGrid; ids: string[][] } => {
+const createInitialGrid = (candyTypes: CandyType[]): { grid: GameGrid; ids: string[][] } => {
   const grid: GameGrid = [];
   const ids: string[][] = [];
   for (let row = 0; row < GRID_SIZE; row++) {
     grid[row] = [];
     ids[row] = [];
     for (let col = 0; col < GRID_SIZE; col++) {
-      grid[row][col] = getRandomCandy();
+      grid[row][col] = getRandomCandy(candyTypes);
       ids[row][col] = `${row}-${col}-${Date.now()}-${Math.random()}`;
     }
   }
@@ -77,7 +86,7 @@ const createSpecialCandy = (matchSize: number, isHorizontal: boolean): CandyType
   } else if (matchSize >= 6) {
     return SPECIAL_CANDIES.WRAPPED;
   }
-  return getRandomCandy();
+  return getRandomCandy(DEFAULT_CANDY_TYPES);
 };
 
 // Find matches in the grid with special candy detection
@@ -185,8 +194,8 @@ const activateSpecialCandy = (grid: GameGrid, pos: Position): Position[] => {
   return affectedPositions;
 };
 
-// Remove matches and drop candies with special candy handling
-const processMatches = (grid: GameGrid, candyIds: string[][], matches: Position[], specialCandies: { pos: Position; type: CandyType }[]): { newGrid: GameGrid; newIds: string[][]; score: number } => {
+// Process matches and return new grid with score
+const processMatches = (grid: GameGrid, candyIds: string[][], matches: Position[], specialCandies: { pos: Position; type: CandyType }[], candyTheme: CandyType[]): { newGrid: GameGrid; newIds: string[][]; score: number } => {
   const newGrid = grid.map(row => [...row]);
   const newIds = candyIds.map(row => [...row]);
   let score = matches.length * 10;
@@ -235,9 +244,9 @@ const processMatches = (grid: GameGrid, candyIds: string[][], matches: Position[
       }
     }
     
-    // Fill empty spaces with new candies
+    // Fill empty spaces with new candies (use level theme)
     for (let row = 0; row <= writeIndex; row++) {
-      newGrid[row][col] = getRandomCandy();
+      newGrid[row][col] = getRandomCandy(candyTheme);
       newIds[row][col] = `new-${row}-${col}-${Date.now()}-${Math.random()}`;
     }
   }
@@ -245,18 +254,20 @@ const processMatches = (grid: GameGrid, candyIds: string[][], matches: Position[
   return { newGrid, newIds, score };
 };
 
-export function Match3Game() {
+export function Match3Game({ level, onLevelComplete, onBackToLevels }: Match3GameProps) {
   const [gameState, setGameState] = useState<GameState>(() => {
-    const { grid, ids } = createInitialGrid();
+    const { grid, ids } = createInitialGrid(level.candyTheme);
     return {
       grid,
       candyIds: ids,
       score: 0,
-      moves: 20,
+      moves: level.moves,
       selectedCandy: null,
       animating: false,
       matchedCandies: [],
       soundEnabled: true,
+      specialCandiesCreated: 0,
+      gameStatus: 'playing',
     };
   });
 
@@ -316,16 +327,38 @@ export function Match3Game() {
         // Process matches after animation delay
         setTimeout(() => {
           setGameState(prev => {
-            const { newGrid: processedGrid, newIds, score } = processMatches(newGrid, prev.candyIds, matches, specialCandies);
+            const { newGrid: processedGrid, newIds, score } = processMatches(newGrid, prev.candyIds, matches, specialCandies, level.candyTheme);
+            const newScore = prev.score + score;
+            const newMoves = prev.moves - 1;
+            const newSpecialCount = prev.specialCandiesCreated + specialCandies.length;
+            
+            // Check level objectives
+            const { completed } = checkLevelObjectives(level, {
+              score: newScore,
+              moves: newMoves,
+              specialCandiesCreated: newSpecialCount
+            });
+            
+            let gameStatus: 'playing' | 'won' | 'lost' = 'playing';
+            if (completed) {
+              gameStatus = 'won';
+              setTimeout(() => onLevelComplete(true, newScore), 1000);
+            } else if (newMoves <= 0) {
+              gameStatus = 'lost';
+              setTimeout(() => onLevelComplete(false, newScore), 1000);
+            }
+            
             return {
               grid: processedGrid,
               candyIds: newIds,
-              score: prev.score + score,
-              moves: prev.moves - 1,
+              score: newScore,
+              moves: newMoves,
               selectedCandy: null,
               animating: false,
               matchedCandies: [],
               soundEnabled: prev.soundEnabled,
+              specialCandiesCreated: newSpecialCount,
+              gameStatus,
             };
           });
         }, 600);
@@ -352,7 +385,7 @@ export function Match3Game() {
   }, [gameState]);
 
   const resetGame = useCallback(() => {
-    const { grid, ids } = createInitialGrid();
+    const { grid, ids } = createInitialGrid(level.candyTheme);
     if (gameState.soundEnabled) {
       soundManager.play('shuffle');
     }
@@ -360,13 +393,15 @@ export function Match3Game() {
       grid,
       candyIds: ids,
       score: 0,
-      moves: 20,
+      moves: level.moves,
       selectedCandy: null,
       animating: false,
       matchedCandies: [],
       soundEnabled: gameState.soundEnabled,
+      specialCandiesCreated: 0,
+      gameStatus: 'playing',
     });
-  }, [gameState.soundEnabled]);
+  }, [level, gameState.soundEnabled]);
 
   const isSelected = useCallback((row: number, col: number) => {
     return gameState.selectedCandy?.row === row && gameState.selectedCandy?.col === col;
@@ -392,10 +427,12 @@ export function Match3Game() {
 
   // Check for game over and play sound
   useEffect(() => {
-    if (gameState.moves <= 0 && gameState.soundEnabled) {
+    if (gameState.gameStatus === 'won' && gameState.soundEnabled) {
+      soundManager.play('win');
+    } else if (gameState.gameStatus === 'lost' && gameState.soundEnabled) {
       soundManager.play('gameOver');
     }
-  }, [gameState.moves, gameState.soundEnabled]);
+  }, [gameState.gameStatus, gameState.soundEnabled]);
 
   const getCandyStyle = useCallback((row: number, col: number) => {
     const baseClasses = `
@@ -417,30 +454,87 @@ export function Match3Game() {
   }, [isSelected, isMatched]);
 
   return (
-    <div className="flex flex-col h-full max-w-md mx-auto p-4 space-y-4">
-      {/* Game Header */}
-      <div className="flex justify-between items-center w-full">
-        <div className="text-center">
-          <div className="text-sm text-[var(--app-foreground-muted)]">Score</div>
-          <div className="text-lg font-bold text-[var(--app-accent)]">{gameState.score}</div>
+    <div 
+      className="flex flex-col h-full max-w-md mx-auto p-4 space-y-4 relative"
+      style={{
+        backgroundImage: `url(${level.backgroundImage})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed'
+      }}
+    >
+      {/* Background overlay */}
+      <div className="absolute inset-0 bg-black bg-opacity-40 rounded-lg" />
+      
+      <div className="relative z-10 flex flex-col h-full space-y-4">
+      {/* Level Header */}
+      <div className="bg-[var(--app-card-bg)] bg-opacity-90 rounded-lg p-3 border border-[var(--app-card-border)]">
+        <div className="flex items-center justify-between mb-2">
+          <motion.button
+            onClick={onBackToLevels}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            className="p-1 rounded-lg hover:bg-[var(--app-gray)] transition-colors"
+          >
+            <span className="text-lg">⬅️</span>
+          </motion.button>
+          
+          <div className="text-center">
+            <h2 className="font-bold text-[var(--app-foreground)]">{level.name}</h2>
+            <p className="text-xs text-[var(--app-foreground-muted)]">{level.region}</p>
+          </div>
+          
+          <motion.button
+            onClick={toggleSound}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            className="p-1 rounded-lg hover:bg-[var(--app-gray)] transition-colors"
+            title={gameState.soundEnabled ? "Sound On" : "Sound Off"}
+          >
+            <span className="text-lg">
+              {gameState.soundEnabled ? '🔊' : '🔇'}
+            </span>
+          </motion.button>
         </div>
         
-        {/* Sound Toggle */}
-        <motion.button
-          onClick={toggleSound}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          className="p-2 rounded-lg bg-[var(--app-card-bg)] border border-[var(--app-card-border)] hover:bg-[var(--app-gray)] transition-colors"
-          title={gameState.soundEnabled ? "Sound On" : "Sound Off"}
-        >
-          <span className="text-lg">
-            {gameState.soundEnabled ? '🔊' : '🔇'}
-          </span>
-        </motion.button>
+        <div className="flex justify-between items-center">
+          <div className="text-center">
+            <div className="text-sm text-[var(--app-foreground-muted)]">Score</div>
+            <div className="text-lg font-bold text-[var(--app-accent)]">{gameState.score}</div>
+          </div>
+          
+          <div className="text-center">
+            <div className="text-sm text-[var(--app-foreground-muted)]">Moves</div>
+            <div className="text-lg font-bold text-[var(--app-accent)]">{gameState.moves}</div>
+          </div>
+          
+          <div className="text-center">
+            <div className="text-sm text-[var(--app-foreground-muted)]">Special</div>
+            <div className="text-lg font-bold text-[var(--app-accent)]">{gameState.specialCandiesCreated}</div>
+          </div>
+        </div>
         
-        <div className="text-center">
-          <div className="text-sm text-[var(--app-foreground-muted)]">Moves</div>
-          <div className="text-lg font-bold text-[var(--app-accent)]">{gameState.moves}</div>
+        {/* Objectives */}
+        <div className="mt-2 space-y-1">
+          {level.objectives.map((objective, index) => {
+            const { progress } = checkLevelObjectives(level, {
+              score: gameState.score,
+              moves: gameState.moves,
+              specialCandiesCreated: gameState.specialCandiesCreated
+            });
+            const completed = progress[`objective_${index}`];
+            
+            return (
+              <div key={index} className="flex items-center space-x-2">
+                <span className="text-xs">{completed ? '✅' : '🎯'}</span>
+                <span className={`text-xs ${
+                  completed ? 'text-green-400 line-through' : 'text-[var(--app-foreground-muted)]'
+                }`}>
+                  {objective.description}
+                </span>
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -506,27 +600,46 @@ export function Match3Game() {
       </div>
 
       {/* Game Controls */}
-      <div className="flex flex-col items-center space-y-3">
-        {gameState.moves <= 0 && (
-          <div className="text-center">
-            <div className="text-lg font-bold text-[var(--app-accent)]">Game Over!</div>
-            <div className="text-sm text-[var(--app-foreground-muted)]">Final Score: {gameState.score}</div>
+      <div className="bg-[var(--app-card-bg)] bg-opacity-90 rounded-lg p-3 border border-[var(--app-card-border)]">
+        {gameState.gameStatus !== 'playing' && (
+          <div className="text-center mb-3">
+            <div className={`text-lg font-bold ${
+              gameState.gameStatus === 'won' ? 'text-green-400' : 'text-red-400'
+            }`}>
+              {gameState.gameStatus === 'won' ? '🎉 Level Complete!' : '💔 Level Failed!'}
+            </div>
+            <div className="text-sm text-[var(--app-foreground-muted)]">
+              Final Score: {gameState.score}
+            </div>
           </div>
         )}
         
-        <motion.button
-          onClick={resetGame}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className="px-6 py-2 bg-[var(--app-accent)] text-[var(--app-background)] rounded-lg hover:bg-[var(--app-accent-hover)] transition-colors font-medium shadow-lg"
-        >
-          New Game
-        </motion.button>
+        <div className="flex justify-center space-x-3">
+          <motion.button
+            onClick={resetGame}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="px-4 py-2 bg-[var(--app-accent)] text-[var(--app-background)] rounded-lg hover:bg-[var(--app-accent-hover)] transition-colors font-medium shadow-lg"
+          >
+            Try Again
+          </motion.button>
+          
+          <motion.button
+            onClick={onBackToLevels}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="px-4 py-2 bg-[var(--app-gray)] text-[var(--app-foreground)] rounded-lg hover:bg-[var(--app-gray-dark)] transition-colors font-medium shadow-lg"
+          >
+            Levels
+          </motion.button>
+        </div>
         
         {/* Instructions */}
-        <div className="text-xs text-[var(--app-foreground-muted)] text-center">
-          Click a candy, then click an adjacent candy to swap. Match 3+ to score!
+        <div className="text-xs text-[var(--app-foreground-muted)] text-center mt-3">
+          Match 3+ {level.candyTheme[0]} to score points!
         </div>
+      </div>
+      
       </div>
     </div>
   );

@@ -21,7 +21,7 @@ import {
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { Button } from "./components/DemoComponents";
 import { Icon } from "./components/DemoComponents";
-import { Match3Game } from "./components/Match3Game";
+import { GameWrapper } from "./components/GameWrapper";
 
 export default function App() {
   const { setFrameReady, isFrameReady, context } = useMiniKit();
@@ -94,7 +94,7 @@ export default function App() {
         </header>
 
         <main className="flex-1">
-          <Match3Game />
+          <GameWrapper />
         </main>
 
         <footer className="mt-2 pt-4 flex justify-center">
