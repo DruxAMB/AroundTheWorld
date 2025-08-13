@@ -5,16 +5,30 @@ import { useState, useCallback, useEffect } from "react";
 // Game configuration
 const GRID_SIZE = 6;
 const CANDY_TYPES = ['🍎', '🍊', '🍋', '🍇', '🍓', '🍒'];
+const SPECIAL_CANDIES = {
+  STRIPED_H: '🟦', // Horizontal striped
+  STRIPED_V: '🟨', // Vertical striped
+  WRAPPED: '🟪',   // Wrapped candy
+  COLOR_BOMB: '⚫'  // Color bomb
+};
 
 type CandyType = string;
 type Position = { row: number; col: number };
 type GameGrid = CandyType[][];
+type AnimationType = 'drop' | 'match' | 'special' | null;
+type CandyState = {
+  type: CandyType;
+  animation: AnimationType;
+  isMatched: boolean;
+};
 
 interface GameState {
   grid: GameGrid;
   score: number;
   moves: number;
   selectedCandy: Position | null;
+  animating: boolean;
+  matchedCandies: Position[];
 }
 
 // Generate random candy
@@ -41,48 +55,158 @@ const areAdjacent = (pos1: Position, pos2: Position): boolean => {
   return (rowDiff === 1 && colDiff === 0) || (rowDiff === 0 && colDiff === 1);
 };
 
-// Find matches in the grid
-const findMatches = (grid: GameGrid): Position[] => {
+// Check if candy is special
+const isSpecialCandy = (candy: CandyType): boolean => {
+  return Object.values(SPECIAL_CANDIES).includes(candy);
+};
+
+// Create special candy based on match size and pattern
+const createSpecialCandy = (matchSize: number, isHorizontal: boolean): CandyType => {
+  if (matchSize === 4) {
+    return isHorizontal ? SPECIAL_CANDIES.STRIPED_H : SPECIAL_CANDIES.STRIPED_V;
+  } else if (matchSize === 5) {
+    return SPECIAL_CANDIES.COLOR_BOMB;
+  } else if (matchSize >= 6) {
+    return SPECIAL_CANDIES.WRAPPED;
+  }
+  return getRandomCandy();
+};
+
+// Find matches in the grid with special candy detection
+const findMatches = (grid: GameGrid): { matches: Position[]; specialCandies: { pos: Position; type: CandyType }[] } => {
   const matches: Position[] = [];
+  const specialCandies: { pos: Position; type: CandyType }[] = [];
   
   // Check horizontal matches
   for (let row = 0; row < GRID_SIZE; row++) {
-    for (let col = 0; col < GRID_SIZE - 2; col++) {
-      if (grid[row][col] === grid[row][col + 1] && 
-          grid[row][col] === grid[row][col + 2]) {
-        matches.push({ row, col });
-        matches.push({ row, col: col + 1 });
-        matches.push({ row, col: col + 2 });
+    let matchStart = 0;
+    for (let col = 1; col <= GRID_SIZE; col++) {
+      if (col === GRID_SIZE || grid[row][col] !== grid[row][matchStart]) {
+        const matchLength = col - matchStart;
+        if (matchLength >= 3) {
+          // Add matches
+          for (let i = matchStart; i < col; i++) {
+            matches.push({ row, col: i });
+          }
+          // Create special candy if match is 4+
+          if (matchLength >= 4) {
+            const specialPos = { row, col: matchStart + Math.floor(matchLength / 2) };
+            specialCandies.push({
+              pos: specialPos,
+              type: createSpecialCandy(matchLength, true)
+            });
+          }
+        }
+        matchStart = col;
       }
     }
   }
   
   // Check vertical matches
-  for (let row = 0; row < GRID_SIZE - 2; row++) {
-    for (let col = 0; col < GRID_SIZE; col++) {
-      if (grid[row][col] === grid[row + 1][col] && 
-          grid[row][col] === grid[row + 2][col]) {
-        matches.push({ row, col });
-        matches.push({ row: row + 1, col });
-        matches.push({ row: row + 2, col });
+  for (let col = 0; col < GRID_SIZE; col++) {
+    let matchStart = 0;
+    for (let row = 1; row <= GRID_SIZE; row++) {
+      if (row === GRID_SIZE || grid[row][col] !== grid[matchStart][col]) {
+        const matchLength = row - matchStart;
+        if (matchLength >= 3) {
+          // Add matches
+          for (let i = matchStart; i < row; i++) {
+            matches.push({ row: i, col });
+          }
+          // Create special candy if match is 4+
+          if (matchLength >= 4) {
+            const specialPos = { row: matchStart + Math.floor(matchLength / 2), col };
+            specialCandies.push({
+              pos: specialPos,
+              type: createSpecialCandy(matchLength, false)
+            });
+          }
+        }
+        matchStart = row;
       }
     }
   }
   
-  // Remove duplicates
-  return matches.filter((match, index, self) => 
+  // Remove duplicates from matches
+  const uniqueMatches = matches.filter((match, index, self) => 
     index === self.findIndex(m => m.row === match.row && m.col === match.col)
   );
+  
+  return { matches: uniqueMatches, specialCandies };
 };
 
-// Remove matches and drop candies
-const processMatches = (grid: GameGrid, matches: Position[]): { newGrid: GameGrid; score: number } => {
+// Activate special candy effects
+const activateSpecialCandy = (grid: GameGrid, pos: Position): Position[] => {
+  const candy = grid[pos.row][pos.col];
+  const affectedPositions: Position[] = [];
+  
+  switch (candy) {
+    case SPECIAL_CANDIES.STRIPED_H:
+      // Clear entire row
+      for (let col = 0; col < GRID_SIZE; col++) {
+        affectedPositions.push({ row: pos.row, col });
+      }
+      break;
+    case SPECIAL_CANDIES.STRIPED_V:
+      // Clear entire column
+      for (let row = 0; row < GRID_SIZE; row++) {
+        affectedPositions.push({ row, col: pos.col });
+      }
+      break;
+    case SPECIAL_CANDIES.WRAPPED:
+      // Clear 3x3 area around candy
+      for (let r = Math.max(0, pos.row - 1); r <= Math.min(GRID_SIZE - 1, pos.row + 1); r++) {
+        for (let c = Math.max(0, pos.col - 1); c <= Math.min(GRID_SIZE - 1, pos.col + 1); c++) {
+          affectedPositions.push({ row: r, col: c });
+        }
+      }
+      break;
+    case SPECIAL_CANDIES.COLOR_BOMB:
+      // Clear all candies of the same type as the swapped candy
+      const targetType = grid[pos.row][pos.col];
+      for (let row = 0; row < GRID_SIZE; row++) {
+        for (let col = 0; col < GRID_SIZE; col++) {
+          if (grid[row][col] === targetType) {
+            affectedPositions.push({ row, col });
+          }
+        }
+      }
+      break;
+  }
+  
+  return affectedPositions;
+};
+
+// Remove matches and drop candies with special candy handling
+const processMatches = (grid: GameGrid, matches: Position[], specialCandies: { pos: Position; type: CandyType }[]): { newGrid: GameGrid; score: number } => {
   const newGrid = grid.map(row => [...row]);
   let score = matches.length * 10;
+  let allMatches = [...matches];
+  
+  // Handle special candy activations
+  matches.forEach(pos => {
+    if (isSpecialCandy(grid[pos.row][pos.col])) {
+      const specialMatches = activateSpecialCandy(grid, pos);
+      allMatches.push(...specialMatches);
+      score += specialMatches.length * 5; // Bonus points for special candies
+    }
+  });
+  
+  // Remove duplicates
+  allMatches = allMatches.filter((match, index, self) => 
+    index === self.findIndex(m => m.row === match.row && m.col === match.col)
+  );
   
   // Remove matched candies
-  matches.forEach(({ row, col }) => {
+  allMatches.forEach(({ row, col }) => {
     newGrid[row][col] = '';
+  });
+  
+  // Place special candies before dropping
+  specialCandies.forEach(({ pos, type }) => {
+    if (newGrid[pos.row][pos.col] === '') {
+      newGrid[pos.row][pos.col] = type;
+    }
   });
   
   // Drop candies down
@@ -113,6 +237,8 @@ export function Match3Game() {
     score: 0,
     moves: 20,
     selectedCandy: null,
+    animating: false,
+    matchedCandies: [],
   }));
 
   const handleCandyClick = useCallback((row: number, col: number) => {
@@ -140,17 +266,28 @@ export function Match3Game() {
       newGrid[row][col] = temp;
       
       // Check for matches
-      const matches = findMatches(newGrid);
+      const { matches, specialCandies } = findMatches(newGrid);
       
       if (matches.length > 0) {
-        // Valid move - process matches
-        const { newGrid: processedGrid, score } = processMatches(newGrid, matches);
+        // Valid move - show match animation first
         setGameState(prev => ({
-          grid: processedGrid,
-          score: prev.score + score,
-          moves: prev.moves - 1,
-          selectedCandy: null,
+          ...prev,
+          matchedCandies: matches,
+          animating: true,
         }));
+        
+        // Process matches after animation delay
+        setTimeout(() => {
+          const { newGrid: processedGrid, score } = processMatches(newGrid, matches, specialCandies);
+          setGameState(prev => ({
+            grid: processedGrid,
+            score: prev.score + score,
+            moves: prev.moves - 1,
+            selectedCandy: null,
+            animating: false,
+            matchedCandies: [],
+          }));
+        }, 500);
       } else {
         // Invalid move - swap back
         setGameState(prev => ({
@@ -173,12 +310,37 @@ export function Match3Game() {
       score: 0,
       moves: 20,
       selectedCandy: null,
+      animating: false,
+      matchedCandies: [],
     });
   }, []);
 
   const isSelected = useCallback((row: number, col: number) => {
     return gameState.selectedCandy?.row === row && gameState.selectedCandy?.col === col;
   }, [gameState.selectedCandy]);
+  
+  const isMatched = useCallback((row: number, col: number) => {
+    return gameState.matchedCandies.some(pos => pos.row === row && pos.col === col);
+  }, [gameState.matchedCandies]);
+  
+  const getCandyStyle = useCallback((row: number, col: number) => {
+    const baseClasses = `
+      w-8 h-8 text-lg flex items-center justify-center rounded-md
+      transition-all duration-200 hover:scale-110
+    `;
+    
+    let stateClasses = '';
+    
+    if (isSelected(row, col)) {
+      stateClasses = 'bg-[var(--app-accent)] bg-opacity-30 ring-2 ring-[var(--app-accent)]';
+    } else if (isMatched(row, col)) {
+      stateClasses = 'bg-red-500 bg-opacity-50 animate-pulse scale-110';
+    } else {
+      stateClasses = 'bg-[var(--app-background)] hover:bg-[var(--app-gray)]';
+    }
+    
+    return `${baseClasses} ${stateClasses}`;
+  }, [isSelected, isMatched]);
 
   return (
     <div className="flex flex-col items-center space-y-4 p-4">
@@ -201,15 +363,8 @@ export function Match3Game() {
             <button
               key={`${rowIndex}-${colIndex}`}
               onClick={() => handleCandyClick(rowIndex, colIndex)}
-              className={`
-                w-8 h-8 text-lg flex items-center justify-center rounded-md
-                transition-all duration-200 hover:scale-110
-                ${isSelected(rowIndex, colIndex) 
-                  ? 'bg-[var(--app-accent)] bg-opacity-30 ring-2 ring-[var(--app-accent)]' 
-                  : 'bg-[var(--app-background)] hover:bg-[var(--app-gray)]'
-                }
-              `}
-              disabled={gameState.moves <= 0}
+              className={getCandyStyle(rowIndex, colIndex)}
+              disabled={gameState.moves <= 0 || gameState.animating}
             >
               {candy}
             </button>
