@@ -270,6 +270,10 @@ class GameDataService {
     // Set expiration for time-based leaderboards
     await redis.expire(`${this.LEADERBOARD_PREFIX}week:${weekKey}`, 60 * 60 * 24 * 14); // 2 weeks
     await redis.expire(`${this.LEADERBOARD_PREFIX}month:${monthKey}`, 60 * 60 * 24 * 60); // 2 months
+    
+    // Update global stats after leaderboard changes
+    console.log('📊 Redis: Updating global stats after leaderboard update');
+    await this.updateGlobalStats();
   }
 
   async getLeaderboard(timeframe: 'week' | 'month' | 'all-time', limit: number = 50): Promise<LeaderboardEntry[]> {
@@ -314,7 +318,10 @@ class GameDataService {
   }
 
   async getPlayerRank(walletAddress: string, timeframe: 'week' | 'month' | 'all-time'): Promise<number | null> {
-    if (!redis) return null;
+    if (!redis) {
+      console.log('❌ Redis: Redis client not available for player rank');
+      return null;
+    }
 
     const key = timeframe === 'week' 
       ? `${this.LEADERBOARD_PREFIX}week:${this.getWeekKey(new Date())}`
@@ -322,33 +329,73 @@ class GameDataService {
       ? `${this.LEADERBOARD_PREFIX}month:${this.getMonthKey(new Date())}`
       : `${this.LEADERBOARD_PREFIX}all-time`;
 
-    const rank = await redis.zrevrank(key, walletAddress);
-    return rank !== null ? rank + 1 : null;
+    console.log('🏆 Redis: Getting player rank for:', walletAddress, 'from key:', key);
+    
+    // Get all leaderboard entries to find the player's rank
+    const results = await redis.zrange(key, 0, -1, { withScores: true, rev: true });
+    console.log('📊 Redis: Got', results.length / 2, 'leaderboard entries for rank calculation');
+    
+    // Search through the leaderboard to find the player
+    for (let i = 0; i < results.length; i += 2) {
+      try {
+        const memberData = typeof results[i] === 'string' 
+          ? JSON.parse(results[i] as string)
+          : results[i] as any;
+          
+        if (memberData.playerId === walletAddress) {
+          const rank = Math.floor(i / 2) + 1;
+          console.log('✅ Redis: Found player rank:', rank);
+          return rank;
+        }
+      } catch (e) {
+        console.error('❌ Redis: Error parsing leaderboard entry for rank:', e);
+      }
+    }
+    
+    console.log('❌ Redis: Player not found in leaderboard');
+    return null;
   }
 
   // Global Statistics
   async updateGlobalStats(): Promise<void> {
-    if (!redis) return;
+    if (!redis) {
+      console.log('❌ Redis: Redis client not available for global stats update');
+      return;
+    }
 
-    const totalPlayers = await redis.zcard(`${this.LEADERBOARD_PREFIX}all-time`);
+    const leaderboardKey = `${this.LEADERBOARD_PREFIX}all-time`;
+    console.log('📊 Redis: Getting total players from key:', leaderboardKey);
+    
+    const totalPlayers = await redis.zcard(leaderboardKey);
+    console.log('👥 Redis: Total players count:', totalPlayers);
+    
     const totalRewards = totalPlayers * 0.001; // Mock ETH calculation
+    console.log('💰 Redis: Calculated total rewards:', totalRewards);
 
-    await redis.hset(this.GLOBAL_STATS_KEY, {
+    const statsData = {
       totalPlayers,
       totalRewards: totalRewards.toFixed(3),
       lastUpdated: new Date().toISOString()
-    });
+    };
+    
+    console.log('📈 Redis: Updating global stats:', statsData);
+    await redis.hset(this.GLOBAL_STATS_KEY, statsData);
+    console.log('✅ Redis: Global stats updated');
   }
 
   async getGlobalStats(): Promise<{ totalPlayers: number; totalRewards: string; lastUpdated: string }> {
     if (!redis) throw new Error('Redis not configured');
 
+    console.log('📊 Redis: Getting global stats from key:', this.GLOBAL_STATS_KEY);
     const stats = await redis.hgetall(this.GLOBAL_STATS_KEY) as Record<string, string>;
+    console.log('📈 Redis: Raw global stats:', stats);
     
     // If stats don't exist yet, initialize them
     if (!stats || Object.keys(stats).length === 0) {
+      console.log('⚠️ Redis: No global stats found, initializing...');
       await this.updateGlobalStats();
       const newStats = await redis.hgetall(this.GLOBAL_STATS_KEY) as Record<string, string>;
+      console.log('📈 Redis: New global stats after initialization:', newStats);
       return {
         totalPlayers: parseInt(newStats.totalPlayers) || 0,
         totalRewards: newStats.totalRewards || "0.000",
@@ -356,11 +403,13 @@ class GameDataService {
       };
     }
 
-    return {
+    const result = {
       totalPlayers: parseInt(stats.totalPlayers),
       totalRewards: stats.totalRewards,
       lastUpdated: stats.lastUpdated
     };
+    console.log('✅ Redis: Returning global stats:', result);
+    return result;
   }
 
   // Utility Methods
