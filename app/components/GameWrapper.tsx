@@ -130,34 +130,8 @@ export function GameWrapper() {
       // Save progress to Redis
       await saveGameProgress(newProgress);
       
-      // Update player's total score and level completion stats in Redis
-      if (isConnected && address && player) {
-        try {
-          const totalScore = newProgress.reduce((sum, p) => sum + p.score, 0);
-          const levelsCompleted = newProgress.filter(p => p.completed).length;
-          const bestLevel = Math.max(...newProgress.map(p => parseInt(p.levelId.split('-')[1]) || 1));
-          
-          // Update player profile with new stats
-          const response = await fetch('/api/player', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              walletAddress: address,
-              playerData: {
-                totalScore,
-                levelsCompleted,
-                bestLevel
-              }
-            })
-          });
-          
-          if (!response.ok) {
-            throw new Error('Failed to update player stats');
-          }
-        } catch (error) {
-          console.error('Failed to update player stats in Redis:', error);
-        }
-      }
+      // Player stats are already updated by saveGameProgress, no need for separate API call
+      console.log('✅ GameWrapper: Level completion processed, progress and stats saved via saveGameProgress');
 
       // Show completion screen briefly with celebration music
       setGameState('level-complete');

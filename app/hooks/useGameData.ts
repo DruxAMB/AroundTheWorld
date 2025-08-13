@@ -115,21 +115,33 @@ export function useGameData(): GameDataHook {
   };
 
   const saveProgress = async (newProgress: LevelProgress[]) => {
-    if (!address) return;
+    if (!address) {
+      console.log('❌ SaveProgress: No wallet address available');
+      return;
+    }
 
+    console.log('💾 SaveProgress: Attempting to save progress:', newProgress);
     setSaving(true);
     try {
+      const requestBody = {
+        walletAddress: address,
+        action: 'saveProgress',
+        data: { progress: newProgress }
+      };
+      console.log('📤 SaveProgress: Request body:', requestBody);
+
       const response = await fetch('/api/player', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          walletAddress: address,
-          action: 'saveProgress',
-          data: { progress: newProgress }
-        })
+        body: JSON.stringify(requestBody)
       });
 
+      console.log('📡 SaveProgress: Response status:', response.status);
+      
       if (response.ok) {
+        const responseData = await response.json();
+        console.log('✅ SaveProgress: Success response:', responseData);
+        
         setProgress(newProgress);
         
         // Update player stats
@@ -141,15 +153,20 @@ export function useGameData(): GameDataHook {
           return match ? parseInt(match[1]) : 1;
         }), 0);
         
+        console.log('📊 SaveProgress: Calculated stats - Score:', totalScore, 'Levels:', levelsCompleted, 'Best:', bestLevel);
+        
         setPlayer(prev => prev ? {
           ...prev,
           totalScore,
           levelsCompleted,
           bestLevel
         } : null);
+      } else {
+        const errorData = await response.text();
+        console.error('❌ SaveProgress: Failed with status:', response.status, 'Error:', errorData);
       }
     } catch (error) {
-      console.error('Failed to save progress:', error);
+      console.error('❌ SaveProgress: Exception occurred:', error);
     } finally {
       setSaving(false);
     }

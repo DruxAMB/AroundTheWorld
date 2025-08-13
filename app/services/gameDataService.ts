@@ -125,10 +125,17 @@ class GameDataService {
 
   // Game Progress Management
   async saveGameProgress(walletAddress: string, progress: LevelProgress[]): Promise<void> {
-    if (!redis) return;
+    if (!redis) {
+      console.log('❌ Redis: Redis client not available for saving progress');
+      return;
+    }
+
+    console.log('💾 Redis: Saving game progress for:', walletAddress);
+    console.log('📊 Redis: Progress data to save:', progress);
 
     const playerId = this.getPlayerKey(walletAddress);
     const progressKey = `${playerId}:progress`;
+    console.log('🔑 Redis: Using progress key:', progressKey);
     
     // Calculate stats from progress
     const totalScore = progress.reduce((sum, level) => sum + level.score, 0);
@@ -139,19 +146,29 @@ class GameDataService {
       return match ? parseInt(match[1]) : 1;
     }), 0);
 
+    console.log('📈 Redis: Calculated stats - Score:', totalScore, 'Levels:', levelsCompleted, 'Best:', bestLevel);
+
     // Save progress
-    await redis.set(progressKey, JSON.stringify(progress));
+    const progressJson = JSON.stringify(progress);
+    console.log('💾 Redis: Saving progress JSON:', progressJson);
+    await redis.set(progressKey, progressJson);
+    console.log('✅ Redis: Progress saved to key:', progressKey);
     
     // Update player stats
-    await redis.hset(playerId, {
+    const playerStats = {
       totalScore,
       levelsCompleted,
       bestLevel,
       lastActive: new Date().toISOString()
-    });
-
-    // Update leaderboards
+    };
+    console.log('👤 Redis: Updating player stats:', playerStats);
+    await redis.hset(playerId, playerStats);
+    console.log('✅ Redis: Player stats updated');
+    
+    // Update leaderboard
+    console.log('🏆 Redis: Updating leaderboard for score:', totalScore);
     await this.updateLeaderboards(walletAddress, totalScore, levelsCompleted, bestLevel);
+    console.log('✅ Redis: Leaderboard updated');
   }
 
   async getGameProgress(walletAddress: string): Promise<LevelProgress[]> {
@@ -198,53 +215,56 @@ class GameDataService {
 
   // Leaderboard Management
   async updateLeaderboards(walletAddress: string, totalScore: number, levelsCompleted: number, bestLevel: number): Promise<void> {
-    if (!redis) return;
+    if (!redis) {
+      console.log('❌ Redis: Redis client not available for leaderboard update');
+      return;
+    }
 
+    console.log('🏆 Redis: Updating leaderboards for:', walletAddress, 'Score:', totalScore);
     const player = await this.getPlayer(walletAddress);
-    if (!player) return;
+    if (!player) {
+      console.log('❌ Redis: Player not found for leaderboard update:', walletAddress);
+      return;
+    }
 
     // Update different leaderboard timeframes
     const now = new Date();
     const weekKey = this.getWeekKey(now);
     const monthKey = this.getMonthKey(now);
 
-    // All-time leaderboard
-    await redis.zadd(`${this.LEADERBOARD_PREFIX}all-time`, {
+    const playerData = {
+      playerId: walletAddress,
+      name: player.name,
+      avatar: player.avatar,
       score: totalScore,
-      member: JSON.stringify({
-        playerId: walletAddress,
-        name: player.name,
-        avatar: player.avatar,
-        score: totalScore,
-        levelsCompleted,
-        bestLevel
-      })
+      levelsCompleted,
+      bestLevel
+    };
+    const playerDataJson = JSON.stringify(playerData);
+    console.log('📊 Redis: Player data for leaderboard:', playerDataJson);
+
+    // All-time leaderboard
+    const allTimeKey = `${this.LEADERBOARD_PREFIX}all-time`;
+    console.log('🏆 Redis: Adding to all-time leaderboard:', allTimeKey);
+    await redis.zadd(allTimeKey, {
+      score: totalScore,
+      member: playerDataJson
     });
 
     // Weekly leaderboard
-    await redis.zadd(`${this.LEADERBOARD_PREFIX}week:${weekKey}`, {
+    const weeklyKey = `${this.LEADERBOARD_PREFIX}week:${weekKey}`;
+    console.log('📅 Redis: Adding to weekly leaderboard:', weeklyKey);
+    await redis.zadd(weeklyKey, {
       score: totalScore,
-      member: JSON.stringify({
-        playerId: walletAddress,
-        name: player.name,
-        avatar: player.avatar,
-        score: totalScore,
-        levelsCompleted,
-        bestLevel
-      })
+      member: playerDataJson
     });
 
     // Monthly leaderboard
-    await redis.zadd(`${this.LEADERBOARD_PREFIX}month:${monthKey}`, {
+    const monthlyKey = `${this.LEADERBOARD_PREFIX}month:${monthKey}`;
+    console.log('📅 Redis: Adding to monthly leaderboard:', monthlyKey);
+    await redis.zadd(monthlyKey, {
       score: totalScore,
-      member: JSON.stringify({
-        playerId: walletAddress,
-        name: player.name,
-        avatar: player.avatar,
-        score: totalScore,
-        levelsCompleted,
-        bestLevel
-      })
+      member: playerDataJson
     });
 
     // Set expiration for time-based leaderboards
@@ -253,59 +273,54 @@ class GameDataService {
   }
 
   async getLeaderboard(timeframe: 'week' | 'month' | 'all-time', limit: number = 50): Promise<LeaderboardEntry[]> {
-    if (!redis) return [];
-
-    let key: string;
-    const now = new Date();
-
-    switch (timeframe) {
-      case 'week':
-        key = `${this.LEADERBOARD_PREFIX}week:${this.getWeekKey(now)}`;
-        break;
-      case 'month':
-        key = `${this.LEADERBOARD_PREFIX}month:${this.getMonthKey(now)}`;
-        break;
-      case 'all-time':
-        key = `${this.LEADERBOARD_PREFIX}all-time`;
-        break;
+    if (!redis) {
+      console.log('❌ Redis: Redis client not available for leaderboard');
+      return [];
     }
 
+    const key = timeframe === 'week' 
+      ? `${this.LEADERBOARD_PREFIX}week:${this.getWeekKey(new Date())}`
+      : timeframe === 'month'
+      ? `${this.LEADERBOARD_PREFIX}month:${this.getMonthKey(new Date())}`
+      : `${this.LEADERBOARD_PREFIX}all-time`;
+
+    console.log('🏆 Redis: Getting leaderboard with key:', key);
     const results = await redis.zrange(key, 0, limit - 1, { withScores: true, rev: true });
+    console.log('📊 Redis: Raw leaderboard results:', results);
     
     const leaderboard: LeaderboardEntry[] = [];
     for (let i = 0; i < results.length; i += 2) {
       try {
-        const memberData = JSON.parse(results[i] as string);
+        console.log('🔍 Redis: Processing leaderboard entry:', results[i], 'Type:', typeof results[i]);
+        
+        // Redis returns the data already parsed as objects, no need to JSON.parse
+        const memberData = typeof results[i] === 'string' 
+          ? JSON.parse(results[i] as string)
+          : results[i] as any;
+          
         leaderboard.push({
           ...memberData,
           rank: Math.floor(i / 2) + 1,
           rankChange: 0 // TODO: Calculate rank changes
         });
+        console.log('✅ Redis: Successfully processed leaderboard entry for:', memberData.name);
       } catch (e) {
-        console.warn('Failed to parse leaderboard entry:', e);
+        console.error('❌ Redis: Failed to parse leaderboard entry:', results[i], 'Error:', e);
       }
     }
 
+    console.log('✅ Redis: Processed leaderboard:', leaderboard);
     return leaderboard;
   }
 
   async getPlayerRank(walletAddress: string, timeframe: 'week' | 'month' | 'all-time'): Promise<number | null> {
     if (!redis) return null;
 
-    let key: string;
-    const now = new Date();
-
-    switch (timeframe) {
-      case 'week':
-        key = `${this.LEADERBOARD_PREFIX}week:${this.getWeekKey(now)}`;
-        break;
-      case 'month':
-        key = `${this.LEADERBOARD_PREFIX}month:${this.getMonthKey(now)}`;
-        break;
-      case 'all-time':
-        key = `${this.LEADERBOARD_PREFIX}all-time`;
-        break;
-    }
+    const key = timeframe === 'week' 
+      ? `${this.LEADERBOARD_PREFIX}week:${this.getWeekKey(new Date())}`
+      : timeframe === 'month'
+      ? `${this.LEADERBOARD_PREFIX}month:${this.getMonthKey(new Date())}`
+      : `${this.LEADERBOARD_PREFIX}all-time`;
 
     const rank = await redis.zrevrank(key, walletAddress);
     return rank !== null ? rank + 1 : null;
