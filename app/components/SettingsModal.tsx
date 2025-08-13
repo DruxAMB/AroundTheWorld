@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { soundManager } from "../utils/soundManager";
+import { useGameData } from "../hooks/useGameData";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -18,7 +19,8 @@ interface GameSettings {
 }
 
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
-  const [settings, setSettings] = useState<GameSettings>({
+  const { settings, saveSettings: saveGameSettings } = useGameData();
+  const [localSettings, setLocalSettings] = useState<GameSettings>({
     soundEnabled: true,
     soundVolume: 30,
     musicVolume: 15,
@@ -26,36 +28,34 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     vibrationEnabled: true,
   });
 
-  // Load settings from localStorage on mount
+  // Load settings from Redis via useGameData hook
   useEffect(() => {
-    const savedSettings = localStorage.getItem('match3-settings');
-    if (savedSettings) {
-      try {
-        const parsed = JSON.parse(savedSettings);
-        setSettings(parsed);
-        // Apply settings to sound manager
-        soundManager.setEnabled(parsed.soundEnabled);
-        soundManager.setVolume(parsed.soundVolume / 100);
-        soundManager.setMusicVolume(parsed.musicVolume / 100);
-      } catch (e) {
-        console.warn('Failed to load settings');
-      }
+    if (settings) {
+      setLocalSettings(settings);
+      // Apply settings to sound manager
+      soundManager.setEnabled(settings.soundEnabled);
+      soundManager.setVolume(settings.soundVolume / 100);
+      soundManager.setMusicVolume(settings.musicVolume / 100);
     }
-  }, []);
+  }, [settings]);
 
-  // Save settings to localStorage
-  const saveSettings = (newSettings: GameSettings) => {
-    localStorage.setItem('match3-settings', JSON.stringify(newSettings));
-    setSettings(newSettings);
-    
-    // Apply settings to sound manager
-    soundManager.setEnabled(newSettings.soundEnabled);
-    soundManager.setVolume(newSettings.soundVolume / 100);
-    soundManager.setMusicVolume(newSettings.musicVolume / 100);
+  // Save settings to Redis instead of localStorage
+  const saveSettings = async (newSettings: GameSettings) => {
+    try {
+      await saveGameSettings(newSettings);
+      setLocalSettings(newSettings);
+      
+      // Apply settings to sound manager
+      soundManager.setEnabled(newSettings.soundEnabled);
+      soundManager.setVolume(newSettings.soundVolume / 100);
+      soundManager.setMusicVolume(newSettings.musicVolume / 100);
+    } catch (error) {
+      console.error('Failed to save settings to Redis:', error);
+    }
   };
 
   const handleSoundToggle = () => {
-    const newSettings = { ...settings, soundEnabled: !settings.soundEnabled };
+    const newSettings = { ...localSettings, soundEnabled: !localSettings.soundEnabled };
     saveSettings(newSettings);
     
     // Play test sound if enabling
@@ -65,27 +65,27 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   };
 
   const handleSoundVolumeChange = (volume: number) => {
-    const newSettings = { ...settings, soundVolume: volume };
+    const newSettings = { ...localSettings, soundVolume: volume };
     saveSettings(newSettings);
     
     // Play test sound
-    if (settings.soundEnabled) {
+    if (localSettings.soundEnabled) {
       soundManager.play('click');
     }
   };
 
   const handleMusicVolumeChange = (volume: number) => {
-    const newSettings = { ...settings, musicVolume: volume };
+    const newSettings = { ...localSettings, musicVolume: volume };
     saveSettings(newSettings);
   };
 
   const handleAnimationsToggle = () => {
-    const newSettings = { ...settings, animationsEnabled: !settings.animationsEnabled };
+    const newSettings = { ...localSettings, animationsEnabled: !localSettings.animationsEnabled };
     saveSettings(newSettings);
   };
 
   const handleVibrationToggle = () => {
-    const newSettings = { ...settings, vibrationEnabled: !settings.vibrationEnabled };
+    const newSettings = { ...localSettings, vibrationEnabled: !localSettings.vibrationEnabled };
     saveSettings(newSettings);
     
     // Test vibration if enabling (if supported)
@@ -168,11 +168,11 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       onClick={handleSoundToggle}
                       whileTap={{ scale: 0.95 }}
                       className={`relative w-12 h-6 rounded-full transition-colors ${
-                        settings.soundEnabled ? 'bg-[var(--app-accent)]' : 'bg-gray-400'
+                        localSettings.soundEnabled ? 'bg-[var(--app-accent)]' : 'bg-gray-400'
                       }`}
                     >
                       <motion.div
-                        animate={{ x: settings.soundEnabled ? 24 : 0 }}
+                        animate={{ x: localSettings.soundEnabled ? 24 : 0 }}
                         transition={{ type: "spring", stiffness: 500, damping: 30 }}
                         className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-md"
                       />
@@ -180,21 +180,21 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   </div>
 
                   {/* Sound Volume */}
-                  {settings.soundEnabled && (
+                  {localSettings.soundEnabled && (
                     <div className="mb-4">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-medium text-[var(--app-foreground)]">
                           Sound Volume
                         </span>
                         <span className="text-sm text-[var(--app-foreground-muted)]">
-                          {settings.soundVolume}%
+                          {localSettings.soundVolume}%
                         </span>
                       </div>
                       <input
                         type="range"
                         min="0"
                         max="100"
-                        value={settings.soundVolume}
+                        value={localSettings.soundVolume}
                         onChange={(e) => handleSoundVolumeChange(Number(e.target.value))}
                         className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
                       />
@@ -208,14 +208,14 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                         Music Volume
                       </span>
                       <span className="text-sm text-[var(--app-foreground-muted)]">
-                        {settings.musicVolume}%
+                        {localSettings.musicVolume}%
                       </span>
                     </div>
                     <input
                       type="range"
                       min="0"
                       max="50"
-                      value={settings.musicVolume}
+                      value={localSettings.musicVolume}
                       onChange={(e) => handleMusicVolumeChange(Number(e.target.value))}
                       className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
                     />
@@ -240,11 +240,11 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       onClick={handleAnimationsToggle}
                       whileTap={{ scale: 0.95 }}
                       className={`relative w-12 h-6 rounded-full transition-colors ${
-                        settings.animationsEnabled ? 'bg-[var(--app-accent)]' : 'bg-gray-400'
+                        localSettings.animationsEnabled ? 'bg-[var(--app-accent)]' : 'bg-gray-400'
                       }`}
                     >
                       <motion.div
-                        animate={{ x: settings.animationsEnabled ? 24 : 0 }}
+                        animate={{ x: localSettings.animationsEnabled ? 24 : 0 }}
                         transition={{ type: "spring", stiffness: 500, damping: 30 }}
                         className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-md"
                       />
@@ -270,11 +270,11 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       onClick={handleVibrationToggle}
                       whileTap={{ scale: 0.95 }}
                       className={`relative w-12 h-6 rounded-full transition-colors ${
-                        settings.vibrationEnabled ? 'bg-[var(--app-accent)]' : 'bg-gray-400'
+                        localSettings.vibrationEnabled ? 'bg-[var(--app-accent)]' : 'bg-gray-400'
                       }`}
                     >
                       <motion.div
-                        animate={{ x: settings.vibrationEnabled ? 24 : 0 }}
+                        animate={{ x: localSettings.vibrationEnabled ? 24 : 0 }}
                         transition={{ type: "spring", stiffness: 500, damping: 30 }}
                         className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-md"
                       />

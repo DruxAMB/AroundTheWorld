@@ -19,7 +19,7 @@ interface GameDataHook {
   loadPlayerData: () => Promise<void>;
   
   // Migration
-  migrateFromLocalStorage: () => Promise<void>;
+
 }
 
 interface LeaderboardData {
@@ -135,7 +135,11 @@ export function useGameData(): GameDataHook {
         // Update player stats
         const totalScore = newProgress.reduce((sum, level) => sum + level.score, 0);
         const levelsCompleted = newProgress.filter(level => level.completed).length;
-        const bestLevel = Math.max(...newProgress.map(level => level.levelId), 0);
+        // Extract numeric part from levelId strings (e.g., "africa-1" -> 1)
+        const bestLevel = Math.max(...newProgress.map(level => {
+          const match = level.levelId.match(/-(\d+)$/);
+          return match ? parseInt(match[1]) : 1;
+        }), 0);
         
         setPlayer(prev => prev ? {
           ...prev,
@@ -176,27 +180,7 @@ export function useGameData(): GameDataHook {
     }
   };
 
-  const migrateFromLocalStorage = async () => {
-    if (!address) return;
 
-    try {
-      const response = await fetch('/api/player', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          walletAddress: address,
-          action: 'migrate'
-        })
-      });
-
-      if (response.ok) {
-        // Reload data after migration
-        await loadPlayerData();
-      }
-    } catch (error) {
-      console.error('Failed to migrate from localStorage:', error);
-    }
-  };
 
   // Load player data when wallet connects
   useEffect(() => {
@@ -214,8 +198,7 @@ export function useGameData(): GameDataHook {
     updatePlayerName,
     saveProgress,
     saveSettings,
-    loadPlayerData,
-    migrateFromLocalStorage
+    loadPlayerData
   };
 }
 

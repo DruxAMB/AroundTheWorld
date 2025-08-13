@@ -14,7 +14,7 @@ export interface PlayerProfile {
 }
 
 export interface LevelProgress {
-  levelId: number;
+  levelId: string;
   score: number;
   stars: number;
   completed: boolean;
@@ -133,7 +133,11 @@ class GameDataService {
     // Calculate stats from progress
     const totalScore = progress.reduce((sum, level) => sum + level.score, 0);
     const levelsCompleted = progress.filter(level => level.completed).length;
-    const bestLevel = Math.max(...progress.map(level => level.levelId), 0);
+    // Extract numeric part from levelId strings (e.g., "africa-1" -> 1)
+    const bestLevel = Math.max(...progress.map(level => {
+      const match = level.levelId.match(/-(\d+)$/);
+      return match ? parseInt(match[1]) : 1;
+    }), 0);
 
     // Save progress
     await redis.set(progressKey, JSON.stringify(progress));
@@ -372,36 +376,7 @@ class GameDataService {
     return avatars[Math.floor(Math.random() * avatars.length)];
   }
 
-  // Migration helper for existing localStorage data
-  async migrateFromLocalStorage(walletAddress: string): Promise<void> {
-    if (typeof window === 'undefined') return;
 
-    try {
-      // Migrate player name
-      const savedName = localStorage.getItem('match3-player-name');
-      if (savedName) {
-        await this.updatePlayerName(walletAddress, savedName);
-      }
-
-      // Migrate game progress
-      const savedProgress = localStorage.getItem('match3-progress');
-      if (savedProgress) {
-        const progress = JSON.parse(savedProgress);
-        await this.saveGameProgress(walletAddress, progress);
-      }
-
-      // Migrate settings
-      const savedSettings = localStorage.getItem('match3-settings');
-      if (savedSettings) {
-        const settings = JSON.parse(savedSettings);
-        await this.savePlayerSettings(walletAddress, settings);
-      }
-
-      console.log('Successfully migrated data from localStorage to Redis');
-    } catch (error) {
-      console.warn('Failed to migrate localStorage data:', error);
-    }
-  }
 }
 
 export const gameDataService = new GameDataService();

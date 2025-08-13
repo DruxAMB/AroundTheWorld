@@ -51,9 +51,7 @@ export async function POST(request: NextRequest) {
         await gameDataService.savePlayerSettings(walletAddress, data.settings);
         return NextResponse.json({ success: true });
 
-      case 'migrate':
-        await gameDataService.migrateFromLocalStorage(walletAddress);
-        return NextResponse.json({ success: true });
+
 
       default:
         return NextResponse.json({ error: 'Invalid action' }, { status: 400 });

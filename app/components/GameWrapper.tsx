@@ -6,6 +6,8 @@ import { Match3Game } from "./Match3Game";
 import { LevelSelector } from "./LevelSelector";
 import { Level, unlockNextLevel } from "../data/levels";
 import { soundManager } from "../utils/soundManager";
+import { useGameData } from "../hooks/useGameData";
+import { useAccount } from 'wagmi';
 
 type GameState = 'level-select' | 'playing' | 'level-complete';
 
@@ -14,45 +16,63 @@ interface LevelProgress {
   completed: boolean;
   score: number;
   stars: number;
+  bestScore: number;
+  completedAt?: string;
 }
 
 export function GameWrapper() {
+  const { address, isConnected } = useAccount();
+  const { player, progress, saveProgress: saveGameProgress } = useGameData();
+  
   const [gameState, setGameState] = useState<GameState>('level-select');
   const [currentLevel, setCurrentLevel] = useState<Level | null>(null);
   const [unlockedLevels, setUnlockedLevels] = useState<string[]>(['africa-1']); // First level unlocked
   const [levelProgress, setLevelProgress] = useState<LevelProgress[]>([]);
 
-  // Load progress from localStorage on mount and start menu music
+  // Load progress from Redis via useGameData hook and start menu music
   useEffect(() => {
-    const savedProgress = localStorage.getItem('match3-progress');
-    const savedUnlocked = localStorage.getItem('match3-unlocked');
-    
-    if (savedProgress) {
-      try {
-        setLevelProgress(JSON.parse(savedProgress));
-      } catch (e) {
-        console.warn('Failed to load level progress');
-      }
-    }
-    
-    if (savedUnlocked) {
-      try {
-        setUnlockedLevels(JSON.parse(savedUnlocked));
-      } catch (e) {
-        console.warn('Failed to load unlocked levels');
-      }
+    if (progress && Object.keys(progress).length > 0) {
+      // Convert Redis progress format to local format
+      const progressArray: LevelProgress[] = Object.entries(progress).map(([levelId, levelData]: [string, any]) => ({
+        levelId,
+        completed: levelData.completed,
+        score: levelData.bestScore,
+        stars: levelData.stars,
+        bestScore: levelData.bestScore,
+        completedAt: levelData.completedAt
+      }));
+      
+      setLevelProgress(progressArray);
+      
+      // Set unlocked levels based on completed levels
+      const unlocked = ['africa-1']; // Always unlock first level
+      progressArray.forEach(p => {
+        if (p.completed) {
+          const nextLevel = unlockNextLevel(p.levelId);
+          if (nextLevel && !unlocked.includes(nextLevel)) {
+            unlocked.push(nextLevel);
+          }
+        }
+      });
+      setUnlockedLevels(unlocked);
     }
 
     // Start menu music when component loads
     setTimeout(() => {
       soundManager.playMusic('menu');
     }, 1000);
-  }, []);
+  }, [progress]);
 
-  // Save progress to localStorage
-  const saveProgress = (progress: LevelProgress[], unlocked: string[]) => {
-    localStorage.setItem('match3-progress', JSON.stringify(progress));
-    localStorage.setItem('match3-unlocked', JSON.stringify(unlocked));
+  // Save progress to Redis instead of localStorage
+  const saveProgressToRedis = async () => {
+    if (!levelProgress || levelProgress.length === 0) return;
+    
+    try {
+      // Convert local progress format to the expected LevelProgress[] format
+      await saveGameProgress(levelProgress);
+    } catch (error) {
+      console.error('Failed to save progress to Redis:', error);
+    }
   };
 
   const handleLevelSelect = (level: Level) => {
@@ -65,7 +85,7 @@ export function GameWrapper() {
     }, 600);
   };
 
-  const handleLevelComplete = (success: boolean, score: number) => {
+  const handleLevelComplete = async (success: boolean, score: number) => {
     if (!currentLevel) return;
 
     if (success) {
@@ -87,6 +107,8 @@ export function GameWrapper() {
         completed: true,
         score: Math.max(score, existingIndex >= 0 ? newProgress[existingIndex].score : 0),
         stars: Math.max(stars, existingIndex >= 0 ? newProgress[existingIndex].stars : 0),
+        bestScore: Math.max(score, existingIndex >= 0 ? newProgress[existingIndex].bestScore : 0),
+        completedAt: new Date().toISOString()
       };
 
       if (existingIndex >= 0) {
@@ -104,7 +126,38 @@ export function GameWrapper() {
 
       setLevelProgress(newProgress);
       setUnlockedLevels(newUnlocked);
-      saveProgress(newProgress, newUnlocked);
+      
+      // Save progress to Redis
+      await saveGameProgress(newProgress);
+      
+      // Update player's total score and level completion stats in Redis
+      if (isConnected && address && player) {
+        try {
+          const totalScore = newProgress.reduce((sum, p) => sum + p.score, 0);
+          const levelsCompleted = newProgress.filter(p => p.completed).length;
+          const bestLevel = Math.max(...newProgress.map(p => parseInt(p.levelId.split('-')[1]) || 1));
+          
+          // Update player profile with new stats
+          const response = await fetch('/api/player', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              walletAddress: address,
+              playerData: {
+                totalScore,
+                levelsCompleted,
+                bestLevel
+              }
+            })
+          });
+          
+          if (!response.ok) {
+            throw new Error('Failed to update player stats');
+          }
+        } catch (error) {
+          console.error('Failed to update player stats in Redis:', error);
+        }
+      }
 
       // Show completion screen briefly with celebration music
       setGameState('level-complete');

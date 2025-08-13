@@ -35,14 +35,13 @@ export default function App() {
   const { address, isConnected, isConnecting } = useAccount();
   const { 
     player, 
-    progress, 
     settings, 
+    progress, 
     loading, 
     saving, 
     updatePlayerName, 
     saveProgress, 
-    saveSettings,
-    migrateFromLocalStorage 
+    saveSettings
   } = useGameData();
   
   const [frameAdded, setFrameAdded] = useState(false);
@@ -113,20 +112,7 @@ export default function App() {
     }
   }, [isConnected, address, player, showNameInput]);
 
-  // Auto-migrate localStorage data when player first connects
-  useEffect(() => {
-    if (isConnected && player && typeof window !== 'undefined') {
-      // Check if we have localStorage data that needs migration
-      const hasLocalData = localStorage.getItem('match3-player-name') || 
-                          localStorage.getItem('match3-progress') || 
-                          localStorage.getItem('match3-settings');
-      
-      if (hasLocalData && !player.name) {
-        console.log('Migrating localStorage data to Redis...');
-        migrateFromLocalStorage();
-      }
-    }
-  }, [isConnected, player, migrateFromLocalStorage]);
+
 
   const saveFrameButton = useMemo(() => {
     if (context && !context.client.added) {
