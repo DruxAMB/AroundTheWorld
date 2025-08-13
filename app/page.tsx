@@ -27,6 +27,7 @@ import { GameWrapper } from "./components/GameWrapper";
 import { SettingsModal } from "./components/SettingsModal";
 import { Leaderboard } from "./components/Leaderboard";
 import { NameInputModal } from "./components/NameInputModal";
+import { UserProfile } from "./components/UserProfile";
 import { soundManager } from "./utils/soundManager";
 import { useGameData } from "./hooks/useGameData";
 
@@ -48,6 +49,7 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showNameInput, setShowNameInput] = useState(false);
+  const [showUserProfile, setShowUserProfile] = useState(false);
 
   const addFrame = useAddFrame();
   const openUrl = useOpenUrl();
@@ -79,6 +81,15 @@ export default function App() {
 
   const handleCloseLeaderboard = () => {
     setShowLeaderboard(false);
+  };
+
+  const handleOpenUserProfile = () => {
+    soundManager.play('click');
+    setShowUserProfile(true);
+  };
+
+  const handleCloseUserProfile = () => {
+    setShowUserProfile(false);
   };
 
   const handleNameSubmit = async (name: string) => {
@@ -164,13 +175,13 @@ export default function App() {
             </div>
           </div>
           <div className="flex items-center space-x-2">
-            {/* Test Name Input Button - Remove this after debugging */}
+            {/* User Profile Button */}
             <motion.button
-              onClick={handleTestNameInput}
+              onClick={handleOpenUserProfile}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               className="p-2 rounded-lg bg-[var(--app-card-bg)] border border-[var(--app-card-border)] hover:bg-[var(--app-gray)] transition-colors shadow-sm"
-              title="Test Name Input"
+              title="User Profile"
             >
               <span className="text-lg">👤</span>
             </motion.button>
@@ -234,6 +245,21 @@ export default function App() {
         onNameSubmit={handleNameSubmit}
         walletAddress={address}
       />
+      
+      {/* User Profile Modal */}
+      <UserProfile
+        isOpen={showUserProfile}
+        onClose={handleCloseUserProfile}
+      />
+      
+      {/* Leaderboard Modal */}
+      {showLeaderboard && (
+        <Leaderboard
+          onClose={handleCloseLeaderboard}
+          currentPlayerScore={player?.totalScore}
+          currentPlayerName={player?.name}
+        />
+      )}
     </div>
   );
 }
