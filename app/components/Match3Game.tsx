@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 // Game configuration
 const GRID_SIZE = 6;
@@ -15,11 +16,12 @@ const SPECIAL_CANDIES = {
 type CandyType = string;
 type Position = { row: number; col: number };
 type GameGrid = CandyType[][];
-type AnimationType = 'drop' | 'match' | 'special' | null;
+type AnimationType = 'drop' | 'match' | 'special' | 'spawn' | null;
 type CandyState = {
   type: CandyType;
   animation: AnimationType;
   isMatched: boolean;
+  id: string;
 };
 
 interface GameState {
@@ -29,6 +31,7 @@ interface GameState {
   selectedCandy: Position | null;
   animating: boolean;
   matchedCandies: Position[];
+  candyIds: string[][];
 }
 
 // Generate random candy
@@ -36,16 +39,19 @@ const getRandomCandy = (): CandyType => {
   return CANDY_TYPES[Math.floor(Math.random() * CANDY_TYPES.length)];
 };
 
-// Create initial grid
-const createInitialGrid = (): GameGrid => {
+// Create initial grid with unique IDs
+const createInitialGrid = (): { grid: GameGrid; ids: string[][] } => {
   const grid: GameGrid = [];
+  const ids: string[][] = [];
   for (let row = 0; row < GRID_SIZE; row++) {
     grid[row] = [];
+    ids[row] = [];
     for (let col = 0; col < GRID_SIZE; col++) {
       grid[row][col] = getRandomCandy();
+      ids[row][col] = `${row}-${col}-${Date.now()}-${Math.random()}`;
     }
   }
-  return grid;
+  return { grid, ids };
 };
 
 // Check if two positions are adjacent
@@ -178,8 +184,9 @@ const activateSpecialCandy = (grid: GameGrid, pos: Position): Position[] => {
 };
 
 // Remove matches and drop candies with special candy handling
-const processMatches = (grid: GameGrid, matches: Position[], specialCandies: { pos: Position; type: CandyType }[]): { newGrid: GameGrid; score: number } => {
+const processMatches = (grid: GameGrid, candyIds: string[][], matches: Position[], specialCandies: { pos: Position; type: CandyType }[]): { newGrid: GameGrid; newIds: string[][]; score: number } => {
   const newGrid = grid.map(row => [...row]);
+  const newIds = candyIds.map(row => [...row]);
   let score = matches.length * 10;
   let allMatches = [...matches];
   
@@ -200,12 +207,14 @@ const processMatches = (grid: GameGrid, matches: Position[], specialCandies: { p
   // Remove matched candies
   allMatches.forEach(({ row, col }) => {
     newGrid[row][col] = '';
+    newIds[row][col] = '';
   });
   
   // Place special candies before dropping
   specialCandies.forEach(({ pos, type }) => {
     if (newGrid[pos.row][pos.col] === '') {
       newGrid[pos.row][pos.col] = type;
+      newIds[pos.row][pos.col] = `special-${pos.row}-${pos.col}-${Date.now()}`;
     }
   });
   
@@ -215,8 +224,10 @@ const processMatches = (grid: GameGrid, matches: Position[], specialCandies: { p
     for (let row = GRID_SIZE - 1; row >= 0; row--) {
       if (newGrid[row][col] !== '') {
         newGrid[writeIndex][col] = newGrid[row][col];
+        newIds[writeIndex][col] = newIds[row][col];
         if (writeIndex !== row) {
           newGrid[row][col] = '';
+          newIds[row][col] = '';
         }
         writeIndex--;
       }
@@ -225,21 +236,26 @@ const processMatches = (grid: GameGrid, matches: Position[], specialCandies: { p
     // Fill empty spaces with new candies
     for (let row = 0; row <= writeIndex; row++) {
       newGrid[row][col] = getRandomCandy();
+      newIds[row][col] = `new-${row}-${col}-${Date.now()}-${Math.random()}`;
     }
   }
   
-  return { newGrid, score };
+  return { newGrid, newIds, score };
 };
 
 export function Match3Game() {
-  const [gameState, setGameState] = useState<GameState>(() => ({
-    grid: createInitialGrid(),
-    score: 0,
-    moves: 20,
-    selectedCandy: null,
-    animating: false,
-    matchedCandies: [],
-  }));
+  const [gameState, setGameState] = useState<GameState>(() => {
+    const { grid, ids } = createInitialGrid();
+    return {
+      grid,
+      candyIds: ids,
+      score: 0,
+      moves: 20,
+      selectedCandy: null,
+      animating: false,
+      matchedCandies: [],
+    };
+  });
 
   const handleCandyClick = useCallback((row: number, col: number) => {
     if (gameState.moves <= 0) return;
@@ -278,16 +294,19 @@ export function Match3Game() {
         
         // Process matches after animation delay
         setTimeout(() => {
-          const { newGrid: processedGrid, score } = processMatches(newGrid, matches, specialCandies);
-          setGameState(prev => ({
-            grid: processedGrid,
-            score: prev.score + score,
-            moves: prev.moves - 1,
-            selectedCandy: null,
-            animating: false,
-            matchedCandies: [],
-          }));
-        }, 500);
+          setGameState(prev => {
+            const { newGrid: processedGrid, newIds, score } = processMatches(newGrid, prev.candyIds, matches, specialCandies);
+            return {
+              grid: processedGrid,
+              candyIds: newIds,
+              score: prev.score + score,
+              moves: prev.moves - 1,
+              selectedCandy: null,
+              animating: false,
+              matchedCandies: [],
+            };
+          });
+        }, 600);
       } else {
         // Invalid move - swap back
         setGameState(prev => ({
@@ -305,8 +324,10 @@ export function Match3Game() {
   }, [gameState]);
 
   const resetGame = useCallback(() => {
+    const { grid, ids } = createInitialGrid();
     setGameState({
-      grid: createInitialGrid(),
+      grid,
+      candyIds: ids,
       score: 0,
       moves: 20,
       selectedCandy: null,
@@ -325,27 +346,27 @@ export function Match3Game() {
   
   const getCandyStyle = useCallback((row: number, col: number) => {
     const baseClasses = `
-      w-8 h-8 text-lg flex items-center justify-center rounded-md
-      transition-all duration-200 hover:scale-110
+      aspect-square text-2xl flex items-center justify-center rounded-md
+      border-2 border-transparent
     `;
     
     let stateClasses = '';
     
     if (isSelected(row, col)) {
-      stateClasses = 'bg-[var(--app-accent)] bg-opacity-30 ring-2 ring-[var(--app-accent)]';
+      stateClasses = 'bg-[var(--app-accent)] bg-opacity-30 border-[var(--app-accent)] shadow-lg';
     } else if (isMatched(row, col)) {
-      stateClasses = 'bg-red-500 bg-opacity-50 animate-pulse scale-110';
+      stateClasses = 'bg-red-500 bg-opacity-50 border-red-400';
     } else {
-      stateClasses = 'bg-[var(--app-background)] hover:bg-[var(--app-gray)]';
+      stateClasses = 'bg-[var(--app-background)] hover:bg-[var(--app-gray)] hover:shadow-md';
     }
     
     return `${baseClasses} ${stateClasses}`;
   }, [isSelected, isMatched]);
 
   return (
-    <div className="flex flex-col items-center space-y-4 p-4">
+    <div className="flex flex-col h-full max-w-md mx-auto p-4 space-y-4">
       {/* Game Header */}
-      <div className="flex justify-between w-full max-w-sm">
+      <div className="flex justify-between w-full">
         <div className="text-center">
           <div className="text-sm text-[var(--app-foreground-muted)]">Score</div>
           <div className="text-lg font-bold text-[var(--app-accent)]">{gameState.score}</div>
@@ -357,23 +378,68 @@ export function Match3Game() {
       </div>
 
       {/* Game Grid */}
-      <div className="grid grid-cols-6 gap-1 p-2 bg-[var(--app-card-bg)] rounded-lg border border-[var(--app-card-border)]">
-        {gameState.grid.map((row, rowIndex) =>
-          row.map((candy, colIndex) => (
-            <button
-              key={`${rowIndex}-${colIndex}`}
-              onClick={() => handleCandyClick(rowIndex, colIndex)}
-              className={getCandyStyle(rowIndex, colIndex)}
-              disabled={gameState.moves <= 0 || gameState.animating}
-            >
-              {candy}
-            </button>
-          ))
-        )}
+      <div className="flex-1 flex items-center justify-center">
+        <div className="w-full max-w-sm aspect-square">
+          <div className="grid grid-cols-6 gap-1 h-full p-2 bg-[var(--app-card-bg)] rounded-lg border border-[var(--app-card-border)]">
+            <AnimatePresence>
+              {gameState.grid.map((row, rowIndex) =>
+                row.map((candy, colIndex) => {
+                  // Skip rendering matched candies during animation
+                  if (gameState.animating && isMatched(rowIndex, colIndex)) {
+                    return null;
+                  }
+                  
+                  return (
+                    <motion.button
+                      key={gameState.candyIds[rowIndex][colIndex]}
+                      layout
+                      initial={{ scale: 0, opacity: 0 }}
+                      animate={{ 
+                        scale: 1, 
+                        opacity: 1,
+                        rotate: 0
+                      }}
+                      exit={{ 
+                        scale: 0, 
+                        opacity: 0, 
+                        rotate: 90,
+                        transition: { duration: 0.2 }
+                      }}
+                      whileHover={{ scale: gameState.animating ? 1 : 1.1 }}
+                      whileTap={{ scale: gameState.animating ? 1 : 0.95 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 400,
+                        damping: 25,
+                        layout: { duration: 0.3 }
+                      }}
+                      onClick={() => handleCandyClick(rowIndex, colIndex)}
+                      className={getCandyStyle(rowIndex, colIndex)}
+                      disabled={gameState.moves <= 0 || gameState.animating}
+                    >
+                      <motion.span
+                        animate={{
+                          scale: isSpecialCandy(candy) ? [1, 1.2, 1] : 1
+                        }}
+                        transition={{
+                          repeat: isSpecialCandy(candy) ? Infinity : 0,
+                          duration: 2,
+                          ease: "easeInOut"
+                        }}
+                      >
+                        {candy}
+                      </motion.span>
+                    </motion.button>
+                  );
+                })
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
       </div>
 
       {/* Game Controls */}
-      <div className="flex flex-col items-center space-y-2">
+      <div className="flex flex-col items-center space-y-3">
         {gameState.moves <= 0 && (
           <div className="text-center">
             <div className="text-lg font-bold text-[var(--app-accent)]">Game Over!</div>
@@ -381,17 +447,19 @@ export function Match3Game() {
           </div>
         )}
         
-        <button
+        <motion.button
           onClick={resetGame}
-          className="px-4 py-2 bg-[var(--app-accent)] text-[var(--app-background)] rounded-lg hover:bg-[var(--app-accent-hover)] transition-colors"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className="px-6 py-2 bg-[var(--app-accent)] text-[var(--app-background)] rounded-lg hover:bg-[var(--app-accent-hover)] transition-colors font-medium shadow-lg"
         >
           New Game
-        </button>
-      </div>
-
-      {/* Instructions */}
-      <div className="text-xs text-[var(--app-foreground-muted)] text-center max-w-sm">
-        Click a candy, then click an adjacent candy to swap. Match 3 or more in a row to score points!
+        </motion.button>
+        
+        {/* Instructions */}
+        <div className="text-xs text-[var(--app-foreground-muted)] text-center">
+          Click a candy, then click an adjacent candy to swap. Match 3+ to score!
+        </div>
       </div>
     </div>
   );
