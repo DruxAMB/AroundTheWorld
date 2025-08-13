@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { soundManager } from "../utils/soundManager";
 
 // Game configuration
 const GRID_SIZE = 6;
@@ -32,6 +33,7 @@ interface GameState {
   animating: boolean;
   matchedCandies: Position[];
   candyIds: string[][];
+  soundEnabled: boolean;
 }
 
 // Generate random candy
@@ -254,6 +256,7 @@ export function Match3Game() {
       selectedCandy: null,
       animating: false,
       matchedCandies: [],
+      soundEnabled: true,
     };
   });
 
@@ -264,12 +267,18 @@ export function Match3Game() {
     
     if (!gameState.selectedCandy) {
       // Select first candy
+      if (gameState.soundEnabled) {
+        soundManager.play('click');
+      }
       setGameState(prev => ({
         ...prev,
         selectedCandy: position,
       }));
     } else if (gameState.selectedCandy.row === row && gameState.selectedCandy.col === col) {
       // Deselect if clicking the same candy
+      if (gameState.soundEnabled) {
+        soundManager.play('click');
+      }
       setGameState(prev => ({
         ...prev,
         selectedCandy: null,
@@ -285,6 +294,18 @@ export function Match3Game() {
       const { matches, specialCandies } = findMatches(newGrid);
       
       if (matches.length > 0) {
+        // Play match sound
+        if (gameState.soundEnabled) {
+          soundManager.playMatchSound(matches.length);
+          
+          // Play special candy sounds if any were created
+          specialCandies.forEach(({ type }) => {
+            setTimeout(() => {
+              soundManager.playSpecialSound(type);
+            }, 300);
+          });
+        }
+        
         // Valid move - show match animation first
         setGameState(prev => ({
           ...prev,
@@ -304,11 +325,15 @@ export function Match3Game() {
               selectedCandy: null,
               animating: false,
               matchedCandies: [],
+              soundEnabled: prev.soundEnabled,
             };
           });
         }, 600);
       } else {
         // Invalid move - swap back
+        if (gameState.soundEnabled) {
+          soundManager.play('click'); // Different sound for invalid move
+        }
         setGameState(prev => ({
           ...prev,
           selectedCandy: null,
@@ -316,6 +341,9 @@ export function Match3Game() {
       }
     } else {
       // Select new candy if not adjacent
+      if (gameState.soundEnabled) {
+        soundManager.play('click');
+      }
       setGameState(prev => ({
         ...prev,
         selectedCandy: position,
@@ -325,6 +353,9 @@ export function Match3Game() {
 
   const resetGame = useCallback(() => {
     const { grid, ids } = createInitialGrid();
+    if (gameState.soundEnabled) {
+      soundManager.play('shuffle');
+    }
     setGameState({
       grid,
       candyIds: ids,
@@ -333,8 +364,9 @@ export function Match3Game() {
       selectedCandy: null,
       animating: false,
       matchedCandies: [],
+      soundEnabled: gameState.soundEnabled,
     });
-  }, []);
+  }, [gameState.soundEnabled]);
 
   const isSelected = useCallback((row: number, col: number) => {
     return gameState.selectedCandy?.row === row && gameState.selectedCandy?.col === col;
@@ -344,6 +376,27 @@ export function Match3Game() {
     return gameState.matchedCandies.some(pos => pos.row === row && pos.col === col);
   }, [gameState.matchedCandies]);
   
+  const toggleSound = useCallback(() => {
+    setGameState(prev => {
+      const newSoundEnabled = !prev.soundEnabled;
+      soundManager.setEnabled(newSoundEnabled);
+      if (newSoundEnabled) {
+        soundManager.play('click');
+      }
+      return {
+        ...prev,
+        soundEnabled: newSoundEnabled,
+      };
+    });
+  }, []);
+
+  // Check for game over and play sound
+  useEffect(() => {
+    if (gameState.moves <= 0 && gameState.soundEnabled) {
+      soundManager.play('gameOver');
+    }
+  }, [gameState.moves, gameState.soundEnabled]);
+
   const getCandyStyle = useCallback((row: number, col: number) => {
     const baseClasses = `
       aspect-square text-2xl flex items-center justify-center rounded-md
@@ -366,11 +419,25 @@ export function Match3Game() {
   return (
     <div className="flex flex-col h-full max-w-md mx-auto p-4 space-y-4">
       {/* Game Header */}
-      <div className="flex justify-between w-full">
+      <div className="flex justify-between items-center w-full">
         <div className="text-center">
           <div className="text-sm text-[var(--app-foreground-muted)]">Score</div>
           <div className="text-lg font-bold text-[var(--app-accent)]">{gameState.score}</div>
         </div>
+        
+        {/* Sound Toggle */}
+        <motion.button
+          onClick={toggleSound}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          className="p-2 rounded-lg bg-[var(--app-card-bg)] border border-[var(--app-card-border)] hover:bg-[var(--app-gray)] transition-colors"
+          title={gameState.soundEnabled ? "Sound On" : "Sound Off"}
+        >
+          <span className="text-lg">
+            {gameState.soundEnabled ? '🔊' : '🔇'}
+          </span>
+        </motion.button>
+        
         <div className="text-center">
           <div className="text-sm text-[var(--app-foreground-muted)]">Moves</div>
           <div className="text-lg font-bold text-[var(--app-accent)]">{gameState.moves}</div>
