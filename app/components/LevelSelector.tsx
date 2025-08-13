@@ -6,10 +6,9 @@ import { Level, LEVELS } from "../data/levels";
 interface LevelSelectorProps {
   onLevelSelect: (level: Level) => void;
   unlockedLevels: string[];
-  onOpenSettings: () => void;
 }
 
-export function LevelSelector({ onLevelSelect, unlockedLevels, onOpenSettings }: LevelSelectorProps) {
+export function LevelSelector({ onLevelSelect, unlockedLevels }: LevelSelectorProps) {
   const isLevelUnlocked = (levelId: string) => {
     return unlockedLevels.includes(levelId);
   };
@@ -35,26 +34,13 @@ export function LevelSelector({ onLevelSelect, unlockedLevels, onOpenSettings }:
   return (
     <div className="flex flex-col h-full max-w-md mx-auto p-4 space-y-4">
       {/* Header */}
-      <div className="relative">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-[var(--app-foreground)] mb-2">
-            🌍 Around the World
-          </h1>
-          <p className="text-sm text-[var(--app-foreground-muted)]">
-            Choose your destination and start matching!
-          </p>
-        </div>
-        
-        {/* Settings Button */}
-        <motion.button
-          onClick={onOpenSettings}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          className="absolute top-0 right-0 p-2 rounded-lg bg-[var(--app-card-bg)] border border-[var(--app-card-border)] hover:bg-[var(--app-gray)] transition-colors shadow-md"
-          title="Settings"
-        >
-          <span className="text-lg">⚙️</span>
-        </motion.button>
+      <div className="text-center">
+        <h1 className="text-2xl font-bold text-[var(--app-foreground)] mb-2">
+          🌍 Around the World
+        </h1>
+        <p className="text-sm text-[var(--app-foreground-muted)]">
+          Choose your destination and start matching!
+        </p>
       </div>
 
       {/* Level Grid */}

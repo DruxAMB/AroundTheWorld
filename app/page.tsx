@@ -19,13 +19,17 @@ import {
   WalletDropdownDisconnect,
 } from "@coinbase/onchainkit/wallet";
 import { useEffect, useMemo, useState, useCallback } from "react";
+import { motion } from "framer-motion";
 import { Button } from "./components/DemoComponents";
 import { Icon } from "./components/DemoComponents";
 import { GameWrapper } from "./components/GameWrapper";
+import { SettingsModal } from "./components/SettingsModal";
+import { soundManager } from "./utils/soundManager";
 
 export default function App() {
   const { setFrameReady, isFrameReady, context } = useMiniKit();
   const [frameAdded, setFrameAdded] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   const addFrame = useAddFrame();
   const openUrl = useOpenUrl();
@@ -40,6 +44,15 @@ export default function App() {
     const frameAdded = await addFrame();
     setFrameAdded(Boolean(frameAdded));
   }, [addFrame]);
+
+  const handleOpenSettings = () => {
+    soundManager.play('click');
+    setShowSettings(true);
+  };
+
+  const handleCloseSettings = () => {
+    setShowSettings(false);
+  };
 
   const saveFrameButton = useMemo(() => {
     if (context && !context.client.added) {
@@ -90,7 +103,19 @@ export default function App() {
               </Wallet>
             </div>
           </div>
-          <div>{saveFrameButton}</div>
+          <div className="flex items-center space-x-2">
+            {/* Settings Button */}
+            <motion.button
+              onClick={handleOpenSettings}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              className="p-2 rounded-lg bg-[var(--app-card-bg)] border border-[var(--app-card-border)] hover:bg-[var(--app-gray)] transition-colors shadow-sm"
+              title="Settings"
+            >
+              <span className="text-lg">⚙️</span>
+            </motion.button>
+            {saveFrameButton}
+          </div>
         </header>
 
         <main className="flex-1">
@@ -108,6 +133,12 @@ export default function App() {
           </Button>
         </footer>
       </div>
+      
+      {/* Settings Modal */}
+      <SettingsModal
+        isOpen={showSettings}
+        onClose={handleCloseSettings}
+      />
     </div>
   );
 }

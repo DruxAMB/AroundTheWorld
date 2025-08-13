@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Match3Game } from "./Match3Game";
 import { LevelSelector } from "./LevelSelector";
-import { SettingsModal } from "./SettingsModal";
 import { Level, unlockNextLevel } from "../data/levels";
 import { soundManager } from "../utils/soundManager";
 
@@ -22,7 +21,6 @@ export function GameWrapper() {
   const [currentLevel, setCurrentLevel] = useState<Level | null>(null);
   const [unlockedLevels, setUnlockedLevels] = useState<string[]>(['africa-1']); // First level unlocked
   const [levelProgress, setLevelProgress] = useState<LevelProgress[]>([]);
-  const [showSettings, setShowSettings] = useState(false);
 
   // Load progress from localStorage on mount and start menu music
   useEffect(() => {
@@ -147,14 +145,7 @@ export function GameWrapper() {
     return progress?.score || 0;
   };
 
-  const handleOpenSettings = () => {
-    soundManager.play('click');
-    setShowSettings(true);
-  };
 
-  const handleCloseSettings = () => {
-    setShowSettings(false);
-  };
 
   if (gameState === 'level-complete' && currentLevel) {
     const progress = levelProgress.find(p => p.levelId === currentLevel.id);
@@ -221,16 +212,9 @@ export function GameWrapper() {
   }
 
   return (
-    <>
-      <LevelSelector
-        onLevelSelect={handleLevelSelect}
-        unlockedLevels={unlockedLevels}
-        onOpenSettings={handleOpenSettings}
-      />
-      <SettingsModal
-        isOpen={showSettings}
-        onClose={handleCloseSettings}
-      />
-    </>
+    <LevelSelector
+      onLevelSelect={handleLevelSelect}
+      unlockedLevels={unlockedLevels}
+    />
   );
 }
