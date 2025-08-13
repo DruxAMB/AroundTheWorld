@@ -13,6 +13,9 @@ class SoundManager {
   }
 
   private preloadSounds() {
+    // Only preload sounds in browser environment
+    if (typeof window === 'undefined') return;
+
     const soundFiles = {
       click: '/sounds/click.mp3',
       match: '/sounds/match.mp3',
@@ -29,14 +32,21 @@ class SoundManager {
     };
 
     Object.entries(soundFiles).forEach(([key, path]) => {
-      const audio = new Audio(path);
-      audio.volume = this.volume;
-      audio.preload = 'auto';
-      this.sounds.set(key, audio);
+      try {
+        const audio = new Audio(path);
+        audio.volume = this.volume;
+        audio.preload = 'auto';
+        this.sounds.set(key, audio);
+      } catch (error) {
+        console.warn(`Failed to preload sound: ${key}`, error);
+      }
     });
   }
 
   private preloadMusic() {
+    // Only preload music in browser environment
+    if (typeof window === 'undefined') return;
+
     const musicFiles = {
       menu: '/sounds/music/menu-music.mp3',
       africa: '/sounds/music/africa-music.mp3',
@@ -47,11 +57,15 @@ class SoundManager {
     };
 
     Object.entries(musicFiles).forEach(([key, path]) => {
-      const audio = new Audio(path);
-      audio.volume = this.musicVolume;
-      audio.loop = true;
-      audio.preload = 'auto';
-      this.music.set(key, audio);
+      try {
+        const audio = new Audio(path);
+        audio.volume = this.musicVolume;
+        audio.loop = true;
+        audio.preload = 'auto';
+        this.music.set(key, audio);
+      } catch (error) {
+        console.warn(`Failed to preload music: ${key}`, error);
+      }
     });
   }
 
