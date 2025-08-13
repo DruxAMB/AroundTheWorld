@@ -31,29 +31,36 @@ export function GameWrapper() {
 
   // Load progress from Redis via useGameData hook and start menu music
   useEffect(() => {
-    if (progress && Object.keys(progress).length > 0) {
-      // Convert Redis progress format to local format
-      const progressArray: LevelProgress[] = Object.entries(progress).map(([levelId, levelData]: [string, any]) => ({
-        levelId,
+    if (progress && progress.length > 0) {
+      console.log('🎮 GameWrapper: Processing progress data:', progress);
+      
+      // Progress is already in the correct array format from Redis
+      const progressArray: LevelProgress[] = progress.map((levelData: any) => ({
+        levelId: levelData.levelId,
         completed: levelData.completed,
-        score: levelData.bestScore,
+        score: levelData.score,
         stars: levelData.stars,
         bestScore: levelData.bestScore,
         completedAt: levelData.completedAt
       }));
       
+      console.log('🎮 GameWrapper: Processed progress array:', progressArray);
       setLevelProgress(progressArray);
       
       // Set unlocked levels based on completed levels
       const unlocked = ['africa-1']; // Always unlock first level
       progressArray.forEach(p => {
         if (p.completed) {
+          console.log('🔓 GameWrapper: Level completed:', p.levelId, 'unlocking next level');
           const nextLevel = unlockNextLevel(p.levelId);
           if (nextLevel && !unlocked.includes(nextLevel)) {
             unlocked.push(nextLevel);
+            console.log('🔓 GameWrapper: Unlocked level:', nextLevel);
           }
         }
       });
+      
+      console.log('🔓 GameWrapper: Final unlocked levels:', unlocked);
       setUnlockedLevels(unlocked);
     }
 
