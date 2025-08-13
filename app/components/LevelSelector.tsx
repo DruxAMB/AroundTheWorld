@@ -61,8 +61,8 @@ export function LevelSelector({ onLevelSelect, unlockedLevels }: LevelSelectorPr
                     : 'border-gray-400 opacity-50 cursor-not-allowed'
                 }`}
                 onClick={() => unlocked && onLevelSelect(level)}
-                whileHover={unlocked ? { scale: 1.02 } : {}}
-                whileTap={unlocked ? { scale: 0.98 } : {}}
+                whileHover={unlocked ? { scale: 1.02, borderColor: 'none' } : {}}
+                whileTap={unlocked ? { scale: 0.98, borderColor: 'none' } : {}}
               >
                 {/* Background Image */}
                 <div 

@@ -24,12 +24,15 @@ import { Button } from "./components/DemoComponents";
 import { Icon } from "./components/DemoComponents";
 import { GameWrapper } from "./components/GameWrapper";
 import { SettingsModal } from "./components/SettingsModal";
+import { Leaderboard } from "./components/Leaderboard";
 import { soundManager } from "./utils/soundManager";
 
 export default function App() {
   const { setFrameReady, isFrameReady, context } = useMiniKit();
   const [frameAdded, setFrameAdded] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [playerScore, setPlayerScore] = useState(0);
 
   const addFrame = useAddFrame();
   const openUrl = useOpenUrl();
@@ -53,6 +56,29 @@ export default function App() {
   const handleCloseSettings = () => {
     setShowSettings(false);
   };
+
+  const handleOpenLeaderboard = () => {
+    soundManager.play('click');
+    setShowLeaderboard(true);
+  };
+
+  const handleCloseLeaderboard = () => {
+    setShowLeaderboard(false);
+  };
+
+  // Load player score from localStorage
+  useEffect(() => {
+    const savedProgress = localStorage.getItem('match3-progress');
+    if (savedProgress) {
+      try {
+        const progress = JSON.parse(savedProgress);
+        const totalScore = progress.reduce((sum: number, level: any) => sum + (level.score || 0), 0);
+        setPlayerScore(totalScore);
+      } catch (e) {
+        console.warn('Failed to load player score');
+      }
+    }
+  }, []);
 
   const saveFrameButton = useMemo(() => {
     if (context && !context.client.added) {
@@ -104,6 +130,16 @@ export default function App() {
             </div>
           </div>
           <div className="flex items-center space-x-2">
+            {/* Leaderboard Button */}
+            <motion.button
+              onClick={handleOpenLeaderboard}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              className="p-2 rounded-lg bg-[var(--app-card-bg)] border border-[var(--app-card-border)] hover:bg-[var(--app-gray)] transition-colors shadow-sm"
+              title="Leaderboard"
+            >
+              <span className="text-lg">🏆</span>
+            </motion.button>
             {/* Settings Button */}
             <motion.button
               onClick={handleOpenSettings}
@@ -119,7 +155,15 @@ export default function App() {
         </header>
 
         <main className="flex-1">
-          <GameWrapper />
+          {showLeaderboard ? (
+            <Leaderboard 
+              onClose={handleCloseLeaderboard}
+              currentPlayerScore={playerScore}
+              currentPlayerName="You"
+            />
+          ) : (
+            <GameWrapper />
+          )}
         </main>
 
         <footer className="mt-2 pt-4 flex justify-center">
