@@ -28,15 +28,26 @@ import { SettingsModal } from "./components/SettingsModal";
 import { Leaderboard } from "./components/Leaderboard";
 import { NameInputModal } from "./components/NameInputModal";
 import { soundManager } from "./utils/soundManager";
+import { useGameData } from "./hooks/useGameData";
 
 export default function App() {
   const { context, isFrameReady, setFrameReady } = useMiniKit();
   const { address, isConnected, isConnecting } = useAccount();
+  const { 
+    player, 
+    progress, 
+    settings, 
+    loading, 
+    saving, 
+    updatePlayerName, 
+    saveProgress, 
+    saveSettings,
+    migrateFromLocalStorage 
+  } = useGameData();
+  
   const [frameAdded, setFrameAdded] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
-  const [playerScore, setPlayerScore] = useState(0);
-  const [playerName, setPlayerName] = useState("");
   const [showNameInput, setShowNameInput] = useState(false);
 
   const addFrame = useAddFrame();
@@ -71,11 +82,14 @@ export default function App() {
     setShowLeaderboard(false);
   };
 
-  const handleNameSubmit = (name: string) => {
-    setPlayerName(name);
-    localStorage.setItem('match3-player-name', name);
-    setShowNameInput(false);
-    soundManager.play('win'); // Celebration sound for completing setup
+  const handleNameSubmit = async (name: string) => {
+    try {
+      await updatePlayerName(name);
+      setShowNameInput(false);
+      soundManager.play('win'); // Celebration sound for completing setup
+    } catch (error) {
+      console.error('Failed to save player name:', error);
+    }
   };
 
   const handleTestNameInput = () => {
@@ -83,40 +97,36 @@ export default function App() {
     setShowNameInput(true);
   };
 
-  // Load player score and name from localStorage
-  useEffect(() => {
-    const savedProgress = localStorage.getItem('match3-progress');
-    if (savedProgress) {
-      try {
-        const progress = JSON.parse(savedProgress);
-        const totalScore = progress.reduce((sum: number, level: any) => sum + (level.score || 0), 0);
-        setPlayerScore(totalScore);
-      } catch (e) {
-        console.warn('Failed to load player score');
-      }
-    }
-
-    const savedName = localStorage.getItem('match3-player-name');
-    if (savedName) {
-      setPlayerName(savedName);
-    }
-  }, []);
-
   // Check if user needs to input name after wallet connection
   useEffect(() => {
     // Debug logging to understand the wallet connection state
     console.log('Wallet Connected:', isConnected);
     console.log('Wallet Address:', address);
-    console.log('Player Name:', playerName);
+    console.log('Player Data:', player);
     console.log('Show Name Input:', showNameInput);
     
-    // Use wagmi's isConnected to detect wallet connection
-    if (isConnected && !playerName && !showNameInput) {
+    // Use wagmi's isConnected to detect wallet connection and check if player has name
+    if (isConnected && player && !player.name && !showNameInput) {
       console.log('Wallet connected but no name set - triggering name input modal');
       // User has connected wallet but has no name - show name input modal
       setShowNameInput(true);
     }
-  }, [isConnected, address, playerName, showNameInput]);
+  }, [isConnected, address, player, showNameInput]);
+
+  // Auto-migrate localStorage data when player first connects
+  useEffect(() => {
+    if (isConnected && player && typeof window !== 'undefined') {
+      // Check if we have localStorage data that needs migration
+      const hasLocalData = localStorage.getItem('match3-player-name') || 
+                          localStorage.getItem('match3-progress') || 
+                          localStorage.getItem('match3-settings');
+      
+      if (hasLocalData && !player.name) {
+        console.log('Migrating localStorage data to Redis...');
+        migrateFromLocalStorage();
+      }
+    }
+  }, [isConnected, player, migrateFromLocalStorage]);
 
   const saveFrameButton = useMemo(() => {
     if (context && !context.client.added) {
@@ -206,8 +216,8 @@ export default function App() {
           {showLeaderboard ? (
             <Leaderboard 
               onClose={handleCloseLeaderboard}
-              currentPlayerScore={playerScore}
-              currentPlayerName={playerName || "You"}
+              currentPlayerScore={player?.totalScore || 0}
+              currentPlayerName={player?.name || "You"}
             />
           ) : (
             <GameWrapper />

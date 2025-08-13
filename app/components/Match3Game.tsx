@@ -77,6 +77,82 @@ const isSpecialCandy = (candy: CandyType): boolean => {
   return Object.values(SPECIAL_CANDIES).includes(candy);
 };
 
+// Check if there are any possible moves on the board
+const hasPossibleMoves = (grid: GameGrid): boolean => {
+  // Check all positions for possible swaps that would create matches
+  for (let row = 0; row < GRID_SIZE; row++) {
+    for (let col = 0; col < GRID_SIZE; col++) {
+      // Check right swap
+      if (col < GRID_SIZE - 1) {
+        const testGrid = grid.map(r => [...r]);
+        [testGrid[row][col], testGrid[row][col + 1]] = [testGrid[row][col + 1], testGrid[row][col]];
+        if (findMatches(testGrid).matches.length > 0) {
+          return true;
+        }
+      }
+      
+      // Check down swap
+      if (row < GRID_SIZE - 1) {
+        const testGrid = grid.map(r => [...r]);
+        [testGrid[row][col], testGrid[row + 1][col]] = [testGrid[row + 1][col], testGrid[row][col]];
+        if (findMatches(testGrid).matches.length > 0) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+};
+
+// Reshuffle the board while preserving special candies
+const reshuffleBoard = (grid: GameGrid, candyIds: string[][], candyTheme: CandyType[]): { newGrid: GameGrid; newIds: string[][] } => {
+  const newGrid = grid.map(r => [...r]);
+  const newIds = candyIds.map(r => [...r]);
+  
+  // Collect all non-special candies
+  const regularCandies: CandyType[] = [];
+  const positions: Position[] = [];
+  
+  for (let row = 0; row < GRID_SIZE; row++) {
+    for (let col = 0; col < GRID_SIZE; col++) {
+      if (!isSpecialCandy(grid[row][col])) {
+        regularCandies.push(grid[row][col]);
+        positions.push({ row, col });
+      }
+    }
+  }
+  
+  // Shuffle the regular candies
+  for (let i = regularCandies.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [regularCandies[i], regularCandies[j]] = [regularCandies[j], regularCandies[i]];
+  }
+  
+  // Place shuffled candies back, ensuring no immediate matches
+  let attempts = 0;
+  do {
+    let candyIndex = 0;
+    for (const pos of positions) {
+      newGrid[pos.row][pos.col] = regularCandies[candyIndex % regularCandies.length];
+      newIds[pos.row][pos.col] = `reshuffle-${pos.row}-${pos.col}-${Date.now()}-${Math.random()}`;
+      candyIndex++;
+    }
+    
+    // If we still have matches after reshuffling, try again
+    attempts++;
+    if (attempts > 10) {
+      // Fallback: fill with completely random candies
+      for (const pos of positions) {
+        newGrid[pos.row][pos.col] = getRandomCandy(candyTheme);
+        newIds[pos.row][pos.col] = `fallback-${pos.row}-${pos.col}-${Date.now()}-${Math.random()}`;
+      }
+      break;
+    }
+  } while (findMatches(newGrid).matches.length > 0);
+  
+  return { newGrid, newIds };
+};
+
 // Create special candy based on match size and pattern
 const createSpecialCandy = (matchSize: number, isHorizontal: boolean): CandyType => {
   if (matchSize === 4) {
@@ -348,9 +424,25 @@ export function Match3Game({ level, onLevelComplete, onBackToLevels }: Match3Gam
               setTimeout(() => onLevelComplete(false, newScore), 1000);
             }
             
+            // Check if reshuffle is needed after processing matches
+            let finalGrid = processedGrid;
+            let finalIds = newIds;
+            
+            // Only check for reshuffle if game is still playing and no moves available
+            if (gameStatus === 'playing' && !hasPossibleMoves(processedGrid)) {
+              const reshuffled = reshuffleBoard(processedGrid, newIds, level.candyTheme);
+              finalGrid = reshuffled.newGrid;
+              finalIds = reshuffled.newIds;
+              
+              // Play reshuffle sound
+              if (prev.soundEnabled) {
+                setTimeout(() => soundManager.play('shuffle'), 100);
+              }
+            }
+
             return {
-              grid: processedGrid,
-              candyIds: newIds,
+              grid: finalGrid,
+              candyIds: finalIds,
               score: newScore,
               moves: newMoves,
               selectedCandy: null,
