@@ -12,6 +12,7 @@ export interface Level {
   region: string;
   description: string;
   backgroundImage: string;
+  backgroundMusic: string;
   candyTheme: string[];
   specialCandies: string[];
   objectives: LevelObjective[];
@@ -35,6 +36,7 @@ export const LEVELS: Level[] = [
     region: 'Africa',
     description: 'Welcome to Africa! Match tropical fruits to score points.',
     backgroundImage: '/africa.jpg',
+    backgroundMusic: 'africa',
     candyTheme: REGIONAL_CANDY_THEMES.africa,
     specialCandies: ['🦁', '🐘', '🦒', '🦓'], // African animals as special candies
     objectives: [
@@ -54,6 +56,7 @@ export const LEVELS: Level[] = [
     region: 'India',
     description: 'Explore the vibrant spice markets of India!',
     backgroundImage: '/india.jpg',
+    backgroundMusic: 'india',
     candyTheme: REGIONAL_CANDY_THEMES.india,
     specialCandies: ['🐅', '🦚', '🐘', '🕉️'], // Indian cultural symbols
     objectives: [
@@ -78,6 +81,7 @@ export const LEVELS: Level[] = [
     region: 'Latin America',
     description: 'Join the celebration with Latin American flavors!',
     backgroundImage: '/latam.jpg',
+    backgroundMusic: 'latam',
     candyTheme: REGIONAL_CANDY_THEMES.latam,
     specialCandies: ['🦜', '🌺', '🎭', '⚽'], // Latin American symbols
     objectives: [
@@ -102,6 +106,7 @@ export const LEVELS: Level[] = [
     region: 'Southeast Asia',
     description: 'Discover the exotic fruits of Southeast Asia!',
     backgroundImage: '/southeastasia.jpg',
+    backgroundMusic: 'southeastAsia',
     candyTheme: REGIONAL_CANDY_THEMES.southeastAsia,
     specialCandies: ['🐉', '🦋', '🌸', '🏯'], // Southeast Asian symbols
     objectives: [
@@ -126,6 +131,7 @@ export const LEVELS: Level[] = [
     region: 'Europe',
     description: 'Complete your journey through European orchards!',
     backgroundImage: '/around-the-world.jpg',
+    backgroundMusic: 'europe',
     candyTheme: REGIONAL_CANDY_THEMES.europe,
     specialCandies: ['🏰', '🦢', '🌹', '👑'], // European symbols
     objectives: [

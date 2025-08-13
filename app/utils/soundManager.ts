@@ -1,11 +1,15 @@
 // Sound Manager for Match-3 Game
 class SoundManager {
   private sounds: Map<string, HTMLAudioElement> = new Map();
+  private music: Map<string, HTMLAudioElement> = new Map();
   private enabled: boolean = true;
   private volume: number = 0.3; // Lower volume for better UX
+  private musicVolume: number = 0.15; // Lower volume for background music
+  private currentMusic: HTMLAudioElement | null = null;
 
   constructor() {
     this.preloadSounds();
+    this.preloadMusic();
   }
 
   private preloadSounds() {
@@ -32,6 +36,25 @@ class SoundManager {
     });
   }
 
+  private preloadMusic() {
+    const musicFiles = {
+      menu: '/sounds/music/menu-music.mp3',
+      africa: '/sounds/music/africa-music.mp3',
+      india: '/sounds/music/india-music.mp3',
+      latam: '/sounds/music/latam-music.mp3',
+      southeastAsia: '/sounds/music/southeast-asia-music.mp3',
+      europe: '/sounds/music/menu-music.mp3', // Fallback to menu music
+    };
+
+    Object.entries(musicFiles).forEach(([key, path]) => {
+      const audio = new Audio(path);
+      audio.volume = this.musicVolume;
+      audio.loop = true;
+      audio.preload = 'auto';
+      this.music.set(key, audio);
+    });
+  }
+
   play(soundName: string) {
     if (!this.enabled) return;
 
@@ -52,12 +75,69 @@ class SoundManager {
     });
   }
 
+  setMusicVolume(volume: number) {
+    this.musicVolume = Math.max(0, Math.min(1, volume));
+    this.music.forEach(music => {
+      music.volume = this.musicVolume;
+    });
+  }
+
   setEnabled(enabled: boolean) {
     this.enabled = enabled;
+    if (!enabled) {
+      this.stopMusic();
+    }
   }
 
   isEnabled(): boolean {
     return this.enabled;
+  }
+
+  playMusic(musicName: string) {
+    if (!this.enabled) return;
+
+    // Stop current music if playing
+    this.stopMusic();
+
+    const music = this.music.get(musicName);
+    if (music) {
+      music.currentTime = 0;
+      music.play().catch(() => {
+        // Ignore errors (e.g., if user hasn't interacted with page yet)
+      });
+      this.currentMusic = music;
+    }
+  }
+
+  stopMusic() {
+    if (this.currentMusic) {
+      this.currentMusic.pause();
+      this.currentMusic.currentTime = 0;
+      this.currentMusic = null;
+    }
+  }
+
+  fadeOutMusic(duration: number = 1000) {
+    if (!this.currentMusic) return;
+
+    const music = this.currentMusic;
+    const startVolume = music.volume;
+    const fadeStep = startVolume / (duration / 50);
+
+    const fadeInterval = setInterval(() => {
+      if (music.volume > fadeStep) {
+        music.volume -= fadeStep;
+      } else {
+        music.volume = 0;
+        music.pause();
+        music.currentTime = 0;
+        music.volume = this.musicVolume; // Reset volume for next play
+        clearInterval(fadeInterval);
+        if (this.currentMusic === music) {
+          this.currentMusic = null;
+        }
+      }
+    }, 50);
   }
 
   // Play appropriate sound based on match size

@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Match3Game } from "./Match3Game";
 import { LevelSelector } from "./LevelSelector";
 import { Level, LEVELS, getLevelById, unlockNextLevel } from "../data/levels";
+import { soundManager } from "../utils/soundManager";
 
 type GameState = 'level-select' | 'playing' | 'level-complete';
 
@@ -21,7 +22,7 @@ export function GameWrapper() {
   const [unlockedLevels, setUnlockedLevels] = useState<string[]>(['africa-1']); // First level unlocked
   const [levelProgress, setLevelProgress] = useState<LevelProgress[]>([]);
 
-  // Load progress from localStorage on mount
+  // Load progress from localStorage on mount and start menu music
   useEffect(() => {
     const savedProgress = localStorage.getItem('match3-progress');
     const savedUnlocked = localStorage.getItem('match3-unlocked');
@@ -41,6 +42,11 @@ export function GameWrapper() {
         console.warn('Failed to load unlocked levels');
       }
     }
+
+    // Start menu music when component loads
+    setTimeout(() => {
+      soundManager.playMusic('menu');
+    }, 1000);
   }, []);
 
   // Save progress to localStorage
@@ -52,6 +58,11 @@ export function GameWrapper() {
   const handleLevelSelect = (level: Level) => {
     setCurrentLevel(level);
     setGameState('playing');
+    // Start level-specific background music
+    soundManager.fadeOutMusic(500);
+    setTimeout(() => {
+      soundManager.playMusic(level.backgroundMusic);
+    }, 600);
   };
 
   const handleLevelComplete = (success: boolean, score: number) => {
@@ -95,10 +106,16 @@ export function GameWrapper() {
       setUnlockedLevels(newUnlocked);
       saveProgress(newProgress, newUnlocked);
 
-      // Show completion screen briefly
+      // Show completion screen briefly with celebration music
       setGameState('level-complete');
+      soundManager.fadeOutMusic(500);
+      setTimeout(() => {
+        soundManager.play('win');
+      }, 600);
+      
       setTimeout(() => {
         setGameState('level-select');
+        soundManager.playMusic('menu');
       }, 3000);
     } else {
       // Failed - go back to level select after a delay
@@ -111,6 +128,11 @@ export function GameWrapper() {
   const handleBackToLevels = () => {
     setGameState('level-select');
     setCurrentLevel(null);
+    // Switch back to menu music
+    soundManager.fadeOutMusic(500);
+    setTimeout(() => {
+      soundManager.playMusic('menu');
+    }, 600);
   };
 
   const getLevelStars = (levelId: string): number => {
