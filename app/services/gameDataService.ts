@@ -172,17 +172,45 @@ class GameDataService {
   }
 
   async getGameProgress(walletAddress: string): Promise<LevelProgress[]> {
-    if (!redis) return [];
+    if (!redis) {
+      console.log('❌ Redis: Redis client not available for progress');
+      return [];
+    }
 
     const playerId = this.getPlayerKey(walletAddress);
     const progressKey = `${playerId}:progress`;
+    console.log('🔍 Redis: Getting progress with key:', progressKey);
+    console.log('🔍 Redis: Player ID generated:', playerId);
+    
+    // Let's also check if the key exists at all
+    const keyExists = await redis.exists(progressKey);
+    console.log('🔍 Redis: Progress key exists?', keyExists);
     
     const progressData = await redis.get(progressKey);
-    if (!progressData) return [];
+    console.log('📊 Redis: Raw progress data:', progressData);
+    console.log('📊 Redis: Progress data type:', typeof progressData);
+    
+    if (!progressData) {
+      console.log('❌ Redis: No progress found for address:', walletAddress);
+      
+      // Let's also check what keys exist for this player
+      const allKeys = await redis.keys(`${playerId}*`);
+      console.log('🔍 Redis: All keys for player:', allKeys);
+      
+      return [];
+    }
     
     try {
-      return JSON.parse(progressData as string);
-    } catch {
+      // Redis returns the data already parsed as objects, no need to JSON.parse
+      const parsed = typeof progressData === 'string' 
+        ? JSON.parse(progressData)
+        : progressData as LevelProgress[];
+        
+      console.log('✅ Redis: Parsed progress data:', parsed);
+      console.log('✅ Redis: Progress array length:', parsed.length);
+      return parsed;
+    } catch (error) {
+      console.error('❌ Redis: Failed to parse progress data:', error);
       return [];
     }
   }
