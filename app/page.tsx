@@ -21,8 +21,7 @@ import {
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { Button } from "./components/DemoComponents";
 import { Icon } from "./components/DemoComponents";
-import { Home } from "./components/DemoComponents";
-import { Features } from "./components/DemoComponents";
+import { Match3Game } from "./components/Match3Game";
 
 export default function App() {
   const { setFrameReady, isFrameReady, context } = useMiniKit();
