@@ -330,6 +330,48 @@ const processMatches = (grid: GameGrid, candyIds: string[][], matches: Position[
   return { newGrid, newIds, score };
 };
 
+// Process cascading matches - repeatedly find and process matches until none remain
+const processCascadingMatches = (initialGrid: GameGrid, initialIds: string[][], candyTheme: CandyType[]): { finalGrid: GameGrid; finalIds: string[][]; totalScore: number; cascadeCount: number } => {
+  let currentGrid = initialGrid.map(row => [...row]);
+  let currentIds = initialIds.map(row => [...row]);
+  let totalScore = 0;
+  let cascadeCount = 0;
+  
+  // Keep processing matches until no more exist
+  while (true) {
+    const { matches, specialCandies } = findMatches(currentGrid);
+    
+    if (matches.length === 0) {
+      break; // No more matches, stop cascading
+    }
+    
+    cascadeCount++;
+    
+    // Process this round of matches
+    const { newGrid, newIds, score } = processMatches(currentGrid, currentIds, matches, specialCandies, candyTheme);
+    
+    // Add cascade bonus (more points for chain reactions)
+    const cascadeBonus = cascadeCount > 1 ? (cascadeCount - 1) * 50 : 0;
+    totalScore += score + cascadeBonus;
+    
+    currentGrid = newGrid;
+    currentIds = newIds;
+    
+    // Small delay to prevent infinite loops (safety check)
+    if (cascadeCount > 10) {
+      console.warn('Cascade limit reached to prevent infinite loop');
+      break;
+    }
+  }
+  
+  return { 
+    finalGrid: currentGrid, 
+    finalIds: currentIds, 
+    totalScore, 
+    cascadeCount 
+  };
+};
+
 export function Match3Game({ level, onLevelComplete, onBackToLevels }: Match3GameProps) {
   const [gameState, setGameState] = useState<GameState>(() => {
     const { grid, ids } = createInitialGrid(level.candyTheme);
@@ -400,13 +442,21 @@ export function Match3Game({ level, onLevelComplete, onBackToLevels }: Match3Gam
           animating: true,
         }));
         
-        // Process matches after animation delay
+        // Process cascading matches after animation delay
         setTimeout(() => {
           setGameState(prev => {
-            const { newGrid: processedGrid, newIds, score } = processMatches(newGrid, prev.candyIds, matches, specialCandies, level.candyTheme);
-            const newScore = prev.score + score;
+            // Use cascading matches instead of single match processing
+            const { finalGrid, finalIds, totalScore, cascadeCount } = processCascadingMatches(newGrid, prev.candyIds, level.candyTheme);
+            const newScore = prev.score + totalScore;
             const newMoves = prev.moves - 1;
             const newSpecialCount = prev.specialCandiesCreated + specialCandies.length;
+            
+            // Play cascade sound effects for chain reactions
+            if (cascadeCount > 1 && prev.soundEnabled) {
+              setTimeout(() => {
+                soundManager.play('combo'); // Play combo sound for cascades
+              }, 200);
+            }
             
             // Check level objectives
             const { completed } = checkLevelObjectives(level, {
@@ -424,15 +474,15 @@ export function Match3Game({ level, onLevelComplete, onBackToLevels }: Match3Gam
               setTimeout(() => onLevelComplete(false, newScore), 1000);
             }
             
-            // Check if reshuffle is needed after processing matches
-            let finalGrid = processedGrid;
-            let finalIds = newIds;
+            // Check if reshuffle is needed after cascading matches
+            let currentGrid = finalGrid;
+            let currentIds = finalIds;
             
             // Only check for reshuffle if game is still playing and no moves available
-            if (gameStatus === 'playing' && !hasPossibleMoves(processedGrid)) {
-              const reshuffled = reshuffleBoard(processedGrid, newIds, level.candyTheme);
-              finalGrid = reshuffled.newGrid;
-              finalIds = reshuffled.newIds;
+            if (gameStatus === 'playing' && !hasPossibleMoves(finalGrid)) {
+              const reshuffled = reshuffleBoard(finalGrid, finalIds, level.candyTheme);
+              currentGrid = reshuffled.newGrid;
+              currentIds = reshuffled.newIds;
               
               // Play reshuffle sound
               if (prev.soundEnabled) {
@@ -441,16 +491,16 @@ export function Match3Game({ level, onLevelComplete, onBackToLevels }: Match3Gam
             }
 
             return {
-              grid: finalGrid,
-              candyIds: finalIds,
+              ...prev,
+              grid: currentGrid,
+              candyIds: currentIds,
               score: newScore,
               moves: newMoves,
               selectedCandy: null,
               animating: false,
               matchedCandies: [],
-              soundEnabled: prev.soundEnabled,
               specialCandiesCreated: newSpecialCount,
-              gameStatus,
+              gameStatus
             };
           });
         }, 600);
