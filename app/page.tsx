@@ -18,6 +18,7 @@ import {
   WalletDropdown,
   WalletDropdownDisconnect,
 } from "@coinbase/onchainkit/wallet";
+import { useAccount } from 'wagmi';
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Button } from "./components/DemoComponents";
@@ -25,14 +26,18 @@ import { Icon } from "./components/DemoComponents";
 import { GameWrapper } from "./components/GameWrapper";
 import { SettingsModal } from "./components/SettingsModal";
 import { Leaderboard } from "./components/Leaderboard";
+import { NameInputModal } from "./components/NameInputModal";
 import { soundManager } from "./utils/soundManager";
 
 export default function App() {
-  const { setFrameReady, isFrameReady, context } = useMiniKit();
+  const { context, isFrameReady, setFrameReady } = useMiniKit();
+  const { address, isConnected, isConnecting } = useAccount();
   const [frameAdded, setFrameAdded] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [playerScore, setPlayerScore] = useState(0);
+  const [playerName, setPlayerName] = useState("");
+  const [showNameInput, setShowNameInput] = useState(false);
 
   const addFrame = useAddFrame();
   const openUrl = useOpenUrl();
@@ -66,7 +71,19 @@ export default function App() {
     setShowLeaderboard(false);
   };
 
-  // Load player score from localStorage
+  const handleNameSubmit = (name: string) => {
+    setPlayerName(name);
+    localStorage.setItem('match3-player-name', name);
+    setShowNameInput(false);
+    soundManager.play('win'); // Celebration sound for completing setup
+  };
+
+  const handleTestNameInput = () => {
+    // Manual trigger for testing
+    setShowNameInput(true);
+  };
+
+  // Load player score and name from localStorage
   useEffect(() => {
     const savedProgress = localStorage.getItem('match3-progress');
     if (savedProgress) {
@@ -78,7 +95,28 @@ export default function App() {
         console.warn('Failed to load player score');
       }
     }
+
+    const savedName = localStorage.getItem('match3-player-name');
+    if (savedName) {
+      setPlayerName(savedName);
+    }
   }, []);
+
+  // Check if user needs to input name after wallet connection
+  useEffect(() => {
+    // Debug logging to understand the wallet connection state
+    console.log('Wallet Connected:', isConnected);
+    console.log('Wallet Address:', address);
+    console.log('Player Name:', playerName);
+    console.log('Show Name Input:', showNameInput);
+    
+    // Use wagmi's isConnected to detect wallet connection
+    if (isConnected && !playerName && !showNameInput) {
+      console.log('Wallet connected but no name set - triggering name input modal');
+      // User has connected wallet but has no name - show name input modal
+      setShowNameInput(true);
+    }
+  }, [isConnected, address, playerName, showNameInput]);
 
   const saveFrameButton = useMemo(() => {
     if (context && !context.client.added) {
@@ -130,6 +168,16 @@ export default function App() {
             </div>
           </div>
           <div className="flex items-center space-x-2">
+            {/* Test Name Input Button - Remove this after debugging */}
+            <motion.button
+              onClick={handleTestNameInput}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              className="p-2 rounded-lg bg-[var(--app-card-bg)] border border-[var(--app-card-border)] hover:bg-[var(--app-gray)] transition-colors shadow-sm"
+              title="Test Name Input"
+            >
+              <span className="text-lg">👤</span>
+            </motion.button>
             {/* Leaderboard Button */}
             <motion.button
               onClick={handleOpenLeaderboard}
@@ -159,7 +207,7 @@ export default function App() {
             <Leaderboard 
               onClose={handleCloseLeaderboard}
               currentPlayerScore={playerScore}
-              currentPlayerName="You"
+              currentPlayerName={playerName || "You"}
             />
           ) : (
             <GameWrapper />
@@ -182,6 +230,13 @@ export default function App() {
       <SettingsModal
         isOpen={showSettings}
         onClose={handleCloseSettings}
+      />
+      
+      {/* Name Input Modal */}
+      <NameInputModal
+        isOpen={showNameInput}
+        onNameSubmit={handleNameSubmit}
+        walletAddress={address}
       />
     </div>
   );
