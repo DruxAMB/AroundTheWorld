@@ -32,14 +32,14 @@ export function UserProfile({ isOpen, onClose }: UserProfileProps) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black/50 backdrop-blur-lg m-auto flex items-center justify-center z-50 p-4"
       onClick={onClose}
     >
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
-        className="bg-gradient-to-br from-gray-900 to-black rounded-2xl p-6 w-full max-w-md border border-gray-700 shadow-2xl"
+        className="rounded-2xl p-6 w-full max-w-md max-h-[70vh] overflow-y-auto no-scrollbar scroll-smooth border border-gray-700 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -55,7 +55,7 @@ export function UserProfile({ isOpen, onClose }: UserProfileProps) {
             onClick={onClose}
             className="text-gray-400 hover:text-white transition-colors"
           >
-            ✕
+            ✖️
           </button>
         </div>
 
@@ -167,7 +167,7 @@ export function UserProfile({ isOpen, onClose }: UserProfileProps) {
         <div className="mt-6 pt-4 border-t border-gray-700">
           <button
             onClick={onClose}
-            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 transform hover:scale-[1.02]"
+            className="w-full bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 transform hover:scale-[1.02]"
           >
             Close Profile
           </button>
