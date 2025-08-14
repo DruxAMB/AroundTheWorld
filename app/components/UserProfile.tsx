@@ -53,7 +53,7 @@ export function UserProfile({ isOpen, onClose }: UserProfileProps) {
         available,
         message: available ? '✅ Name is available' : '❌ Name is already taken'
       });
-    } catch (error) {
+    } catch {
       setNameAvailability({
         checking: false,
         available: false,
