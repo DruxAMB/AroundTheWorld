@@ -54,7 +54,7 @@ export function useGameData(): GameDataHook {
         setProgress(data.progress || []);
         setSettings(data.settings);
         
-        // If no player exists, create one
+        // If player doesn't exist, create one
         if (!data.player) {
           await createOrUpdatePlayer({});
         }
@@ -114,63 +114,34 @@ export function useGameData(): GameDataHook {
     }
   };
 
-  const saveProgress = async (newProgress: LevelProgress[]) => {
-    if (!address) {
-      console.log('❌ SaveProgress: No wallet address available');
-      return;
-    }
-
-    console.log('💾 SaveProgress: Attempting to save progress:', newProgress);
-    setSaving(true);
+  const saveProgress = useCallback(async (newProgress: LevelProgress[]) => {
+    if (!address || !isConnected) return;
+    
     try {
-      const requestBody = {
-        walletAddress: address,
-        action: 'saveProgress',
-        data: { progress: newProgress }
-      };
-      console.log('📤 SaveProgress: Request body:', requestBody);
-
-      const response = await fetch('/api/player', {
+      const response = await fetch('/api/progress', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody)
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          address,
+          progress: newProgress
+        })
       });
-
-      console.log('📡 SaveProgress: Response status:', response.status);
       
       if (response.ok) {
-        const responseData = await response.json();
-        console.log('✅ SaveProgress: Success response:', responseData);
-        
         setProgress(newProgress);
         
-        // Update player stats
-        const totalScore = newProgress.reduce((sum, level) => sum + level.score, 0);
-        const levelsCompleted = newProgress.filter(level => level.completed).length;
-        // Extract numeric part from levelId strings (e.g., "africa-1" -> 1)
-        const bestLevel = Math.max(...newProgress.map(level => {
-          const match = level.levelId.match(/-(\d+)$/);
-          return match ? parseInt(match[1]) : 1;
-        }), 0);
-        
-        console.log('📊 SaveProgress: Calculated stats - Score:', totalScore, 'Levels:', levelsCompleted, 'Best:', bestLevel);
-        
-        setPlayer(prev => prev ? {
-          ...prev,
-          totalScore,
-          levelsCompleted,
-          bestLevel
-        } : null);
+        // Reload player data to get updated stats
+        await loadPlayerData();
       } else {
-        const errorData = await response.text();
-        console.error('❌ SaveProgress: Failed with status:', response.status, 'Error:', errorData);
+        const responseData = await response.json();
+        console.error('Failed to save progress:', responseData);
       }
     } catch (error) {
-      console.error('❌ SaveProgress: Exception occurred:', error);
-    } finally {
-      setSaving(false);
+      console.error('Error saving progress:', error);
     }
-  };
+  }, [address, isConnected, loadPlayerData]);
 
   const saveSettings = async (newSettings: any) => {
     if (!address) return;

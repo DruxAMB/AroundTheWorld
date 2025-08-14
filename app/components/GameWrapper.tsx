@@ -26,48 +26,57 @@ export function GameWrapper() {
   
   const [gameState, setGameState] = useState<GameState>('level-select');
   const [currentLevel, setCurrentLevel] = useState<Level | null>(null);
-  const [unlockedLevels, setUnlockedLevels] = useState<string[]>(['africa-1']); // First level unlocked
+  const [unlockedLevels, setUnlockedLevels] = useState<string[]>(['0']); // First level unlocked
   const [levelProgress, setLevelProgress] = useState<LevelProgress[]>([]);
 
-  // Load progress from Redis via useGameData hook and start menu music
+  // Process progress data and determine unlocked levels
   useEffect(() => {
-    if (progress && progress.length > 0) {
-      console.log('🎮 GameWrapper: Processing progress data:', progress);
-      
-      // Progress is already in the correct array format from Redis
-      const progressArray: LevelProgress[] = progress.map((levelData: any) => ({
-        levelId: levelData.levelId,
-        completed: levelData.completed,
-        score: levelData.score,
-        stars: levelData.stars,
-        bestScore: levelData.bestScore,
-        completedAt: levelData.completedAt
-      }));
-      
-      console.log('🎮 GameWrapper: Processed progress array:', progressArray);
-      setLevelProgress(progressArray);
-      
-      // Set unlocked levels based on completed levels
-      const unlocked = ['africa-1']; // Always unlock first level
-      progressArray.forEach(p => {
-        if (p.completed) {
-          console.log('🔓 GameWrapper: Level completed:', p.levelId, 'unlocking next level');
-          const nextLevel = unlockNextLevel(p.levelId);
-          if (nextLevel && !unlocked.includes(nextLevel)) {
-            unlocked.push(nextLevel);
-            console.log('🔓 GameWrapper: Unlocked level:', nextLevel);
-          }
-        }
-      });
-      
-      console.log('🔓 GameWrapper: Final unlocked levels:', unlocked);
-      setUnlockedLevels(unlocked);
+    if (!progress || progress.length === 0) {
+      setUnlockedLevels(['0']);
+      return;
     }
 
-    // Start menu music when component loads
-    setTimeout(() => {
-      soundManager.playMusic('menu');
-    }, 1000);
+    // Progress is an array of LevelProgress objects
+    const progressArray = Array.isArray(progress) ? progress : [];
+    
+    // Start with level 0 always unlocked
+    const unlocked = ['0'];
+    
+    // Check each completed level and unlock the next one
+    progressArray.forEach((levelProgress) => {
+      if (levelProgress.completed) {
+        // Map level completion to next level unlock
+        switch (levelProgress.levelId) {
+          case '0':
+            if (!unlocked.includes('africa-1')) {
+              unlocked.push('africa-1');
+            }
+            break;
+          case 'africa-1':
+            if (!unlocked.includes('india-1')) {
+              unlocked.push('india-1');
+            }
+            break;
+          case 'india-1':
+            if (!unlocked.includes('latin-america-1')) {
+              unlocked.push('latin-america-1');
+            }
+            break;
+          case 'latin-america-1':
+            if (!unlocked.includes('southeast-asia-1')) {
+              unlocked.push('southeast-asia-1');
+            }
+            break;
+          case 'southeast-asia-1':
+            if (!unlocked.includes('europe-1')) {
+              unlocked.push('europe-1');
+            }
+            break;
+        }
+      }
+    });
+    
+    setUnlockedLevels(unlocked);
   }, [progress]);
 
   // Save progress to Redis instead of localStorage

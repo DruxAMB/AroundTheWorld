@@ -90,26 +90,27 @@ class GameDataService {
   }
 
   async getPlayer(walletAddress: string): Promise<PlayerProfile | null> {
-    if (!redis) throw new Error('Redis not configured');
+    if (!redis) return null;
 
     const playerId = this.getPlayerKey(walletAddress);
-    const rawPlayer = await redis.hgetall(playerId) as Record<string, string>;
-    
-    if (!rawPlayer || Object.keys(rawPlayer).length === 0) return null;
-    
-    // Convert Redis string values back to proper types
+    const playerData = await redis.hgetall(playerId) as Record<string, string>;
+
+    if (!playerData || Object.keys(playerData).length === 0) {
+      return null;
+    }
+
     const player: PlayerProfile = {
-      id: rawPlayer.id,
-      name: rawPlayer.name,
-      walletAddress: rawPlayer.walletAddress,
-      avatar: rawPlayer.avatar,
-      totalScore: parseInt(rawPlayer.totalScore) || 0,
-      levelsCompleted: parseInt(rawPlayer.levelsCompleted) || 0,
-      bestLevel: parseInt(rawPlayer.bestLevel) || 0,
-      createdAt: rawPlayer.createdAt,
-      lastActive: rawPlayer.lastActive,
+      id: playerData.id || walletAddress,
+      name: playerData.name || `Player${walletAddress.slice(-4)}`,
+      walletAddress: playerData.walletAddress || walletAddress,
+      avatar: playerData.avatar || this.generateAvatar(),
+      totalScore: parseInt(playerData.totalScore) || 0,
+      levelsCompleted: parseInt(playerData.levelsCompleted) || 0,
+      bestLevel: parseInt(playerData.bestLevel) || 1,
+      createdAt: playerData.createdAt || new Date().toISOString(),
+      lastActive: playerData.lastActive || new Date().toISOString()
     };
-    
+
     return player;
   }
 
@@ -125,17 +126,10 @@ class GameDataService {
 
   // Game Progress Management
   async saveGameProgress(walletAddress: string, progress: LevelProgress[]): Promise<void> {
-    if (!redis) {
-      console.log('❌ Redis: Redis client not available for saving progress');
-      return;
-    }
-
-    console.log('💾 Redis: Saving game progress for:', walletAddress);
-    console.log('📊 Redis: Progress data to save:', progress);
+    if (!redis) return;
 
     const playerId = this.getPlayerKey(walletAddress);
     const progressKey = `${playerId}:progress`;
-    console.log('🔑 Redis: Using progress key:', progressKey);
     
     // Calculate stats from progress
     const totalScore = progress.reduce((sum, level) => sum + level.score, 0);
@@ -146,57 +140,33 @@ class GameDataService {
       return match ? parseInt(match[1]) : 1;
     }), 0);
 
-    console.log('📈 Redis: Calculated stats - Score:', totalScore, 'Levels:', levelsCompleted, 'Best:', bestLevel);
-
     // Save progress
-    const progressJson = JSON.stringify(progress);
-    console.log('💾 Redis: Saving progress JSON:', progressJson);
-    await redis.set(progressKey, progressJson);
-    console.log('✅ Redis: Progress saved to key:', progressKey);
+    await redis.set(progressKey, JSON.stringify(progress));
     
     // Update player stats
-    const playerStats = {
+    await redis.hset(playerId, {
       totalScore,
       levelsCompleted,
       bestLevel,
       lastActive: new Date().toISOString()
-    };
-    console.log('👤 Redis: Updating player stats:', playerStats);
-    await redis.hset(playerId, playerStats);
-    console.log('✅ Redis: Player stats updated');
+    });
     
     // Update leaderboard
-    console.log('🏆 Redis: Updating leaderboard for score:', totalScore);
     await this.updateLeaderboards(walletAddress, totalScore, levelsCompleted, bestLevel);
-    console.log('✅ Redis: Leaderboard updated');
+    
+    // Update global stats after leaderboard changes
+    await this.updateGlobalStats();
   }
 
   async getGameProgress(walletAddress: string): Promise<LevelProgress[]> {
-    if (!redis) {
-      console.log('❌ Redis: Redis client not available for progress');
-      return [];
-    }
+    if (!redis) return [];
 
     const playerId = this.getPlayerKey(walletAddress);
     const progressKey = `${playerId}:progress`;
-    console.log('🔍 Redis: Getting progress with key:', progressKey);
-    console.log('🔍 Redis: Player ID generated:', playerId);
-    
-    // Let's also check if the key exists at all
-    const keyExists = await redis.exists(progressKey);
-    console.log('🔍 Redis: Progress key exists?', keyExists);
     
     const progressData = await redis.get(progressKey);
-    console.log('📊 Redis: Raw progress data:', progressData);
-    console.log('📊 Redis: Progress data type:', typeof progressData);
     
     if (!progressData) {
-      console.log('❌ Redis: No progress found for address:', walletAddress);
-      
-      // Let's also check what keys exist for this player
-      const allKeys = await redis.keys(`${playerId}*`);
-      console.log('🔍 Redis: All keys for player:', allKeys);
-      
       return [];
     }
     
@@ -206,11 +176,9 @@ class GameDataService {
         ? JSON.parse(progressData)
         : progressData as LevelProgress[];
         
-      console.log('✅ Redis: Parsed progress data:', parsed);
-      console.log('✅ Redis: Progress array length:', parsed.length);
       return parsed;
     } catch (error) {
-      console.error('❌ Redis: Failed to parse progress data:', error);
+      console.error('Failed to parse progress data:', error);
       return [];
     }
   }
@@ -243,17 +211,10 @@ class GameDataService {
 
   // Leaderboard Management
   async updateLeaderboards(walletAddress: string, totalScore: number, levelsCompleted: number, bestLevel: number): Promise<void> {
-    if (!redis) {
-      console.log('❌ Redis: Redis client not available for leaderboard update');
-      return;
-    }
+    if (!redis) return;
 
-    console.log('🏆 Redis: Updating leaderboards for:', walletAddress, 'Score:', totalScore);
     const player = await this.getPlayer(walletAddress);
-    if (!player) {
-      console.log('❌ Redis: Player not found for leaderboard update:', walletAddress);
-      return;
-    }
+    if (!player) return;
 
     // Update different leaderboard timeframes
     const now = new Date();
@@ -269,28 +230,21 @@ class GameDataService {
       bestLevel
     };
     const playerDataJson = JSON.stringify(playerData);
-    console.log('📊 Redis: Player data for leaderboard:', playerDataJson);
 
     // All-time leaderboard
-    const allTimeKey = `${this.LEADERBOARD_PREFIX}all-time`;
-    console.log('🏆 Redis: Adding to all-time leaderboard:', allTimeKey);
-    await redis.zadd(allTimeKey, {
+    await redis.zadd(`${this.LEADERBOARD_PREFIX}all-time`, {
       score: totalScore,
       member: playerDataJson
     });
 
     // Weekly leaderboard
-    const weeklyKey = `${this.LEADERBOARD_PREFIX}week:${weekKey}`;
-    console.log('📅 Redis: Adding to weekly leaderboard:', weeklyKey);
-    await redis.zadd(weeklyKey, {
+    await redis.zadd(`${this.LEADERBOARD_PREFIX}week:${weekKey}`, {
       score: totalScore,
       member: playerDataJson
     });
 
     // Monthly leaderboard
-    const monthlyKey = `${this.LEADERBOARD_PREFIX}month:${monthKey}`;
-    console.log('📅 Redis: Adding to monthly leaderboard:', monthlyKey);
-    await redis.zadd(monthlyKey, {
+    await redis.zadd(`${this.LEADERBOARD_PREFIX}month:${monthKey}`, {
       score: totalScore,
       member: playerDataJson
     });
@@ -298,17 +252,10 @@ class GameDataService {
     // Set expiration for time-based leaderboards
     await redis.expire(`${this.LEADERBOARD_PREFIX}week:${weekKey}`, 60 * 60 * 24 * 14); // 2 weeks
     await redis.expire(`${this.LEADERBOARD_PREFIX}month:${monthKey}`, 60 * 60 * 24 * 60); // 2 months
-    
-    // Update global stats after leaderboard changes
-    console.log('📊 Redis: Updating global stats after leaderboard update');
-    await this.updateGlobalStats();
   }
 
   async getLeaderboard(timeframe: 'week' | 'month' | 'all-time', limit: number = 50): Promise<LeaderboardEntry[]> {
-    if (!redis) {
-      console.log('❌ Redis: Redis client not available for leaderboard');
-      return [];
-    }
+    if (!redis) return [];
 
     const key = timeframe === 'week' 
       ? `${this.LEADERBOARD_PREFIX}week:${this.getWeekKey(new Date())}`
@@ -316,15 +263,11 @@ class GameDataService {
       ? `${this.LEADERBOARD_PREFIX}month:${this.getMonthKey(new Date())}`
       : `${this.LEADERBOARD_PREFIX}all-time`;
 
-    console.log('🏆 Redis: Getting leaderboard with key:', key);
     const results = await redis.zrange(key, 0, limit - 1, { withScores: true, rev: true });
-    console.log('📊 Redis: Raw leaderboard results:', results);
     
     const leaderboard: LeaderboardEntry[] = [];
     for (let i = 0; i < results.length; i += 2) {
       try {
-        console.log('🔍 Redis: Processing leaderboard entry:', results[i], 'Type:', typeof results[i]);
-        
         // Redis returns the data already parsed as objects, no need to JSON.parse
         const memberData = typeof results[i] === 'string' 
           ? JSON.parse(results[i] as string)
@@ -335,109 +278,66 @@ class GameDataService {
           rank: Math.floor(i / 2) + 1,
           rankChange: 0 // TODO: Calculate rank changes
         });
-        console.log('✅ Redis: Successfully processed leaderboard entry for:', memberData.name);
       } catch (e) {
-        console.error('❌ Redis: Failed to parse leaderboard entry:', results[i], 'Error:', e);
+        console.error('Failed to parse leaderboard entry:', results[i], 'Error:', e);
       }
     }
 
-    console.log('✅ Redis: Processed leaderboard:', leaderboard);
     return leaderboard;
   }
 
-  async getPlayerRank(walletAddress: string, timeframe: 'week' | 'month' | 'all-time'): Promise<number | null> {
-    if (!redis) {
-      console.log('❌ Redis: Redis client not available for player rank');
-      return null;
-    }
-
-    const key = timeframe === 'week' 
-      ? `${this.LEADERBOARD_PREFIX}week:${this.getWeekKey(new Date())}`
-      : timeframe === 'month'
-      ? `${this.LEADERBOARD_PREFIX}month:${this.getMonthKey(new Date())}`
-      : `${this.LEADERBOARD_PREFIX}all-time`;
-
-    console.log('🏆 Redis: Getting player rank for:', walletAddress, 'from key:', key);
+  async getPlayerRank(walletAddress: string, timeframe: 'week' | 'month' | 'all-time'): Promise<number> {
+    if (!redis) return 0;
     
-    // Get all leaderboard entries to find the player's rank
-    const results = await redis.zrange(key, 0, -1, { withScores: true, rev: true });
-    console.log('📊 Redis: Got', results.length / 2, 'leaderboard entries for rank calculation');
+    // Get the leaderboard to find the player's rank
+    const leaderboard = await this.getLeaderboard(timeframe, 1000); // Get a large number to find the player
     
-    // Search through the leaderboard to find the player
-    for (let i = 0; i < results.length; i += 2) {
-      try {
-        const memberData = typeof results[i] === 'string' 
-          ? JSON.parse(results[i] as string)
-          : results[i] as any;
-          
-        if (memberData.playerId === walletAddress) {
-          const rank = Math.floor(i / 2) + 1;
-          console.log('✅ Redis: Found player rank:', rank);
-          return rank;
-        }
-      } catch (e) {
-        console.error('❌ Redis: Error parsing leaderboard entry for rank:', e);
-      }
+    // Find the player in the leaderboard by wallet address
+    const playerEntry = leaderboard.find(entry => entry.playerId === walletAddress);
+    
+    if (!playerEntry) {
+      return 0;
     }
     
-    console.log('❌ Redis: Player not found in leaderboard');
-    return null;
+    return playerEntry.rank ?? 0;
   }
 
   // Global Statistics
   async updateGlobalStats(): Promise<void> {
-    if (!redis) {
-      console.log('❌ Redis: Redis client not available for global stats update');
-      return;
-    }
-
-    const leaderboardKey = `${this.LEADERBOARD_PREFIX}all-time`;
-    console.log('📊 Redis: Getting total players from key:', leaderboardKey);
+    if (!redis) return;
     
-    const totalPlayers = await redis.zcard(leaderboardKey);
-    console.log('👥 Redis: Total players count:', totalPlayers);
+    // Count total players from all-time leaderboard
+    const totalPlayers = await redis.zcard(`${this.LEADERBOARD_PREFIX}all-time`);
     
-    const totalRewards = totalPlayers * 0.001; // Mock ETH calculation
-    console.log('💰 Redis: Calculated total rewards:', totalRewards);
-
-    const statsData = {
+    // Get top score from all-time leaderboard
+    const topScoreResult = await redis.zrange(`${this.LEADERBOARD_PREFIX}all-time`, -1, -1, { withScores: true });
+    const topScore = topScoreResult.length >= 2 ? topScoreResult[1] as number : 0;
+    
+    const stats = {
       totalPlayers,
-      totalRewards: totalRewards.toFixed(3),
+      topScore,
       lastUpdated: new Date().toISOString()
     };
     
-    console.log('📈 Redis: Updating global stats:', statsData);
-    await redis.hset(this.GLOBAL_STATS_KEY, statsData);
-    console.log('✅ Redis: Global stats updated');
+    await redis.hset('global:stats', stats);
   }
 
-  async getGlobalStats(): Promise<{ totalPlayers: number; totalRewards: string; lastUpdated: string }> {
-    if (!redis) throw new Error('Redis not configured');
-
-    console.log('📊 Redis: Getting global stats from key:', this.GLOBAL_STATS_KEY);
-    const stats = await redis.hgetall(this.GLOBAL_STATS_KEY) as Record<string, string>;
-    console.log('📈 Redis: Raw global stats:', stats);
-    
-    // If stats don't exist yet, initialize them
-    if (!stats || Object.keys(stats).length === 0) {
-      console.log('⚠️ Redis: No global stats found, initializing...');
-      await this.updateGlobalStats();
-      const newStats = await redis.hgetall(this.GLOBAL_STATS_KEY) as Record<string, string>;
-      console.log('📈 Redis: New global stats after initialization:', newStats);
-      return {
-        totalPlayers: parseInt(newStats.totalPlayers) || 0,
-        totalRewards: newStats.totalRewards || "0.000",
-        lastUpdated: newStats.lastUpdated || new Date().toISOString()
-      };
+  async getGlobalStats(): Promise<{ totalPlayers: number; topScore: number; lastUpdated: string }> {
+    if (!redis) {
+      return { totalPlayers: 0, topScore: 0, lastUpdated: new Date().toISOString() };
     }
 
-    const result = {
-      totalPlayers: parseInt(stats.totalPlayers),
-      totalRewards: stats.totalRewards,
-      lastUpdated: stats.lastUpdated
+    const stats = await redis.hgetall('global:stats') as Record<string, string>;
+    
+    if (!stats || Object.keys(stats).length === 0) {
+      return { totalPlayers: 0, topScore: 0, lastUpdated: new Date().toISOString() };
+    }
+    
+    return {
+      totalPlayers: parseInt(stats.totalPlayers) || 0,
+      topScore: parseInt(stats.topScore) || 0,
+      lastUpdated: stats.lastUpdated || new Date().toISOString()
     };
-    console.log('✅ Redis: Returning global stats:', result);
-    return result;
   }
 
   // Utility Methods
