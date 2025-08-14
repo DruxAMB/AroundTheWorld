@@ -33,7 +33,7 @@ export function LevelSelector({ onLevelSelect, unlockedLevels, isWalletConnected
   };
 
   return (
-    <div className="flex flex-col h-full max-w-md mx-auto p-4 space-y-4">
+    <div className="no-scrollbar flex flex-col h-full max-w-md mx-auto p-4 space-y-4">
       {/* Header */}
       <div className="text-center">
         <h1 className="text-2xl font-bold text-[var(--app-foreground)] mb-2">

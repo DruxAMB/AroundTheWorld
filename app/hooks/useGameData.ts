@@ -115,14 +115,15 @@ export function useGameData(): GameDataHook {
     if (!address || !isConnected) return;
     
     try {
-      const response = await fetch('/api/progress', {
+      const response = await fetch('/api/player', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          address,
-          progress: newProgress
+          walletAddress: address,
+          action: 'saveProgress',
+          data: { progress: newProgress }
         })
       });
       
