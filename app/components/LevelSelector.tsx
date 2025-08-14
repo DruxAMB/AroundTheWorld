@@ -45,7 +45,7 @@ export function LevelSelector({ onLevelSelect, unlockedLevels, isWalletConnected
       </div>
 
       {/* Level Grid */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="no-scrollbar flex-1 overflow-y-auto">
         <div className="space-y-3">
           {LEVELS.map((level, index) => {
             const unlocked = isLevelUnlocked(level.id);
