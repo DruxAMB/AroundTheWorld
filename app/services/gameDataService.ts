@@ -308,10 +308,10 @@ class GameDataService {
   }
 
   // Leaderboard Management
-  async updateLeaderboards(walletAddress: string, totalScore: number, levelsCompleted: number, bestLevel: number): Promise<void> {
+  private async updateLeaderboards(walletAddress: string, totalScore: number, levelsCompleted: number, bestLevel: number): Promise<void> {
     if (!redis) return;
 
-    const player = await this.getPlayer(walletAddress);
+    const player = await this.getPlayerProfile(walletAddress);
     if (!player) return;
 
     // Update different leaderboard timeframes
@@ -329,27 +329,46 @@ class GameDataService {
     };
     const playerDataJson = JSON.stringify(playerData);
 
-    // All-time leaderboard
-    await redis.zadd(`${this.LEADERBOARD_PREFIX}all-time`, {
-      score: totalScore,
-      member: playerDataJson
-    });
+    const leaderboardKeys = [
+      `${this.LEADERBOARD_PREFIX}all-time`,
+      `${this.LEADERBOARD_PREFIX}week:${weekKey}`,
+      `${this.LEADERBOARD_PREFIX}month:${monthKey}`
+    ];
 
-    // Weekly leaderboard
-    await redis.zadd(`${this.LEADERBOARD_PREFIX}week:${weekKey}`, {
-      score: totalScore,
-      member: playerDataJson
-    });
-
-    // Monthly leaderboard
-    await redis.zadd(`${this.LEADERBOARD_PREFIX}month:${monthKey}`, {
-      score: totalScore,
-      member: playerDataJson
-    });
+    // Remove old entries and add new ones for each leaderboard
+    for (const leaderboardKey of leaderboardKeys) {
+      await this.removePlayerFromLeaderboard(leaderboardKey, walletAddress);
+      await redis.zadd(leaderboardKey, {
+        score: totalScore,
+        member: playerDataJson
+      });
+    }
 
     // Set expiration for time-based leaderboards
     await redis.expire(`${this.LEADERBOARD_PREFIX}week:${weekKey}`, 60 * 60 * 24 * 14); // 2 weeks
     await redis.expire(`${this.LEADERBOARD_PREFIX}month:${monthKey}`, 60 * 60 * 24 * 60); // 2 months
+  }
+
+  private async removePlayerFromLeaderboard(leaderboardKey: string, walletAddress: string): Promise<void> {
+    if (!redis) return;
+
+    try {
+      // Get all entries from this leaderboard
+      const entries = await redis.zrange(leaderboardKey, 0, -1, { withScores: true });
+      
+      for (let i = 0; i < entries.length; i += 2) {
+        const memberData = typeof entries[i] === 'string' 
+          ? JSON.parse(entries[i] as string)
+          : entries[i];
+        
+        // If this entry belongs to the player we want to remove
+        if (memberData.playerId === walletAddress) {
+          await redis.zrem(leaderboardKey, entries[i]);
+        }
+      }
+    } catch (error) {
+      console.warn(`Failed to remove player from leaderboard ${leaderboardKey}:`, error);
+    }
   }
 
   async getLeaderboard(timeframe: 'week' | 'month' | 'all-time', limit: number = 50): Promise<LeaderboardEntry[]> {
