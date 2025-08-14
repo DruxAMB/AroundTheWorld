@@ -163,8 +163,63 @@ class GameDataService {
       throw new Error('Name is already taken by another player');
     }
 
+    // Update player profile
     const playerId = this.getPlayerKey(walletAddress);
     await redis.hset(playerId, { name, lastActive: new Date().toISOString() });
+
+    // Update leaderboard entries for this player
+    await this.updateLeaderboardPlayerName(walletAddress, name);
+  }
+
+  private async updateLeaderboardPlayerName(walletAddress: string, newName: string): Promise<void> {
+    if (!redis) return;
+
+    const currentDate = new Date();
+    const weekKey = this.getWeekKey(currentDate);
+    const monthKey = this.getMonthKey(currentDate);
+
+    const leaderboardKeys = [
+      `${this.LEADERBOARD_PREFIX}all-time`,
+      `${this.LEADERBOARD_PREFIX}week:${weekKey}`,
+      `${this.LEADERBOARD_PREFIX}month:${monthKey}`
+    ];
+
+    for (const leaderboardKey of leaderboardKeys) {
+      try {
+        // Get all entries from this leaderboard
+        const entries = await redis.zrange(leaderboardKey, 0, -1, { withScores: true });
+        
+        for (let i = 0; i < entries.length; i += 2) {
+          const memberData = typeof entries[i] === 'string' 
+            ? JSON.parse(entries[i] as string)
+            : entries[i];
+          
+          // If this entry belongs to the player whose name we're updating
+          if (memberData.playerId === walletAddress) {
+            const score = entries[i + 1] as number;
+            
+            // Remove old entry
+            await redis.zrem(leaderboardKey, entries[i]);
+            
+            // Add updated entry with new name
+            const updatedPlayerData = {
+              ...memberData,
+              name: newName
+            };
+            
+            await redis.zadd(leaderboardKey, {
+              score: score,
+              member: JSON.stringify(updatedPlayerData)
+            });
+            
+            break; // Found and updated the player, move to next leaderboard
+          }
+        }
+      } catch (error) {
+        console.warn(`Failed to update leaderboard ${leaderboardKey}:`, error);
+        // Continue with other leaderboards even if one fails
+      }
+    }
   }
 
   // Game Progress Management
