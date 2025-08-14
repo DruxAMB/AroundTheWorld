@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Match3Game } from "./Match3Game";
 import { LevelSelector } from "./LevelSelector";
+import { Match3Game } from "./Match3Game";
 import { Level, unlockNextLevel } from "../data/levels";
 import { soundManager } from "../utils/soundManager";
 import { useGameData } from "../hooks/useGameData";
+import { useAccount } from 'wagmi';
 
 type GameState = 'level-select' | 'playing' | 'level-complete';
 
@@ -21,46 +22,48 @@ interface LevelProgress {
 
 export function GameWrapper() {
   const { progress, saveProgress: saveGameProgress } = useGameData();
+  const { address, isConnected, isConnecting } = useAccount();
   
   const [gameState, setGameState] = useState<GameState>('level-select');
   const [currentLevel, setCurrentLevel] = useState<Level | null>(null);
-  const [unlockedLevels, setUnlockedLevels] = useState<string[]>(['0']); // First level unlocked
+  const [unlockedLevels, setUnlockedLevels] = useState<string[]>([]); // No levels unlocked by default
   const [levelProgress, setLevelProgress] = useState<LevelProgress[]>([]);
 
   // Process progress data and determine unlocked levels
   useEffect(() => {
+    // Only unlock levels if wallet is connected
+    if (!isConnected || !address) {
+      setUnlockedLevels([]); // No levels unlocked if wallet not connected
+      return;
+    }
+
     if (!progress || progress.length === 0) {
-      setUnlockedLevels(['0']);
+      setUnlockedLevels(['africa-1']); // Unlock first level for connected users with no progress
       return;
     }
 
     // Progress is an array of LevelProgress objects
     const progressArray = Array.isArray(progress) ? progress : [];
     
-    // Start with level 0 always unlocked
-    const unlocked = ['0'];
+    // Start with africa-1 always unlocked (first level)
+    const unlocked = ['africa-1'];
     
     // Check each completed level and unlock the next one
     progressArray.forEach((levelProgress) => {
       if (levelProgress.completed) {
         // Map level completion to next level unlock
         switch (levelProgress.levelId) {
-          case '0':
-            if (!unlocked.includes('africa-1')) {
-              unlocked.push('africa-1');
-            }
-            break;
           case 'africa-1':
             if (!unlocked.includes('india-1')) {
               unlocked.push('india-1');
             }
             break;
           case 'india-1':
-            if (!unlocked.includes('latin-america-1')) {
-              unlocked.push('latin-america-1');
+            if (!unlocked.includes('latam-1')) {
+              unlocked.push('latam-1');
             }
             break;
-          case 'latin-america-1':
+          case 'latam-1':
             if (!unlocked.includes('southeast-asia-1')) {
               unlocked.push('southeast-asia-1');
             }
@@ -75,7 +78,7 @@ export function GameWrapper() {
     });
     
     setUnlockedLevels(unlocked);
-  }, [progress]);
+  }, [progress, isConnected, address]);
 
   const handleLevelSelect = (level: Level) => {
     setCurrentLevel(level);
@@ -233,6 +236,7 @@ export function GameWrapper() {
     <LevelSelector
       onLevelSelect={handleLevelSelect}
       unlockedLevels={unlockedLevels}
+      isWalletConnected={isConnected}
     />
   );
 }

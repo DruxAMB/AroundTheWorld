@@ -6,9 +6,10 @@ import { Level, LEVELS } from "../data/levels";
 interface LevelSelectorProps {
   onLevelSelect: (level: Level) => void;
   unlockedLevels: string[];
+  isWalletConnected: boolean;
 }
 
-export function LevelSelector({ onLevelSelect, unlockedLevels }: LevelSelectorProps) {
+export function LevelSelector({ onLevelSelect, unlockedLevels, isWalletConnected }: LevelSelectorProps) {
   const isLevelUnlocked = (levelId: string) => {
     return unlockedLevels.includes(levelId);
   };
@@ -132,9 +133,11 @@ export function LevelSelector({ onLevelSelect, unlockedLevels }: LevelSelectorPr
                   {!unlocked && (
                     <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
                       <div className="text-center">
-                        <div className="text-3xl mb-2">🔒</div>
+                        <div className="text-3xl mb-2">
+                          {!isWalletConnected ? '🔐' : '🔒'}
+                        </div>
                         <div className="text-sm text-white font-medium">
-                          Complete previous level
+                          {!isWalletConnected ? 'Sign in to get started' : 'Complete previous level'}
                         </div>
                       </div>
                     </div>
