@@ -39,5 +39,8 @@ export async function GET() {
       ogDescription: process.env.NEXT_PUBLIC_APP_OG_DESCRIPTION,
       ogImageUrl: process.env.NEXT_PUBLIC_APP_OG_IMAGE,
     }),
+    "baseBuilder": {
+    "allowedAddresses": ["0xe5A519177EAcDeC56A44EED8696cF8288F0Ec4EA", "0x78267DF474bF819B7Ab56A854C24f7A417Ae6371"]
+  }
   });
 }
