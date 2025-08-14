@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { soundManager } from "../utils/soundManager";
-import { Level, checkLevelObjectives, unlockNextLevel } from "../data/levels";
+import { Level, checkLevelObjectives } from "../data/levels";
 
 // Game configuration
 const GRID_SIZE = 6;
@@ -18,13 +18,7 @@ const SPECIAL_CANDIES = {
 type CandyType = string;
 type Position = { row: number; col: number };
 type GameGrid = CandyType[][];
-type AnimationType = 'drop' | 'match' | 'special' | 'spawn' | null;
-type CandyState = {
-  type: CandyType;
-  animation: AnimationType;
-  isMatched: boolean;
-  id: string;
-};
+// type AnimationType = 'drop' | 'match' | 'special' | 'spawn' | null;
 
 interface GameState {
   grid: GameGrid;

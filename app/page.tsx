@@ -33,16 +33,10 @@ import { useGameData } from "./hooks/useGameData";
 
 export default function App() {
   const { context, isFrameReady, setFrameReady } = useMiniKit();
-  const { address, isConnected, isConnecting } = useAccount();
+  const { address, isConnected } = useAccount();
   const { 
-    player, 
-    settings, 
-    progress, 
-    loading, 
-    saving, 
+    player,
     updatePlayerName, 
-    saveProgress, 
-    saveSettings
   } = useGameData();
   
   const [frameAdded, setFrameAdded] = useState(false);
@@ -100,11 +94,6 @@ export default function App() {
     } catch (error) {
       console.error('Failed to save player name:', error);
     }
-  };
-
-  const handleTestNameInput = () => {
-    // Manual trigger for testing
-    setShowNameInput(true);
   };
 
   // Check if user needs to input name after wallet connection

@@ -2,7 +2,6 @@
 
 import { motion } from "framer-motion";
 import { useGameData } from "../hooks/useGameData";
-import { useAccount } from "wagmi";
 
 interface UserProfileProps {
   isOpen: boolean;
@@ -11,7 +10,6 @@ interface UserProfileProps {
 
 export function UserProfile({ isOpen, onClose }: UserProfileProps) {
   const { player, progress, loading } = useGameData();
-  const { address } = useAccount();
 
   if (!isOpen) return null;
 
@@ -141,7 +139,7 @@ export function UserProfile({ isOpen, onClose }: UserProfileProps) {
               <div className="bg-gray-800/50 rounded-lg p-4">
                 <h3 className="text-sm font-medium text-gray-300 mb-3">Recent Progress</h3>
                 <div className="space-y-2 max-h-32 overflow-y-auto">
-                  {progress.slice(-3).reverse().map((level, index) => (
+                  {progress.slice(-3).reverse().map((level) => (
                     <div key={level.levelId} className="flex items-center justify-between text-sm">
                       <span className="text-white">Level {level.levelId}</span>
                       <div className="flex items-center gap-2">

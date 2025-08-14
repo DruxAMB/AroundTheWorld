@@ -7,7 +7,6 @@ import { LevelSelector } from "./LevelSelector";
 import { Level, unlockNextLevel } from "../data/levels";
 import { soundManager } from "../utils/soundManager";
 import { useGameData } from "../hooks/useGameData";
-import { useAccount } from 'wagmi';
 
 type GameState = 'level-select' | 'playing' | 'level-complete';
 
@@ -21,8 +20,7 @@ interface LevelProgress {
 }
 
 export function GameWrapper() {
-  const { address, isConnected } = useAccount();
-  const { player, progress, saveProgress: saveGameProgress } = useGameData();
+  const { progress, saveProgress: saveGameProgress } = useGameData();
   
   const [gameState, setGameState] = useState<GameState>('level-select');
   const [currentLevel, setCurrentLevel] = useState<Level | null>(null);
@@ -78,18 +76,6 @@ export function GameWrapper() {
     
     setUnlockedLevels(unlocked);
   }, [progress]);
-
-  // Save progress to Redis instead of localStorage
-  const saveProgressToRedis = async () => {
-    if (!levelProgress || levelProgress.length === 0) return;
-    
-    try {
-      // Convert local progress format to the expected LevelProgress[] format
-      await saveGameProgress(levelProgress);
-    } catch (error) {
-      console.error('Failed to save progress to Redis:', error);
-    }
-  };
 
   const handleLevelSelect = (level: Level) => {
     setCurrentLevel(level);
@@ -177,17 +163,6 @@ export function GameWrapper() {
       soundManager.playMusic('menu');
     }, 600);
   };
-
-  const getLevelStars = (levelId: string): number => {
-    const progress = levelProgress.find(p => p.levelId === levelId);
-    return progress?.stars || 0;
-  };
-
-  const getLevelScore = (levelId: string): number => {
-    const progress = levelProgress.find(p => p.levelId === levelId);
-    return progress?.score || 0;
-  };
-
 
 
   if (gameState === 'level-complete' && currentLevel) {

@@ -13,9 +13,9 @@ interface LeaderboardProps {
 
 type TimeFilter = 'week' | 'month' | 'all-time';
 
-export function Leaderboard({ onClose, currentPlayerScore = 0, currentPlayerName = "You" }: LeaderboardProps) {
+export function Leaderboard({ onClose, currentPlayerName = "You" }: LeaderboardProps) {
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('week');
-  const { data: leaderboardData, loading, refresh } = useLeaderboard(timeFilter);
+  const { data: leaderboardData, loading } = useLeaderboard(timeFilter);
 
   const handleTimeFilterChange = (newFilter: TimeFilter) => {
     setTimeFilter(newFilter);

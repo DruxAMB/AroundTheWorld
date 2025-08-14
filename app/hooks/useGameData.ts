@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAccount } from 'wagmi';
-import { PlayerProfile, LevelProgress, LeaderboardEntry } from '../services/gameDataService';
+import { PlayerProfile, LevelProgress, LeaderboardEntry, PlayerSettings } from '../services/gameDataService';
 
 interface GameDataHook {
   // Player data
   player: PlayerProfile | null;
   progress: LevelProgress[];
-  settings: any;
+  settings: PlayerSettings | null;
   
   // Loading states
   loading: boolean;
@@ -15,11 +15,8 @@ interface GameDataHook {
   // Actions
   updatePlayerName: (name: string) => Promise<void>;
   saveProgress: (progress: LevelProgress[]) => Promise<void>;
-  saveSettings: (settings: any) => Promise<void>;
+  saveSettings: (settings: PlayerSettings) => Promise<void>;
   loadPlayerData: () => Promise<void>;
-  
-  // Migration
-
 }
 
 interface LeaderboardData {
@@ -38,35 +35,11 @@ export function useGameData(): GameDataHook {
   const { address, isConnected } = useAccount();
   const [player, setPlayer] = useState<PlayerProfile | null>(null);
   const [progress, setProgress] = useState<LevelProgress[]>([]);
-  const [settings, setSettings] = useState<any>(null);
+  const [settings, setSettings] = useState<PlayerSettings | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const loadPlayerData = useCallback(async () => {
-    if (!address || !isConnected) return;
-
-    setLoading(true);
-    try {
-      const response = await fetch(`/api/player?address=${address}`);
-      if (response.ok) {
-        const data = await response.json();
-        setPlayer(data.player);
-        setProgress(data.progress || []);
-        setSettings(data.settings);
-        
-        // If player doesn't exist, create one
-        if (!data.player) {
-          await createOrUpdatePlayer({});
-        }
-      }
-    } catch (error) {
-      console.error('Failed to load player data:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [address, isConnected]);
-
-  const createOrUpdatePlayer = async (playerData: Partial<PlayerProfile>) => {
+  const createOrUpdatePlayer = useCallback(async (playerData: Partial<PlayerProfile>) => {
     if (!address) return;
 
     try {
@@ -87,7 +60,31 @@ export function useGameData(): GameDataHook {
     } catch (error) {
       console.error('Failed to create/update player:', error);
     }
-  };
+  }, [address]);
+
+  const loadPlayerData = useCallback(async () => {
+    if (!address || !isConnected) return;
+    
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/player?address=${address}`);
+      if (response.ok) {
+        const data = await response.json();
+        setPlayer(data.player);
+        setProgress(data.progress || []);
+        setSettings(data.settings);
+        
+        // If player doesn't exist, create one
+        if (!data.player) {
+          await createOrUpdatePlayer({});
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load player data:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [address, isConnected, createOrUpdatePlayer]);
 
   const updatePlayerName = async (name: string) => {
     if (!address) return;
@@ -143,7 +140,7 @@ export function useGameData(): GameDataHook {
     }
   }, [address, isConnected, loadPlayerData]);
 
-  const saveSettings = async (newSettings: any) => {
+  const saveSettings = async (newSettings: PlayerSettings) => {
     if (!address) return;
 
     setSaving(true);

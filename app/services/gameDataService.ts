@@ -22,6 +22,14 @@ export interface LevelProgress {
   completedAt?: string;
 }
 
+export interface PlayerSettings {
+  soundEnabled: boolean;
+  musicVolume: number;
+  soundVolume: number;
+  animationsEnabled: boolean;
+  vibrationEnabled: boolean;
+}
+
 export interface PlayerGameData {
   profile: PlayerProfile;
   progress: LevelProgress[];
@@ -184,7 +192,7 @@ class GameDataService {
   }
 
   // Settings Management
-  async savePlayerSettings(walletAddress: string, settings: any): Promise<void> {
+  async savePlayerSettings(walletAddress: string, settings: PlayerSettings): Promise<void> {
     if (!redis) return;
 
     const playerId = this.getPlayerKey(walletAddress);
@@ -193,7 +201,7 @@ class GameDataService {
     await redis.set(settingsKey, JSON.stringify(settings));
   }
 
-  async getPlayerSettings(walletAddress: string): Promise<any> {
+  async getPlayerSettings(walletAddress: string): Promise<PlayerSettings | null> {
     if (!redis) return null;
 
     const playerId = this.getPlayerKey(walletAddress);
@@ -271,7 +279,7 @@ class GameDataService {
         // Redis returns the data already parsed as objects, no need to JSON.parse
         const memberData = typeof results[i] === 'string' 
           ? JSON.parse(results[i] as string)
-          : results[i] as any;
+          : results[i] as Omit<LeaderboardEntry, 'rank' | 'rankChange'>;
           
         leaderboard.push({
           ...memberData,
