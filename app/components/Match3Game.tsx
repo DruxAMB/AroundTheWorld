@@ -518,7 +518,7 @@ export function Match3Game({ level, onLevelComplete, onBackToLevels }: Match3Gam
         selectedCandy: position,
       }));
     }
-  }, [gameState]);
+  }, [gameState, level]);
 
   const resetGame = useCallback(() => {
     const { grid, ids } = createInitialGrid(level.candyTheme);

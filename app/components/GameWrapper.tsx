@@ -22,7 +22,7 @@ interface LevelProgress {
 
 export function GameWrapper() {
   const { progress, saveProgress: saveGameProgress } = useGameData();
-  const { address, isConnected, isConnecting } = useAccount();
+  const { address, isConnected } = useAccount();
   
   const [gameState, setGameState] = useState<GameState>('level-select');
   const [currentLevel, setCurrentLevel] = useState<Level | null>(null);
