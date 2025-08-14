@@ -68,7 +68,7 @@ export function Leaderboard({ onClose, currentPlayerName = "You" }: LeaderboardP
               whileTap={{ scale: 0.9 }}
               className="p-1 rounded-lg hover:bg-[var(--app-gray)] transition-colors"
             >
-              <span className="text-xl">✕</span>
+              <span className="text-xl">✖️</span>
             </motion.button>
           </div>
 

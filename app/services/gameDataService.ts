@@ -122,14 +122,49 @@ class GameDataService {
     return player;
   }
 
+  async checkNameAvailability(name: string, currentWalletAddress?: string): Promise<boolean> {
+    if (!redis) return false;
+
+    // Get all player keys (exclude progress, settings, etc.)
+    const allKeys = await redis.keys(`${this.PLAYER_PREFIX}*`);
+    const playerKeys = allKeys.filter(key => 
+      !key.includes(':progress') && 
+      !key.includes(':settings') && 
+      !key.includes(':leaderboard')
+    );
+    
+    // Check each player's name
+    for (const key of playerKeys) {
+      try {
+        const playerData = await redis.hgetall(key) as Record<string, string>;
+        if (playerData.name && playerData.name.toLowerCase() === name.toLowerCase()) {
+          // If this is the current user's wallet, allow the name
+          if (currentWalletAddress && playerData.walletAddress === currentWalletAddress) {
+            continue;
+          }
+          return false; // Name is taken by another player
+        }
+      } catch (error) {
+        // Skip keys that aren't hash types (shouldn't happen with filtering, but safety check)
+        console.warn(`Skipping invalid key ${key}:`, error);
+        continue;
+      }
+    }
+    
+    return true; // Name is available
+  }
+
   async updatePlayerName(walletAddress: string, name: string): Promise<void> {
     if (!redis) return;
 
+    // Check if name is available
+    const isAvailable = await this.checkNameAvailability(name, walletAddress);
+    if (!isAvailable) {
+      throw new Error('Name is already taken by another player');
+    }
+
     const playerId = this.getPlayerKey(walletAddress);
-    await redis.hset(playerId, { 
-      name, 
-      lastActive: new Date().toISOString() 
-    });
+    await redis.hset(playerId, { name, lastActive: new Date().toISOString() });
   }
 
   // Game Progress Management

@@ -39,9 +39,17 @@ export async function POST(request: NextRequest) {
         const player = await gameDataService.createOrUpdatePlayer(walletAddress, data);
         return NextResponse.json({ player });
 
+      case 'checkNameAvailability':
+        const isAvailable = await gameDataService.checkNameAvailability(data.name, walletAddress);
+        return NextResponse.json({ available: isAvailable });
+
       case 'updateName':
-        await gameDataService.updatePlayerName(walletAddress, data.name);
-        return NextResponse.json({ success: true });
+        try {
+          await gameDataService.updatePlayerName(walletAddress, data.name);
+          return NextResponse.json({ success: true });
+        } catch (error) {
+          return NextResponse.json({ error: (error as Error).message }, { status: 400 });
+        }
 
       case 'saveProgress':
         await gameDataService.saveGameProgress(walletAddress, data.progress);

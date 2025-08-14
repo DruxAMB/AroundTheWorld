@@ -14,6 +14,7 @@ interface GameDataHook {
   
   // Actions
   updatePlayerName: (name: string) => Promise<void>;
+  checkNameAvailability: (name: string) => Promise<boolean>;
   saveProgress: (progress: LevelProgress[]) => Promise<void>;
   saveSettings: (settings: PlayerSettings) => Promise<void>;
   loadPlayerData: () => Promise<void>;
@@ -86,6 +87,31 @@ export function useGameData(): GameDataHook {
     }
   }, [address, isConnected, createOrUpdatePlayer]);
 
+  const checkNameAvailability = async (name: string): Promise<boolean> => {
+    if (!address) return false;
+
+    try {
+      const response = await fetch('/api/player', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          walletAddress: address,
+          action: 'checkNameAvailability',
+          data: { name }
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return data.available;
+      }
+      return false;
+    } catch (error) {
+      console.error('Failed to check name availability:', error);
+      return false;
+    }
+  };
+
   const updatePlayerName = async (name: string) => {
     if (!address) return;
 
@@ -103,9 +129,13 @@ export function useGameData(): GameDataHook {
 
       if (response.ok) {
         setPlayer(prev => prev ? { ...prev, name } : null);
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update name');
       }
     } catch (error) {
       console.error('Failed to update player name:', error);
+      throw error;
     } finally {
       setSaving(false);
     }
@@ -182,6 +212,7 @@ export function useGameData(): GameDataHook {
     loading,
     saving,
     updatePlayerName,
+    checkNameAvailability,
     saveProgress,
     saveSettings,
     loadPlayerData

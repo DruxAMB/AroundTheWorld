@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useGameData } from "../hooks/useGameData";
+import { useState } from "react";
 
 interface UserProfileProps {
   isOpen: boolean;
@@ -9,9 +10,97 @@ interface UserProfileProps {
 }
 
 export function UserProfile({ isOpen, onClose }: UserProfileProps) {
-  const { player, progress, loading } = useGameData();
+  const { player, progress, loading, updatePlayerName, checkNameAvailability } = useGameData();
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [isUpdatingName, setIsUpdatingName] = useState(false);
+  const [nameAvailability, setNameAvailability] = useState<{
+    checking: boolean;
+    available: boolean | null;
+    message: string;
+  }>({ checking: false, available: null, message: '' });
 
   if (!isOpen) return null;
+
+  const handleEditName = () => {
+    setNewName(player?.name || '');
+    setIsEditingName(true);
+    setNameAvailability({ checking: false, available: null, message: '' });
+  };
+
+  const checkNameAvailabilityDebounced = async (name: string) => {
+    if (!name.trim() || name === player?.name) {
+      setNameAvailability({ checking: false, available: null, message: '' });
+      return;
+    }
+
+    if (name.length < 2) {
+      setNameAvailability({ checking: false, available: false, message: 'Name must be at least 2 characters' });
+      return;
+    }
+
+    if (name.length > 20) {
+      setNameAvailability({ checking: false, available: false, message: 'Name must be 20 characters or less' });
+      return;
+    }
+
+    setNameAvailability({ checking: true, available: null, message: 'Checking availability...' });
+    
+    try {
+      const available = await checkNameAvailability(name.trim());
+      setNameAvailability({
+        checking: false,
+        available,
+        message: available ? '✅ Name is available' : '❌ Name is already taken'
+      });
+    } catch (error) {
+      setNameAvailability({
+        checking: false,
+        available: false,
+        message: 'Error checking availability'
+      });
+    }
+  };
+
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setNewName(value);
+    
+    // Debounce the availability check
+    const timeoutId = setTimeout(() => {
+      checkNameAvailabilityDebounced(value);
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  };
+
+  const handleSaveName = async () => {
+    if (!newName.trim() || newName === player?.name || nameAvailability.available !== true) {
+      return;
+    }
+
+    setIsUpdatingName(true);
+    try {
+      await updatePlayerName(newName.trim());
+      setIsEditingName(false);
+      setNameAvailability({ checking: false, available: null, message: '' });
+    } catch (error) {
+      console.error('Failed to update name:', error);
+      setNameAvailability({
+        checking: false,
+        available: false,
+        message: error instanceof Error ? error.message : 'Failed to update name'
+      });
+    } finally {
+      setIsUpdatingName(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditingName(false);
+    setNewName('');
+    setNameAvailability({ checking: false, available: null, message: '' });
+  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -68,8 +157,69 @@ export function UserProfile({ isOpen, onClose }: UserProfileProps) {
           <div className="space-y-4">
             {/* Player Name */}
             <div className="bg-gray-800/50 rounded-lg p-4">
-              <h3 className="text-sm font-medium text-gray-300 mb-1">Player Name</h3>
-              <p className="text-white font-semibold">{player.name}</p>
+              <div className="flex items-center justify-between mb-1">
+                <h3 className="text-sm font-medium text-gray-300">Player Name</h3>
+                {!isEditingName && (
+                  <button
+                    onClick={handleEditName}
+                    className="text-blue-400 hover:text-blue-300 text-sm transition-colors"
+                  >
+                    ✏️ Edit
+                  </button>
+                )}
+              </div>
+              
+              {isEditingName ? (
+                <div className="space-y-3">
+                  <input
+                    type="text"
+                    value={newName}
+                    onChange={handleNameChange}
+                    className={`w-full bg-gray-700 text-white px-3 py-2 rounded-lg border focus:outline-none transition-colors ${
+                      nameAvailability.available === true 
+                        ? 'border-green-500 focus:border-green-400' 
+                        : nameAvailability.available === false 
+                        ? 'border-red-500 focus:border-red-400'
+                        : 'border-gray-600 focus:border-blue-500'
+                    }`}
+                    placeholder="Enter your name"
+                    maxLength={20}
+                    disabled={isUpdatingName}
+                  />
+                  
+                  {/* Name availability feedback */}
+                  {nameAvailability.message && (
+                    <div className={`text-sm mt-1 ${
+                      nameAvailability.checking 
+                        ? 'text-yellow-400' 
+                        : nameAvailability.available 
+                        ? 'text-green-400' 
+                        : 'text-red-400'
+                    }`}>
+                      {nameAvailability.checking && '⏳ '}
+                      {nameAvailability.message}
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleSaveName}
+                      disabled={isUpdatingName || !newName.trim() || nameAvailability.available !== true || nameAvailability.checking}
+                      className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white py-2 px-3 rounded-lg text-sm font-medium transition-colors"
+                    >
+                      {isUpdatingName ? '⏳ Saving...' : '✅ Save'}
+                    </button>
+                    <button
+                      onClick={handleCancelEdit}
+                      disabled={isUpdatingName}
+                      className="flex-1 bg-gray-600 hover:bg-gray-700 disabled:bg-gray-500 text-white py-2 px-3 rounded-lg text-sm font-medium transition-colors"
+                    >
+                      ❌ Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-white font-semibold">{player.name}</p>
+              )}
             </div>
 
             {/* Game Statistics */}
