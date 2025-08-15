@@ -67,32 +67,20 @@ export function useGameData(): GameDataHook {
   const loadPlayerData = useCallback(async () => {
     if (!address || !isConnected) return;
     
-    console.log('🔄 [useGameData] Loading player data for address:', address);
     setLoading(true);
     try {
       const response = await fetch(`/api/player?address=${address}`);
       if (response.ok) {
         const data = await response.json();
-        console.log('📥 [useGameData] Received data from API:', {
-          player: data.player,
-          progress: data.progress,
-          settings: data.settings,
-          settingsType: typeof data.settings,
-          settingsNull: data.settings === null
-        });
         
         setPlayer(data.player);
         setProgress(data.progress || []);
         
         // Only update settings if they contain valid data (not empty object)
         if (data.settings && typeof data.settings === 'object' && Object.keys(data.settings).length > 0) {
-          console.log('✅ [useGameData] Updating settings with valid data:', data.settings);
           setSettings(data.settings);
         } else if (data.settings === null) {
-          console.log('🎯 [useGameData] Settings are null, keeping current state or setting null');
           setSettings(null);
-        } else {
-          console.log('⚠️ [useGameData] Skipping empty settings object:', data.settings);
         }
         
         // If player doesn't exist, create one
@@ -209,12 +197,6 @@ export function useGameData(): GameDataHook {
   const saveSettings = async (newSettings: PlayerSettings) => {
     if (!address) return;
 
-    console.log('💾 [useGameData] Saving settings:', {
-      address,
-      newSettings,
-      currentSettings: settings
-    });
-
     setSaving(true);
     try {
       const response = await fetch('/api/player', {
@@ -227,20 +209,11 @@ export function useGameData(): GameDataHook {
         })
       });
 
-      console.log('📤 [useGameData] Save settings response:', {
-        ok: response.ok,
-        status: response.status,
-        statusText: response.statusText
-      });
-
       if (response.ok) {
         setSettings(newSettings);
-        console.log('✅ [useGameData] Settings saved successfully and state updated');
-      } else {
-        console.error('❌ [useGameData] Failed to save settings - bad response');
       }
     } catch (error) {
-      console.error('❌ [useGameData] Failed to save settings - error:', error);
+      console.error('Failed to save settings:', error);
     } finally {
       setSaving(false);
     }

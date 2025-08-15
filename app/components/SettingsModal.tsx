@@ -39,18 +39,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
   // Load settings from Redis via useGameData hook
   useEffect(() => {
-    console.log('🔧 [SettingsModal] Settings effect triggered:', {
-      settings,
-      localSettings,
-      isSettingsLoaded,
-      settingsType: typeof settings,
-      settingsNull: settings === null,
-      settingsUndefined: settings === undefined,
-      settingsKeys: settings ? Object.keys(settings) : 'N/A'
-    });
-
     if (settings && typeof settings === 'object' && Object.keys(settings).length > 0 && settings.soundEnabled !== undefined) {
-      console.log('✅ [SettingsModal] Using Redis settings:', settings);
       // Use Redis settings - always update when we get valid settings
       setLocalSettings(settings);
       setIsSettingsLoaded(true);
@@ -59,7 +48,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       soundManager.setVolume(settings.soundVolume / 100);
       soundManager.setMusicVolume(settings.musicVolume / 100);
     } else if (settings === null && !isSettingsLoaded) {
-      console.log('🎯 [SettingsModal] No Redis settings, using defaults:', defaultSettings);
       // No Redis settings found, use defaults
       setLocalSettings(defaultSettings);
       setIsSettingsLoaded(true);
@@ -67,54 +55,38 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       soundManager.setEnabled(defaultSettings.soundEnabled);
       soundManager.setVolume(defaultSettings.soundVolume / 100);
       soundManager.setMusicVolume(defaultSettings.musicVolume / 100);
-    } else {
-      console.log('⏳ [SettingsModal] Waiting for valid settings or still loading...', {
-        settings,
-        isSettingsLoaded,
-        hasValidSettings: settings && Object.keys(settings).length > 0
-      });
     }
-  }, [settings, defaultSettings]); // Removed isSettingsLoaded from dependencies to allow re-sync
+  }, [settings, defaultSettings]);
 
   // Debounced save to Redis (500ms delay)
   const debouncedSaveToRedis = useCallback((newSettings: GameSettings) => {
-    console.log('⏰ [SettingsModal] Debounced save triggered for:', newSettings);
-    
     // Clear existing timeout
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
-      console.log('🔄 [SettingsModal] Cleared previous save timeout');
     }
 
     // Set new timeout for Redis save
     saveTimeoutRef.current = setTimeout(async () => {
-      console.log('💾 [SettingsModal] Executing debounced save:', newSettings);
       try {
         await saveGameSettings(newSettings);
-        console.log('✅ [SettingsModal] Debounced save completed successfully');
       } catch (error) {
-        console.error('❌ [SettingsModal] Failed to save settings to Redis:', error);
+        console.error('Failed to save settings to Redis:', error);
       }
     }, 500);
   }, [saveGameSettings]);
 
   // Update settings immediately (for responsive UI) + debounced Redis save
   const updateSettings = useCallback((newSettings: GameSettings) => {
-    console.log('🎛️ [SettingsModal] updateSettings called with:', newSettings);
-    
     // 1. Update UI immediately
     setLocalSettings(newSettings);
-    console.log('🖼️ [SettingsModal] UI state updated');
     
     // 2. Apply settings to sound manager immediately
     soundManager.setEnabled(newSettings.soundEnabled);
     soundManager.setVolume(newSettings.soundVolume / 100);
     soundManager.setMusicVolume(newSettings.musicVolume / 100);
-    console.log('🔊 [SettingsModal] Sound manager updated');
     
     // 3. Save to Redis with debounce
     debouncedSaveToRedis(newSettings);
-    console.log('⏱️ [SettingsModal] Debounced save scheduled');
   }, [debouncedSaveToRedis]);
 
   // Cleanup timeout on unmount
