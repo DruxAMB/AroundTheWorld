@@ -114,8 +114,10 @@ export default function App() {
 
   return (
     <div className="flex flex-col min-h-screen font-sans text-[var(--app-foreground)] mini-app-theme from-[var(--app-background)] to-[var(--app-gray)]">
-      <div className="w-full max-w-md mx-auto px-4 py-3">
-        <header className="flex justify-between items-center mb-3 h-11">
+      {/* Fixed Header */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-transparent border-b border-[var(--app-card-border)] backdrop-blur-sm">
+        <div className="w-full max-w-md mx-auto px-4 py-3">
+          <div className="flex justify-between items-center h-11">
           <div>
             <div className="flex items-center space-x-2">
               <Wallet className="z-10">
@@ -166,18 +168,14 @@ export default function App() {
               <span className="text-lg">⚙️</span>
             </motion.button>
           </div>
-        </header>
+          </div>
+        </div>
+      </header>
 
+      {/* Main Content with Top Padding for Fixed Header */}
+      <div className="w-full max-w-md mx-auto px-4 pt-20 pb-3">
         <main className="flex-1">
-          {showLeaderboard ? (
-            <Leaderboard 
-              onClose={handleCloseLeaderboard}
-              currentPlayerScore={player?.totalScore || 0}
-              currentPlayerName={player?.name || "You"}
-            />
-          ) : (
-            <GameWrapper />
-          )}
+          <GameWrapper />
         </main>
 
         <footer className="mt-2 pt-4 flex justify-center">
