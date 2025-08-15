@@ -142,8 +142,16 @@ export function useGameData(): GameDataHook {
   };
 
   const saveProgress = useCallback(async (newProgress: LevelProgress[]) => {
-    if (!address || !isConnected) return;
+    if (!address || !isConnected) {
+      throw new Error('Wallet not connected');
+    }
     
+    // Validate progress data
+    if (!Array.isArray(newProgress)) {
+      throw new Error('Invalid progress data format');
+    }
+    
+    setSaving(true);
     try {
       const response = await fetch('/api/player', {
         method: 'POST',
@@ -157,17 +165,24 @@ export function useGameData(): GameDataHook {
         })
       });
       
-      if (response.ok) {
-        setProgress(newProgress);
-        
-        // Reload player data to get updated stats
-        await loadPlayerData();
-      } else {
-        const responseData = await response.json();
-        console.error('Failed to save progress:', responseData);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
       }
+      
+      // Update local state immediately for optimistic updates
+      setProgress(newProgress);
+      
+      // Reload player data to get updated stats (but don't await to prevent blocking)
+      loadPlayerData().catch(error => {
+        console.warn('Failed to reload player data after progress save:', error);
+      });
+      
     } catch (error) {
       console.error('Error saving progress:', error);
+      throw error; // Re-throw to allow caller to handle
+    } finally {
+      setSaving(false);
     }
   }, [address, isConnected, loadPlayerData]);
 

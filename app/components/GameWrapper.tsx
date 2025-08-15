@@ -1,84 +1,102 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { LevelSelector } from "./LevelSelector";
 import { Match3Game } from "./Match3Game";
-import { Level, unlockNextLevel } from "../data/levels";
+import { Level } from "../data/levels";
 import { soundManager } from "../utils/soundManager";
 import { useGameData } from "../hooks/useGameData";
 import { useAccount } from 'wagmi';
+import { LevelProgress } from '../services/gameDataService';
 
-type GameState = 'level-select' | 'playing' | 'level-complete';
+type GameState = 'level-select' | 'playing' | 'level-complete' | 'error';
 
-interface LevelProgress {
-  levelId: string;
-  completed: boolean;
-  score: number;
-  stars: number;
-  bestScore: number;
-  completedAt?: string;
-}
+// Define level progression order as a constant to prevent inconsistencies
+const LEVEL_ORDER = ['africa-1', 'india-1', 'latam-1', 'southeast-asia-1', 'europe-1'] as const;
 
 export function GameWrapper() {
-  const { progress, saveProgress: saveGameProgress } = useGameData();
+  const { progress, saveProgress: saveGameProgress, loading: gameDataLoading } = useGameData();
   const { address, isConnected } = useAccount();
   
   const [gameState, setGameState] = useState<GameState>('level-select');
   const [currentLevel, setCurrentLevel] = useState<Level | null>(null);
-  const [unlockedLevels, setUnlockedLevels] = useState<string[]>([]); // No levels unlocked by default
-  const [levelProgress, setLevelProgress] = useState<LevelProgress[]>([]);
+  const [unlockedLevels, setUnlockedLevels] = useState<string[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
-  // Process progress data and determine unlocked levels
-  useEffect(() => {
-    // Only unlock levels if wallet is connected
-    if (!isConnected || !address) {
-      setUnlockedLevels([]); // No levels unlocked if wallet not connected
-      return;
-    }
-
-    if (!progress || progress.length === 0) {
-      setUnlockedLevels(['africa-1']); // Unlock first level for connected users with no progress
-      return;
-    }
-
-    // Progress is an array of LevelProgress objects
-    const progressArray = Array.isArray(progress) ? progress : [];
+  // Memoized function to calculate unlocked levels - prevents unnecessary recalculations
+  const calculateUnlockedLevels = useCallback((progressData: LevelProgress[]): string[] => {
+    console.log('🔍 [GameWrapper] Calculating unlocked levels with progress:', progressData);
     
-    // Start with africa-1 always unlocked (first level)
+    // Always start with first level unlocked for connected users
     const unlocked = ['africa-1'];
     
-    // Check each completed level and unlock the next one
-    progressArray.forEach((levelProgress) => {
-      if (levelProgress.completed) {
-        // Map level completion to next level unlock
-        switch (levelProgress.levelId) {
-          case 'africa-1':
-            if (!unlocked.includes('india-1')) {
-              unlocked.push('india-1');
-            }
-            break;
-          case 'india-1':
-            if (!unlocked.includes('latam-1')) {
-              unlocked.push('latam-1');
-            }
-            break;
-          case 'latam-1':
-            if (!unlocked.includes('southeast-asia-1')) {
-              unlocked.push('southeast-asia-1');
-            }
-            break;
-          case 'southeast-asia-1':
-            if (!unlocked.includes('europe-1')) {
-              unlocked.push('europe-1');
-            }
-            break;
+    // Create a map of completed levels for faster lookup
+    const completedLevels = new Set(
+      progressData.filter(p => p.completed).map(p => p.levelId)
+    );
+    
+    console.log('✅ [GameWrapper] Completed levels:', Array.from(completedLevels));
+    
+    // ROBUST UNLOCKING LOGIC: Handle data inconsistencies
+    // If any level is completed, unlock all levels up to and including the highest completed level
+    let highestCompletedIndex = -1;
+    
+    // Find the highest completed level index
+    for (let i = 0; i < LEVEL_ORDER.length; i++) {
+      if (completedLevels.has(LEVEL_ORDER[i])) {
+        highestCompletedIndex = Math.max(highestCompletedIndex, i);
+      }
+    }
+    
+    console.log('🎯 [GameWrapper] Highest completed level index:', highestCompletedIndex);
+    
+    // Unlock all levels up to the next level after the highest completed
+    if (highestCompletedIndex >= 0) {
+      // Unlock all levels up to and including the next level after highest completed
+      const maxUnlockIndex = Math.min(highestCompletedIndex + 1, LEVEL_ORDER.length - 1);
+      
+      for (let i = 0; i <= maxUnlockIndex; i++) {
+        if (!unlocked.includes(LEVEL_ORDER[i])) {
+          unlocked.push(LEVEL_ORDER[i]);
         }
       }
-    });
+    }
     
-    setUnlockedLevels(unlocked);
-  }, [progress, isConnected, address]);
+    console.log('🔓 [GameWrapper] Final unlocked levels:', unlocked);
+    return unlocked;
+  }, []);
+
+  // Process progress data and determine unlocked levels with proper error handling
+  useEffect(() => {
+    try {
+      // Clear any previous errors
+      setError(null);
+      
+      // Only unlock levels if wallet is connected
+      if (!isConnected || !address) {
+        setUnlockedLevels([]); // No levels unlocked if wallet not connected
+        return;
+      }
+
+      // Handle loading state
+      if (gameDataLoading) {
+        return; // Don't update unlocked levels while loading
+      }
+
+      // Validate progress data
+      const progressArray = Array.isArray(progress) ? progress : [];
+      
+      // Calculate unlocked levels
+      const unlocked = calculateUnlockedLevels(progressArray);
+      setUnlockedLevels(unlocked);
+      
+    } catch (err) {
+      console.error('Error calculating unlocked levels:', err);
+      setError('Failed to load game progress');
+      setGameState('error');
+    }
+  }, [progress, isConnected, address, gameDataLoading, calculateUnlockedLevels]);
 
   const handleLevelSelect = (level: Level) => {
     setCurrentLevel(level);
@@ -90,87 +108,144 @@ export function GameWrapper() {
     }, 600);
   };
 
-  const handleLevelComplete = async (success: boolean, score: number) => {
-    if (!currentLevel) return;
-
-    if (success) {
-      // Calculate stars based on score and objectives
-      let stars = 1;
-      const scoreObjective = currentLevel.objectives.find(obj => obj.type === 'score');
-      if (scoreObjective && score >= scoreObjective.target * 1.5) {
-        stars = 3;
-      } else if (scoreObjective && score >= scoreObjective.target * 1.2) {
-        stars = 2;
-      }
-
-      // Update level progress
-      const newProgress = [...levelProgress];
-      const existingIndex = newProgress.findIndex(p => p.levelId === currentLevel.id);
-      
-      const progressEntry: LevelProgress = {
-        levelId: currentLevel.id,
-        completed: true,
-        score: Math.max(score, existingIndex >= 0 ? newProgress[existingIndex].score : 0),
-        stars: Math.max(stars, existingIndex >= 0 ? newProgress[existingIndex].stars : 0),
-        bestScore: Math.max(score, existingIndex >= 0 ? newProgress[existingIndex].bestScore : 0),
-        completedAt: new Date().toISOString()
-      };
-
-      if (existingIndex >= 0) {
-        newProgress[existingIndex] = progressEntry;
-      } else {
-        newProgress.push(progressEntry);
-      }
-
-      // Unlock next level
-      const nextLevelId = unlockNextLevel(currentLevel.id);
-      const newUnlocked = [...unlockedLevels];
-      if (nextLevelId && !newUnlocked.includes(nextLevelId)) {
-        newUnlocked.push(nextLevelId);
-      }
-
-      setLevelProgress(newProgress);
-      setUnlockedLevels(newUnlocked);
-      
-      // Save progress to Redis
-      await saveGameProgress(newProgress);
-      
-      // Player stats are already updated by saveGameProgress, no need for separate API call
-      console.log('✅ GameWrapper: Level completion processed, progress and stats saved via saveGameProgress');
-
-      // Show completion screen briefly with celebration music
-      setGameState('level-complete');
-      soundManager.fadeOutMusic(500);
-      setTimeout(() => {
-        soundManager.play('win');
-      }, 600);
-      
-      setTimeout(() => {
-        setGameState('level-select');
-        soundManager.playMusic('menu');
-      }, 3000);
-    } else {
-      // Failed - go back to level select after a delay
-      setTimeout(() => {
-        setGameState('level-select');
-      }, 2000);
+  const handleLevelComplete = useCallback(async (success: boolean, score: number) => {
+    if (!currentLevel) {
+      console.error('Level completion called without current level');
+      return;
     }
-  };
 
-  const handleBackToLevels = () => {
+    try {
+      if (success) {
+        // Calculate stars based on score and objectives with validation
+        let stars = 1;
+        const scoreObjective = currentLevel.objectives.find(obj => obj.type === 'score');
+        if (scoreObjective) {
+          if (score >= scoreObjective.target * 1.5) {
+            stars = 3;
+          } else if (score >= scoreObjective.target * 1.2) {
+            stars = 2;
+          }
+        }
+
+        // Validate and update level progress
+        const currentProgress = Array.isArray(progress) ? progress : [];
+        const newProgress = [...currentProgress];
+        const existingIndex = newProgress.findIndex(p => p.levelId === currentLevel.id);
+        
+        // Create progress entry with proper validation
+        const progressEntry: LevelProgress = {
+          levelId: currentLevel.id,
+          completed: true,
+          score: Math.max(score, existingIndex >= 0 ? (newProgress[existingIndex]?.score || 0) : 0),
+          stars: Math.max(stars, existingIndex >= 0 ? (newProgress[existingIndex]?.stars || 0) : 0),
+          bestScore: Math.max(score, existingIndex >= 0 ? (newProgress[existingIndex]?.bestScore || 0) : 0),
+          completedAt: new Date().toISOString()
+        };
+
+        // Update or add progress entry
+        if (existingIndex >= 0) {
+          newProgress[existingIndex] = progressEntry;
+        } else {
+          newProgress.push(progressEntry);
+        }
+        
+        // Save progress with error handling
+        try {
+          await saveGameProgress(newProgress);
+          console.log('✅ Level completion saved successfully');
+        } catch (saveError) {
+          console.error('Failed to save progress:', saveError);
+          setError('Failed to save progress. Please try again.');
+          return;
+        }
+
+        // Show completion screen with celebration
+        setGameState('level-complete');
+        
+        // Handle audio transitions safely
+        try {
+          soundManager.fadeOutMusic(500);
+          setTimeout(() => {
+            soundManager.play('win');
+          }, 600);
+        } catch (audioError) {
+          console.warn('Audio playback failed:', audioError);
+        }
+        
+        // Return to level select after celebration
+        setTimeout(() => {
+          setGameState('level-select');
+          try {
+            soundManager.playMusic('menu');
+          } catch (audioError) {
+            console.warn('Menu music failed:', audioError);
+          }
+        }, 3000);
+        
+      } else {
+        // Level failed - return to level select
+        setTimeout(() => {
+          setGameState('level-select');
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('Error in level completion:', error);
+      setError('An error occurred during level completion');
+      setGameState('error');
+    }
+  }, [currentLevel, progress, saveGameProgress]);
+
+  const handleBackToLevels = useCallback(() => {
     setGameState('level-select');
     setCurrentLevel(null);
-    // Switch back to menu music
-    soundManager.fadeOutMusic(500);
-    setTimeout(() => {
-      soundManager.playMusic('menu');
-    }, 600);
-  };
+    setError(null); // Clear any errors when returning to level select
+    
+    // Switch back to menu music safely
+    try {
+      soundManager.fadeOutMusic(500);
+      setTimeout(() => {
+        soundManager.playMusic('menu');
+      }, 600);
+    } catch (audioError) {
+      console.warn('Menu music transition failed:', audioError);
+    }
+  }, []);
+
+  // Error state UI
+  if (gameState === 'error') {
+    return (
+      <div className="flex flex-col h-full max-w-md mx-auto p-4 justify-center items-center space-y-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center"
+        >
+          <div className="text-6xl mb-4">⚠️</div>
+          <h2 className="text-2xl font-bold text-red-500 mb-2">
+            Something went wrong
+          </h2>
+          <p className="text-[var(--app-foreground-muted)] mb-6">
+            {error || 'An unexpected error occurred'}
+          </p>
+          
+          <button
+            onClick={() => {
+              setError(null);
+              setGameState('level-select');
+            }}
+            className="bg-[var(--app-accent)] text-white px-6 py-3 rounded-lg font-medium hover:opacity-90 transition-opacity"
+          >
+            Try Again
+          </button>
+        </motion.div>
+      </div>
+    );
+  }
 
 
   if (gameState === 'level-complete' && currentLevel) {
-    const progress = levelProgress.find(p => p.levelId === currentLevel.id);
-    const stars = progress?.stars || 1;
+    const levelProgressData = progress?.find(p => p.levelId === currentLevel.id);
+    const stars = levelProgressData?.stars || 1;
     
     return (
       <div className="flex flex-col h-full max-w-md mx-auto p-4 justify-center items-center space-y-6">
@@ -204,7 +279,7 @@ export function GameWrapper() {
           </div>
           
           <div className="text-lg font-bold text-[var(--app-accent)]">
-            Score: {progress?.score || 0}
+            Score: {levelProgressData?.score || 0}
           </div>
         </motion.div>
         
@@ -229,6 +304,24 @@ export function GameWrapper() {
         onLevelComplete={handleLevelComplete}
         onBackToLevels={handleBackToLevels}
       />
+    );
+  }
+
+  // Loading state
+  if (gameDataLoading && isConnected) {
+    return (
+      <div className="flex flex-col h-full max-w-md mx-auto p-4 justify-center items-center">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-center"
+        >
+          <div className="animate-spin text-4xl mb-4">⚪</div>
+          <p className="text-[var(--app-foreground-muted)]">
+            Loading your progress...
+          </p>
+        </motion.div>
+      </div>
     );
   }
 

@@ -311,7 +311,7 @@ class GameDataService {
   private async updateLeaderboards(walletAddress: string, totalScore: number, levelsCompleted: number, bestLevel: number): Promise<void> {
     if (!redis) return;
 
-    const player = await this.getPlayerProfile(walletAddress);
+    const player = await this.getPlayer(walletAddress);
     if (!player) return;
 
     // Update different leaderboard timeframes
