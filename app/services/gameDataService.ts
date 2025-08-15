@@ -304,12 +304,39 @@ class GameDataService {
     const playerId = this.getPlayerKey(walletAddress);
     const settingsKey = `${playerId}:settings`;
     
+    console.log('🔍 [GameDataService] Getting settings for key:', settingsKey);
     const settings = await redis.get(settingsKey);
-    if (!settings) return null;
+    console.log('📋 [GameDataService] Raw settings from Redis:', {
+      settings,
+      type: typeof settings,
+      isNull: settings === null,
+      isUndefined: settings === undefined,
+      isEmpty: settings === '',
+      stringified: JSON.stringify(settings)
+    });
+    
+    if (!settings) {
+      console.log('❌ [GameDataService] No settings found, returning null');
+      return null;
+    }
     
     try {
-      return JSON.parse(settings as string);
-    } catch {
+      // Handle both string and object responses from Upstash Redis
+      let parsed;
+      if (typeof settings === 'string') {
+        parsed = JSON.parse(settings);
+      } else if (typeof settings === 'object' && settings !== null) {
+        // Upstash sometimes returns objects directly
+        parsed = settings;
+      } else {
+        console.log('❌ [GameDataService] Unexpected settings type:', typeof settings);
+        return null;
+      }
+      
+      console.log('✅ [GameDataService] Parsed settings:', parsed);
+      return parsed as PlayerSettings;
+    } catch (error) {
+      console.log('❌ [GameDataService] Failed to parse settings:', error);
       return null;
     }
   }

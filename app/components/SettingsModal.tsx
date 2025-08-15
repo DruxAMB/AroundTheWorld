@@ -20,57 +20,101 @@ interface GameSettings {
 
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const { settings, saveSettings: saveGameSettings } = useGameData();
-  const [localSettings, setLocalSettings] = useState<GameSettings>({
+  
+  // Default settings - only used if no Redis data exists
+  const defaultSettings: GameSettings = {
     soundEnabled: true,
     soundVolume: 30,
     musicVolume: 15,
     animationsEnabled: true,
     vibrationEnabled: true,
-  });
+  };
+
+  // Initialize with null to indicate loading state
+  const [localSettings, setLocalSettings] = useState<GameSettings | null>(null);
+  const [isSettingsLoaded, setIsSettingsLoaded] = useState(false);
 
   // Debounce timer ref
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Load settings from Redis via useGameData hook
   useEffect(() => {
-    if (settings) {
+    console.log('🔧 [SettingsModal] Settings effect triggered:', {
+      settings,
+      localSettings,
+      isSettingsLoaded,
+      settingsType: typeof settings,
+      settingsNull: settings === null,
+      settingsUndefined: settings === undefined,
+      settingsKeys: settings ? Object.keys(settings) : 'N/A'
+    });
+
+    if (settings && typeof settings === 'object' && Object.keys(settings).length > 0 && settings.soundEnabled !== undefined) {
+      console.log('✅ [SettingsModal] Using Redis settings:', settings);
+      // Use Redis settings - always update when we get valid settings
       setLocalSettings(settings);
+      setIsSettingsLoaded(true);
       // Apply settings to sound manager
       soundManager.setEnabled(settings.soundEnabled);
       soundManager.setVolume(settings.soundVolume / 100);
       soundManager.setMusicVolume(settings.musicVolume / 100);
+    } else if (settings === null && !isSettingsLoaded) {
+      console.log('🎯 [SettingsModal] No Redis settings, using defaults:', defaultSettings);
+      // No Redis settings found, use defaults
+      setLocalSettings(defaultSettings);
+      setIsSettingsLoaded(true);
+      // Apply default settings to sound manager
+      soundManager.setEnabled(defaultSettings.soundEnabled);
+      soundManager.setVolume(defaultSettings.soundVolume / 100);
+      soundManager.setMusicVolume(defaultSettings.musicVolume / 100);
+    } else {
+      console.log('⏳ [SettingsModal] Waiting for valid settings or still loading...', {
+        settings,
+        isSettingsLoaded,
+        hasValidSettings: settings && Object.keys(settings).length > 0
+      });
     }
-  }, [settings]);
+  }, [settings, defaultSettings]); // Removed isSettingsLoaded from dependencies to allow re-sync
 
   // Debounced save to Redis (500ms delay)
   const debouncedSaveToRedis = useCallback((newSettings: GameSettings) => {
+    console.log('⏰ [SettingsModal] Debounced save triggered for:', newSettings);
+    
     // Clear existing timeout
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
+      console.log('🔄 [SettingsModal] Cleared previous save timeout');
     }
 
     // Set new timeout for Redis save
     saveTimeoutRef.current = setTimeout(async () => {
+      console.log('💾 [SettingsModal] Executing debounced save:', newSettings);
       try {
         await saveGameSettings(newSettings);
+        console.log('✅ [SettingsModal] Debounced save completed successfully');
       } catch (error) {
-        console.error('Failed to save settings to Redis:', error);
+        console.error('❌ [SettingsModal] Failed to save settings to Redis:', error);
       }
     }, 500);
   }, [saveGameSettings]);
 
   // Update settings immediately (for responsive UI) + debounced Redis save
   const updateSettings = useCallback((newSettings: GameSettings) => {
+    console.log('🎛️ [SettingsModal] updateSettings called with:', newSettings);
+    
     // 1. Update UI immediately
     setLocalSettings(newSettings);
+    console.log('🖼️ [SettingsModal] UI state updated');
     
     // 2. Apply settings to sound manager immediately
     soundManager.setEnabled(newSettings.soundEnabled);
     soundManager.setVolume(newSettings.soundVolume / 100);
     soundManager.setMusicVolume(newSettings.musicVolume / 100);
+    console.log('🔊 [SettingsModal] Sound manager updated');
     
     // 3. Save to Redis with debounce
     debouncedSaveToRedis(newSettings);
+    console.log('⏱️ [SettingsModal] Debounced save scheduled');
   }, [debouncedSaveToRedis]);
 
   // Cleanup timeout on unmount
@@ -83,6 +127,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   }, []);
 
   const handleSoundToggle = () => {
+    if (!localSettings) return;
     const newSettings = { ...localSettings, soundEnabled: !localSettings.soundEnabled };
     updateSettings(newSettings);
     
@@ -93,6 +138,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   };
 
   const handleSoundVolumeChange = (volume: number) => {
+    if (!localSettings) return;
     const newSettings = { ...localSettings, soundVolume: volume };
     updateSettings(newSettings);
     
@@ -103,16 +149,19 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   };
 
   const handleMusicVolumeChange = (volume: number) => {
+    if (!localSettings) return;
     const newSettings = { ...localSettings, musicVolume: volume };
     updateSettings(newSettings);
   };
 
   const handleAnimationsToggle = () => {
+    if (!localSettings) return;
     const newSettings = { ...localSettings, animationsEnabled: !localSettings.animationsEnabled };
     updateSettings(newSettings);
   };
 
   const handleVibrationToggle = () => {
+    if (!localSettings) return;
     const newSettings = { ...localSettings, vibrationEnabled: !localSettings.vibrationEnabled };
     updateSettings(newSettings);
     
@@ -123,13 +172,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   };
 
   const resetSettings = () => {
-    const defaultSettings: GameSettings = {
-      soundEnabled: true,
-      soundVolume: 30,
-      musicVolume: 15,
-      animationsEnabled: true,
-      vibrationEnabled: true,
-    };
     updateSettings(defaultSettings);
     soundManager.play('click');
   };
@@ -138,6 +180,44 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     soundManager.play('click');
     onClose();
   };
+
+  // Show loading state while settings are loading
+  if (!localSettings) {
+    return (
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-lg z-40"
+              onClick={closeModal}
+            />
+            
+            {/* Loading Modal */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8, y: 50 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.8, y: 50 }}
+              transition={{ type: "spring", duration: 0.3 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            >
+              <div className="bg-[var(--app-card-bg)] rounded-xl border border-[var(--app-card-border)] shadow-2xl max-w-sm w-full p-8 text-center">
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  className="w-8 h-8 mx-auto mb-4"
+                >⚙️</motion.div>
+                <div className="text-[var(--app-foreground)]">Loading settings...</div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    );
+  }
 
   return (
     <AnimatePresence>
@@ -160,7 +240,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             transition={{ type: "spring", duration: 0.3 }}
             className="no-scrollbar fixed inset-0 z-50 flex items-center justify-center p-4"
           >
-            <div className="bg-[var(--app-card-bg)] rounded-xl border border-[var(--app-card-border)] shadow-2xl max-w-sm w-full max-h-[80vh] overflow-y-auto">
+            <div className="no-scrollbar bg-[var(--app-card-bg)] rounded-xl border border-[var(--app-card-border)] shadow-2xl max-w-sm w-full max-h-[80vh] overflow-y-auto">
               {/* Header */}
               <div className="flex items-center justify-between p-4 border-b border-[var(--app-card-border)]">
                 <h2 className="text-xl font-bold text-[var(--app-foreground)]">
