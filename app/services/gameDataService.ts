@@ -437,29 +437,37 @@ class GameDataService {
     const topScoreResult = await redis.zrange(`${this.LEADERBOARD_PREFIX}all-time`, -1, -1, { withScores: true });
     const topScore = topScoreResult.length >= 2 ? topScoreResult[1] as number : 0;
     
+    // Calculate total rewards based on player count and activity
+    // Simple formula: base reward pool + bonus per player
+    const baseRewardPool = 1.0; // 1 ETH base
+    const rewardPerPlayer = 0.01; // 0.01 ETH per player
+    const totalRewards = (baseRewardPool + (totalPlayers * rewardPerPlayer)).toFixed(3);
+    
     const stats = {
       totalPlayers,
       topScore,
+      totalRewards,
       lastUpdated: new Date().toISOString()
     };
     
     await redis.hset('global:stats', stats);
   }
 
-  async getGlobalStats(): Promise<{ totalPlayers: number; topScore: number; lastUpdated: string }> {
+  async getGlobalStats(): Promise<{ totalPlayers: number; topScore: number; totalRewards: string; lastUpdated: string }> {
     if (!redis) {
-      return { totalPlayers: 0, topScore: 0, lastUpdated: new Date().toISOString() };
+      return { totalPlayers: 0, topScore: 0, totalRewards: "0.000", lastUpdated: new Date().toISOString() };
     }
 
     const stats = await redis.hgetall('global:stats') as Record<string, string>;
     
     if (!stats || Object.keys(stats).length === 0) {
-      return { totalPlayers: 0, topScore: 0, lastUpdated: new Date().toISOString() };
+      return { totalPlayers: 0, topScore: 0, totalRewards: "0.000", lastUpdated: new Date().toISOString() };
     }
     
     return {
-      totalPlayers: parseInt(stats.totalPlayers) || 0,
-      topScore: parseInt(stats.topScore) || 0,
+      totalPlayers: parseInt(stats.totalPlayers) || parseInt("..."),
+      topScore: parseInt(stats.topScore) || parseInt("..."),
+      totalRewards: stats.totalRewards || "...",
       lastUpdated: stats.lastUpdated || new Date().toISOString()
     };
   }
