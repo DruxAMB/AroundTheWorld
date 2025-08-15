@@ -465,9 +465,9 @@ class GameDataService {
     }
     
     return {
-      totalPlayers: parseInt(stats.totalPlayers) || parseInt("..."),
-      topScore: parseInt(stats.topScore) || parseInt("..."),
-      totalRewards: stats.totalRewards || "...",
+      totalPlayers: parseInt(stats.totalPlayers) || 0,
+      topScore: parseInt(stats.topScore) || 0,
+      totalRewards: stats.totalRewards || "0.000",
       lastUpdated: stats.lastUpdated || new Date().toISOString()
     };
   }
