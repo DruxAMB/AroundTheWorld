@@ -310,7 +310,7 @@ export function GameWrapper() {
   // Loading state
   if (gameDataLoading && isConnected) {
     return (
-      <div className="flex flex-col h-full max-w-md mx-auto p-4 justify-center items-center">
+      <div className="flex flex-col h-[100vh] max-w-md mx-auto p-4 justify-center items-center">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

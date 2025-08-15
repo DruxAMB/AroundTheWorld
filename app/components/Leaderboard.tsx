@@ -96,22 +96,129 @@ export function Leaderboard({ onClose, currentPlayerName = "You" }: LeaderboardP
           {/* Stats Cards */}
           <div className="p-4 border-b border-[var(--app-card-border)]">
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-[var(--app-background)] rounded-lg p-3 text-center">
-                <div className="text-lg font-bold text-[var(--app-foreground)]">{globalStats.totalPlayers}</div>
-                <div className="text-xs text-[var(--app-foreground-muted)]">Total Players</div>
-              </div>
-              <div className="bg-[var(--app-background)] rounded-lg p-3 text-center">
-                <div className="text-lg font-bold text-[var(--app-foreground)]">{globalStats.totalRewards} ETH</div>
-                <div className="text-xs text-[var(--app-foreground-muted)]">Total Rewards</div>
-              </div>
-              <div className="bg-[var(--app-background)] rounded-lg p-3 text-center">
-                <div className="text-lg font-bold text-[var(--app-foreground)]">#{playerRank || '—'}</div>
-                <div className="text-xs text-[var(--app-foreground-muted)]">Your Rank</div>
-              </div>
-              <div className="bg-[var(--app-background)] rounded-lg p-3 text-center">
-                <div className="text-lg font-bold text-[var(--app-foreground)]">{playerRewards} ETH</div>
-                <div className="text-xs text-[var(--app-foreground-muted)]">Your Rewards</div>
-              </div>
+              {/* Total Players Card */}
+              <motion.div 
+                className="bg-[var(--app-background)] rounded-lg p-3 text-center"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
+              >
+                {loading ? (
+                  <>
+                    <motion.div 
+                      className="h-6 bg-[var(--app-card-border)] rounded mb-1"
+                      animate={{ opacity: [0.5, 1, 0.5] }}
+                      transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                    />
+                    <div className="text-xs text-[var(--app-foreground-muted)]">Total Players</div>
+                  </>
+                ) : (
+                  <>
+                    <motion.div 
+                      className="text-lg font-bold text-[var(--app-foreground)]"
+                      initial={{ scale: 0.8 }}
+                      animate={{ scale: 1 }}
+                      transition={{ duration: 0.3, delay: 0.2, ease: "easeOut" }}
+                    >
+                      {globalStats.totalPlayers}
+                    </motion.div>
+                    <div className="text-xs text-[var(--app-foreground-muted)]">Total Players</div>
+                  </>
+                )}
+              </motion.div>
+
+              {/* Total Rewards Card */}
+              <motion.div 
+                className="bg-[var(--app-background)] rounded-lg p-3 text-center"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.2, ease: "easeOut" }}
+              >
+                {loading ? (
+                  <>
+                    <motion.div 
+                      className="h-6 bg-[var(--app-card-border)] rounded mb-1"
+                      animate={{ opacity: [0.5, 1, 0.5] }}
+                      transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                    />
+                    <div className="text-xs text-[var(--app-foreground-muted)]">Total Rewards</div>
+                  </>
+                ) : (
+                  <>
+                    <motion.div 
+                      className="text-lg font-bold text-[var(--app-foreground)]"
+                      initial={{ scale: 0.8 }}
+                      animate={{ scale: 1 }}
+                      transition={{ duration: 0.3, delay: 0.3, ease: "easeOut" }}
+                    >
+                      {globalStats.totalRewards} ETH
+                    </motion.div>
+                    <div className="text-xs text-[var(--app-foreground-muted)]">Total Rewards</div>
+                  </>
+                )}
+              </motion.div>
+
+              {/* Your Rank Card */}
+              <motion.div 
+                className="bg-[var(--app-background)] rounded-lg p-3 text-center"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.3, ease: "easeOut" }}
+              >
+                {loading ? (
+                  <>
+                    <motion.div 
+                      className="h-6 bg-[var(--app-card-border)] rounded mb-1"
+                      animate={{ opacity: [0.5, 1, 0.5] }}
+                      transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                    />
+                    <div className="text-xs text-[var(--app-foreground-muted)]">Your Rank</div>
+                  </>
+                ) : (
+                  <>
+                    <motion.div 
+                      className="text-lg font-bold text-[var(--app-foreground)]"
+                      initial={{ scale: 0.8 }}
+                      animate={{ scale: 1 }}
+                      transition={{ duration: 0.3, delay: 0.4, ease: "easeOut" }}
+                    >
+                      #{playerRank || '—'}
+                    </motion.div>
+                    <div className="text-xs text-[var(--app-foreground-muted)]">Your Rank</div>
+                  </>
+                )}
+              </motion.div>
+
+              {/* Your Rewards Card */}
+              <motion.div 
+                className="bg-[var(--app-background)] rounded-lg p-3 text-center"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.4, ease: "easeOut" }}
+              >
+                {loading ? (
+                  <>
+                    <motion.div 
+                      className="h-6 bg-[var(--app-card-border)] rounded mb-1"
+                      animate={{ opacity: [0.5, 1, 0.5] }}
+                      transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                    />
+                    <div className="text-xs text-[var(--app-foreground-muted)]">Your Rewards</div>
+                  </>
+                ) : (
+                  <>
+                    <motion.div 
+                      className="text-lg font-bold text-[var(--app-foreground)]"
+                      initial={{ scale: 0.8 }}
+                      animate={{ scale: 1 }}
+                      transition={{ duration: 0.3, delay: 0.5, ease: "easeOut" }}
+                    >
+                      {playerRewards} ETH
+                    </motion.div>
+                    <div className="text-xs text-[var(--app-foreground-muted)]">Your Rewards</div>
+                  </>
+                )}
+              </motion.div>
             </div>
           </div>
 
