@@ -242,7 +242,7 @@ export function Leaderboard({ onClose, currentPlayerName = "You" }: LeaderboardP
               <div className="p-4 space-y-2">
                 {players.slice(0, 10).map((player, index) => (
                   <motion.div
-                    key={player.playerId}
+                    key={`${player.playerId}-${index}-${player.score}`}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.05 }}

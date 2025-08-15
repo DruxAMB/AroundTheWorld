@@ -333,6 +333,8 @@ class GameDataService {
   private async updateLeaderboards(walletAddress: string, totalScore: number, levelsCompleted: number, bestLevel: number): Promise<void> {
     if (!redis) return;
 
+    console.log(`🏆 [GameDataService] Updating leaderboards for ${walletAddress} with score ${totalScore}`);
+
     const player = await this.getPlayer(walletAddress);
     if (!player) return;
 
@@ -359,7 +361,13 @@ class GameDataService {
 
     // Remove old entries and add new ones for each leaderboard
     for (const leaderboardKey of leaderboardKeys) {
+      // Remove any existing entries for this player
       await this.removePlayerFromLeaderboard(leaderboardKey, walletAddress);
+      
+      // Double-check: remove any remaining entries (defensive programming)
+      await this.removePlayerFromLeaderboard(leaderboardKey, walletAddress);
+      
+      // Add the new entry
       await redis.zadd(leaderboardKey, {
         score: totalScore,
         member: playerDataJson
@@ -375,17 +383,22 @@ class GameDataService {
     if (!redis) return;
 
     try {
-      // Get all entries from this leaderboard
-      const entries = await redis.zrange(leaderboardKey, 0, -1, { withScores: true });
+      // Get all entries from this leaderboard (members only, no scores)
+      const entries = await redis.zrange(leaderboardKey, 0, -1);
       
-      for (let i = 0; i < entries.length; i += 2) {
-        const memberData = typeof entries[i] === 'string' 
-          ? JSON.parse(entries[i] as string)
-          : entries[i];
-        
-        // If this entry belongs to the player we want to remove
-        if (memberData.playerId === walletAddress) {
-          await redis.zrem(leaderboardKey, entries[i]);
+      for (const entry of entries) {
+        try {
+          const memberData = typeof entry === 'string' 
+            ? JSON.parse(entry as string)
+            : entry;
+          
+          // If this entry belongs to the player we want to remove
+          if (memberData.playerId === walletAddress) {
+            await redis.zrem(leaderboardKey, entry);
+          }
+        } catch (parseError) {
+          // Skip invalid entries
+          console.warn(`Failed to parse leaderboard entry:`, parseError);
         }
       }
     } catch (error) {
