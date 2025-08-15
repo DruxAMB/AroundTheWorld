@@ -56,7 +56,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       soundManager.setVolume(defaultSettings.soundVolume / 100);
       soundManager.setMusicVolume(defaultSettings.musicVolume / 100);
     }
-  }, [settings, defaultSettings]);
+  }, [settings, defaultSettings, isSettingsLoaded]);
 
   // Debounced save to Redis (500ms delay)
   const debouncedSaveToRedis = useCallback((newSettings: GameSettings) => {

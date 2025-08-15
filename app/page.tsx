@@ -2,7 +2,7 @@
 
 import {
   useMiniKit,
-  useAddFrame,
+  // useAddFrame,
   useOpenUrl,
 } from "@coinbase/onchainkit/minikit";
 import {
@@ -19,10 +19,9 @@ import {
   WalletDropdownDisconnect,
 } from "@coinbase/onchainkit/wallet";
 import { useAccount } from 'wagmi';
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "./components/DemoComponents";
-import { Icon } from "./components/DemoComponents";
 import { GameWrapper } from "./components/GameWrapper";
 import { SettingsModal } from "./components/SettingsModal";
 import { Leaderboard } from "./components/Leaderboard";
@@ -32,20 +31,20 @@ import { soundManager } from "./utils/soundManager";
 import { useGameData } from "./hooks/useGameData";
 
 export default function App() {
-  const { context, isFrameReady, setFrameReady } = useMiniKit();
+  const { isFrameReady, setFrameReady } = useMiniKit();
   const { address, isConnected } = useAccount();
   const { 
     player,
     updatePlayerName, 
   } = useGameData();
   
-  const [frameAdded, setFrameAdded] = useState(false);
+  // const [frameAdded, setFrameAdded] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showNameInput, setShowNameInput] = useState(false);
   const [showUserProfile, setShowUserProfile] = useState(false);
 
-  const addFrame = useAddFrame();
+  // const addFrame = useAddFrame();
   const openUrl = useOpenUrl();
 
   useEffect(() => {
@@ -54,10 +53,10 @@ export default function App() {
     }
   }, [setFrameReady, isFrameReady]);
 
-  const handleAddFrame = useCallback(async () => {
-    const frameAdded = await addFrame();
-    setFrameAdded(Boolean(frameAdded));
-  }, [addFrame]);
+  // const handleAddFrame = useCallback(async () => {
+  //   const frameAdded = await addFrame();
+  //   setFrameAdded(Boolean(frameAdded));
+  // }, [addFrame]);
 
   const handleOpenSettings = () => {
     soundManager.play('click');
@@ -178,7 +177,7 @@ export default function App() {
           <GameWrapper />
         </main>
 
-        <footer className="mt-2 pt-4 flex justify-center">
+        <footer className="mt-2 pt-4 flex justify-center hidden">
           <Button
             variant="ghost"
             size="sm"
