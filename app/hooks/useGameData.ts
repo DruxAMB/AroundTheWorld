@@ -18,6 +18,7 @@ interface GameDataHook {
   saveProgress: (progress: LevelProgress[]) => Promise<void>;
   saveSettings: (settings: PlayerSettings) => Promise<void>;
   loadPlayerData: () => Promise<void>;
+  refreshPlayerData: () => Promise<void>;
 }
 
 interface LeaderboardData {
@@ -230,7 +231,8 @@ export function useGameData(): GameDataHook {
     checkNameAvailability,
     saveProgress,
     saveSettings,
-    loadPlayerData
+    loadPlayerData,
+    refreshPlayerData: loadPlayerData // Expose as refresh function
   };
 }
 

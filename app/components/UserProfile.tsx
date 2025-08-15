@@ -10,7 +10,7 @@ interface UserProfileProps {
 }
 
 export function UserProfile({ isOpen, onClose }: UserProfileProps) {
-  const { player, progress, loading, updatePlayerName, checkNameAvailability } = useGameData();
+  const { player, progress, loading, updatePlayerName, checkNameAvailability, refreshPlayerData } = useGameData();
   const [isEditingName, setIsEditingName] = useState(false);
   const [newName, setNewName] = useState('');
   const [isUpdatingName, setIsUpdatingName] = useState(false);
@@ -140,12 +140,27 @@ export function UserProfile({ isOpen, onClose }: UserProfileProps) {
               <p className="text-gray-400 text-sm">Player Statistics</p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
-          >
-            ✖️
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={refreshPlayerData}
+              disabled={loading}
+              className="text-gray-400 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Refresh profile data"
+            >
+              {loading ? (
+                <div className="animate-spin text-lg">⚪</div>
+              ) : (
+                <span className="text-lg">🔄</span>
+              )}
+            </button>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-white transition-colors"
+              title="Close profile"
+            >
+              ✖️
+            </button>
+          </div>
         </div>
 
         {loading ? (
