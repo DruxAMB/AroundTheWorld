@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { soundManager } from "../utils/soundManager";
 import { useGameData } from "../hooks/useGameData";
@@ -28,6 +28,9 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     vibrationEnabled: true,
   });
 
+  // Debounce timer ref
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // Load settings from Redis via useGameData hook
   useEffect(() => {
     if (settings) {
@@ -39,24 +42,49 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     }
   }, [settings]);
 
-  // Save settings to Redis instead of localStorage
-  const saveSettings = async (newSettings: GameSettings) => {
-    try {
-      await saveGameSettings(newSettings);
-      setLocalSettings(newSettings);
-      
-      // Apply settings to sound manager
-      soundManager.setEnabled(newSettings.soundEnabled);
-      soundManager.setVolume(newSettings.soundVolume / 100);
-      soundManager.setMusicVolume(newSettings.musicVolume / 100);
-    } catch (error) {
-      console.error('Failed to save settings to Redis:', error);
+  // Debounced save to Redis (500ms delay)
+  const debouncedSaveToRedis = useCallback((newSettings: GameSettings) => {
+    // Clear existing timeout
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
     }
-  };
+
+    // Set new timeout for Redis save
+    saveTimeoutRef.current = setTimeout(async () => {
+      try {
+        await saveGameSettings(newSettings);
+      } catch (error) {
+        console.error('Failed to save settings to Redis:', error);
+      }
+    }, 500);
+  }, [saveGameSettings]);
+
+  // Update settings immediately (for responsive UI) + debounced Redis save
+  const updateSettings = useCallback((newSettings: GameSettings) => {
+    // 1. Update UI immediately
+    setLocalSettings(newSettings);
+    
+    // 2. Apply settings to sound manager immediately
+    soundManager.setEnabled(newSettings.soundEnabled);
+    soundManager.setVolume(newSettings.soundVolume / 100);
+    soundManager.setMusicVolume(newSettings.musicVolume / 100);
+    
+    // 3. Save to Redis with debounce
+    debouncedSaveToRedis(newSettings);
+  }, [debouncedSaveToRedis]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleSoundToggle = () => {
     const newSettings = { ...localSettings, soundEnabled: !localSettings.soundEnabled };
-    saveSettings(newSettings);
+    updateSettings(newSettings);
     
     // Play test sound if enabling
     if (newSettings.soundEnabled) {
@@ -66,7 +94,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
   const handleSoundVolumeChange = (volume: number) => {
     const newSettings = { ...localSettings, soundVolume: volume };
-    saveSettings(newSettings);
+    updateSettings(newSettings);
     
     // Play test sound
     if (localSettings.soundEnabled) {
@@ -76,17 +104,17 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
   const handleMusicVolumeChange = (volume: number) => {
     const newSettings = { ...localSettings, musicVolume: volume };
-    saveSettings(newSettings);
+    updateSettings(newSettings);
   };
 
   const handleAnimationsToggle = () => {
     const newSettings = { ...localSettings, animationsEnabled: !localSettings.animationsEnabled };
-    saveSettings(newSettings);
+    updateSettings(newSettings);
   };
 
   const handleVibrationToggle = () => {
     const newSettings = { ...localSettings, vibrationEnabled: !localSettings.vibrationEnabled };
-    saveSettings(newSettings);
+    updateSettings(newSettings);
     
     // Test vibration if enabling (if supported)
     if (newSettings.vibrationEnabled && 'vibrate' in navigator) {
@@ -102,7 +130,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       animationsEnabled: true,
       vibrationEnabled: true,
     };
-    saveSettings(defaultSettings);
+    updateSettings(defaultSettings);
     soundManager.play('click');
   };
 
@@ -130,7 +158,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.8, y: 50 }}
             transition={{ type: "spring", duration: 0.3 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            className="no-scrollbar fixed inset-0 z-50 flex items-center justify-center p-4"
           >
             <div className="bg-[var(--app-card-bg)] rounded-xl border border-[var(--app-card-border)] shadow-2xl max-w-sm w-full max-h-[80vh] overflow-y-auto">
               {/* Header */}
