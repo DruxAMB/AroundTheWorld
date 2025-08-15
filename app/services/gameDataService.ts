@@ -229,14 +229,21 @@ class GameDataService {
     const playerId = this.getPlayerKey(walletAddress);
     const progressKey = `${playerId}:progress`;
     
-    // Calculate stats from progress
-    const totalScore = progress.reduce((sum, level) => sum + level.score, 0);
+    // Calculate stats from progress - USE BEST SCORES ONLY for total score
+    const totalScore = progress.reduce((sum, level) => sum + (level.bestScore || level.score), 0);
     const levelsCompleted = progress.filter(level => level.completed).length;
     // Extract numeric part from levelId strings (e.g., "africa-1" -> 1)
     const bestLevel = Math.max(...progress.map(level => {
       const match = level.levelId.match(/-(\d+)$/);
       return match ? parseInt(match[1]) : 1;
     }), 0);
+
+    console.log(`💯 [GameDataService] Calculating player stats:`, {
+      totalScore,
+      levelsCompleted,
+      bestLevel,
+      progressCount: progress.length
+    });
 
     // Save progress
     await redis.set(progressKey, JSON.stringify(progress));
