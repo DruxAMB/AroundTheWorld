@@ -122,8 +122,8 @@ export function Leaderboard({ onClose, currentPlayerName = "You" }: LeaderboardP
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                  className="w-8 h-8 border-2 border-[var(--app-accent)] border-t-transparent rounded-full mx-auto mb-2"
-                />
+                  className="w-8 h-8 mx-auto mb-2"
+                >⚪</motion.div>
                 <div className="text-[var(--app-foreground-muted)]">Loading leaderboard...</div>
               </div>
             ) : players.length === 0 ? (
