@@ -55,7 +55,7 @@ export function Leaderboard({ onClose, currentPlayerName = "You" }: LeaderboardP
         transition={{ type: "spring", duration: 0.3 }}
         className="fixed inset-0 z-50 flex items-center justify-center p-4"
       >
-        <div className="bg-[var(--app-card-bg)] rounded-xl border border-[var(--app-card-border)] shadow-2xl max-w-md w-full max-h-[90vh] overflow-hidden">
+        <div className="no-scrollbar bg-[var(--app-card-bg)] rounded-xl border border-[var(--app-card-border)] shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-scroll">
           {/* Header */}
           <div className="p-4 border-b border-[var(--app-card-border)] flex items-center justify-between">
             <div className="flex items-center space-x-2">

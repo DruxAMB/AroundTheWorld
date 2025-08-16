@@ -518,9 +518,17 @@ class GameDataService {
   }
 
   private getWeekNumber(date: Date): number {
-    const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
-    const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000;
-    return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+    // Use ISO 8601 week numbering (Monday = start of week)
+    // This ensures weeks always start on Monday and are consistent
+    const target = new Date(date.valueOf());
+    const dayNr = (date.getDay() + 6) % 7; // Make Monday = 0
+    target.setDate(target.getDate() - dayNr + 3); // Thursday of this week
+    const firstThursday = target.valueOf();
+    target.setMonth(0, 1); // January 1st
+    if (target.getDay() !== 4) {
+      target.setMonth(0, 1 + ((4 - target.getDay()) + 7) % 7); // First Thursday of year
+    }
+    return 1 + Math.ceil((firstThursday - target.valueOf()) / 604800000); // 604800000 = 7 * 24 * 3600 * 1000
   }
 
   private generateAvatar(): string {
