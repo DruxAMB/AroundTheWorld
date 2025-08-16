@@ -1,7 +1,7 @@
-import { ethers } from "hardhat";
+import hre from "hardhat";
 
 async function main() {
-  const PlayerRegistry = await ethers.getContractFactory("PlayerRegistry");
+  const PlayerRegistry = await hre.ethers.getContractFactory("PlayerRegistry");
   const playerRegistry = await PlayerRegistry.deploy();
 
   await playerRegistry.waitForDeployment();

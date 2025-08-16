@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useWalletClient } from 'wagmi';
 import { soundManager } from "../utils/soundManager";
+import { registerPlayer, isPlayerRegistered } from "../../lib/contract";
 
 interface NameInputModalProps {
   isOpen: boolean;
@@ -13,8 +15,10 @@ interface NameInputModalProps {
 export function NameInputModal({ isOpen, onNameSubmit, walletAddress }: NameInputModalProps) {
   const [name, setName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [registrationStatus, setRegistrationStatus] = useState<'idle' | 'checking' | 'registering' | 'success' | 'error'>('idle');
+  const { data: walletClient } = useWalletClient();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (name.trim().length < 2) {
       soundManager.play('click');
@@ -24,12 +28,44 @@ export function NameInputModal({ isOpen, onNameSubmit, walletAddress }: NameInpu
     setIsSubmitting(true);
     soundManager.play('click');
     
-    // Simulate a brief loading state for better UX
-    setTimeout(() => {
-      onNameSubmit(name.trim());
+    try {
+      // First, save the player name to our database
+      await onNameSubmit(name.trim());
+      
+      // Then try to register on-chain if wallet is connected and not already registered
+      if (walletClient && walletAddress) {
+        setRegistrationStatus('checking');
+        
+        const alreadyRegistered = await isPlayerRegistered(walletAddress as `0x${string}`);
+        
+        if (!alreadyRegistered) {
+          setRegistrationStatus('registering');
+          const success = await registerPlayer(walletClient);
+          
+          if (success) {
+            setRegistrationStatus('success');
+            soundManager.play('win'); // Success sound
+          } else {
+            setRegistrationStatus('error');
+            console.log('On-chain registration failed, but player name was saved successfully');
+          }
+        } else {
+          setRegistrationStatus('success');
+        }
+      }
+      
+      // Close modal after a brief delay
+      setTimeout(() => {
+        setIsSubmitting(false);
+        setName("");
+        setRegistrationStatus('idle');
+      }, 1500);
+      
+    } catch (error) {
+      console.error('Error during name submission:', error);
       setIsSubmitting(false);
-      setName("");
-    }, 500);
+      setRegistrationStatus('error');
+    }
   };
 
   const getSuggestedNames = () => {
@@ -108,7 +144,11 @@ export function NameInputModal({ isOpen, onNameSubmit, walletAddress }: NameInpu
                   />
                   <div className="flex justify-between mt-1">
                     <span className="text-xs text-[var(--app-foreground-muted)]">
-                      2-20 characters
+                      {registrationStatus === 'checking' && '🔍 Checking registration...'}
+                      {registrationStatus === 'registering' && '⛓️ Registering on-chain...'}
+                      {registrationStatus === 'success' && '✅ Registered successfully!'}
+                      {registrationStatus === 'error' && '⚠️ Registration failed (name saved)'}
+                      {registrationStatus === 'idle' && '2-20 characters'}
                     </span>
                     <span className="text-xs text-[var(--app-foreground-muted)]">
                       {name.length}/20

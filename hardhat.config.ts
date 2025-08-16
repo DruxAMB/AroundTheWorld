@@ -5,14 +5,14 @@ import "dotenv/config";
 const config: HardhatUserConfig = {
   solidity: "0.8.24",
   networks: {
-    "base-sepolia": {
+    "base": {
       url: `https://sepolia.base.org`,
       accounts: [process.env.WALLET_PRIVATE_KEY as string],
     }
   },
   etherscan: {
     apiKey: {
-      "base-sepolia": process.env.BASESCAN_API_KEY as string,
+      "base": process.env.BASESCAN_API_KEY as string,
     }
   }
 };
