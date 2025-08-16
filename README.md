@@ -1,222 +1,73 @@
-# 🌍 Around the World - Match-3 Adventure Game
+# 🌍 Around the World: An Onchain Match-3 Adventure
 
-A captivating match-3 puzzle game that takes players on a journey across five unique regions of the world. Built with modern web technologies and blockchain integration for persistent player progress and competitive leaderboards.
+**Around the World** is more than just a game—it's a vibrant, onchain experience designed to connect players with global cultures through fun, accessible, and competitive puzzle gameplay. Our mission is to build a captivating game that serves as a joyful entry point into the blockchain ecosystem for users everywhere.
 
-## 🎮 Game Overview
+This project is our submission for the **Onchain Summer Awards**, built on Base to showcase how onchain mechanics can create a more engaging and rewarding player experience.
 
-**Around the World** is a Candy Crush-style match-3 game featuring:
-- **5 Themed Levels**: Africa, India, Latin America, Southeast Asia, and Europe
-- **Regional Soundtracks**: Authentic music for each destination
-- **Progressive Difficulty**: Unlock levels by completing previous regions
-- **Competitive Leaderboards**: Weekly, monthly, and all-time rankings
-- **Persistent Progress**: Cross-device sync via Redis backend
-- **Special Candies**: Striped, wrapped, and combo effects
-- **Chain Reactions**: Cascading matches for higher scores
+**[Play the Live Demo]** • **[Watch the Trailer]** • **[Join our Community]**
+
+## ✨ Why Onchain?
+
+Bringing a classic match-3 game onchain allows us to move beyond traditional gaming and offer unique benefits to our players:
+
+- **True Ownership**: Your wallet is your passport. Player profiles, progress, and achievements are tied to your onchain identity, not a disposable email login. Your journey is verifiably yours.
+- **Transparent Competition**: Leaderboards are powered by real, on-chain data and persistent storage, ensuring a fair and transparent competitive environment for all players.
+- **Composable Future**: By building on Base, we open the door to future integrations like NFT-based rewards, in-game economies, and collaborations with other onchain projects.
+- **Global Accessibility**: Anyone with a wallet can play, compete, and own their progress, breaking down barriers and creating a truly global player base.
+
+## 🎮 Game Features
+
+- **Five Themed Worlds**: Journey through Africa, India, Latin America, Southeast Asia, and Europe, each with unique visuals and authentic regional music.
+- **Classic Match-3 Fun**: Intuitive swap-and-match gameplay that's easy to learn but hard to master.
+- **Dynamic Mechanics**: Create special items, trigger explosive combos, and watch cascading chain reactions light up the board.
+- **Competitive Leaderboards**: Climb the ranks on weekly, monthly, and all-time leaderboards to prove your skills.
+- **Persistent & Cross-Device**: Connect your wallet and your progress is automatically saved and synced across all your devices.
+
+## 🔮 Roadmap: The Onchain Summer & Beyond
+
+We're just getting started. Our vision is to deepen the onchain experience throughout the Onchain Summer event. Our immediate roadmap includes:
+
+1.  **Onchain Power-ups**: Implement a system for players to purchase extra moves or boosts using ETH, directly generating onchain activity.
+2.  **NFT Achievements**: Award players with unique, non-transferable NFTs for completing levels or achieving high ranks.
+3.  **Community Treasury**: A portion of revenue from onchain purchases will fund a community-governed treasury for future development and prizes.
 
 ## 🛠️ Technology Stack
 
-- **Frontend**: [Next.js](https://nextjs.org) + [React](https://reactjs.org) + [TypeScript](https://www.typescriptlang.org)
-- **Styling**: [Tailwind CSS](https://tailwindcss.com) + Custom CSS variables
-- **Animations**: [Framer Motion](https://www.framer.com/motion)
-- **Blockchain**: [MiniKit](https://docs.base.org/builderkits/minikit/overview) + [OnchainKit](https://www.base.org/builders/onchainkit)
-- **Backend**: [Redis](https://redis.io) (Upstash) for data persistence
-- **Audio**: Custom sound manager with regional music
+- **Frontend**: Next.js, React, TypeScript
+- **Styling**: Tailwind CSS
+- **Animations**: Framer Motion
+- **Blockchain**: Base, OnchainKit, MiniKit
+- **Data Persistence**: Redis (via Upstash)
 
-## 🚀 Getting Started
+## 🚀 Getting Started (For Developers)
 
 ### Prerequisites
-- Node.js 18+ 
-- npm/yarn/pnpm
+- Node.js 18+, npm/yarn/pnpm
 - Redis database (Upstash recommended)
-- Coinbase Wallet for blockchain features
+- Coinbase Wallet
 
 ### Installation
 
-1. **Clone the repository:**
-```bash
-git clone https://github.com/DruxAMB/AroundTheWorld.git
-cd AroundTheWorld
-```
+1.  **Clone & Install**:
+    ```bash
+    git clone https://github.com/DruxAMB/AroundTheWorld.git
+    cd AroundTheWorld
+    npm install
+    ```
+2.  **Environment Setup**:
+    Create a `.env.local` file. See `.env.example` for required variables (Redis URL/Token, OnchainKit API Key).
+3.  **Run Locally**:
+    ```bash
+    npm run dev
+    ```
 
-2. **Install dependencies:**
-```bash
-npm install
-# or
-yarn install
-# or
-pnpm install
-```
-
-3. **Set up environment variables:**
-
-Create a `.env.local` file with the following variables:
-
-```bash
-# Redis Configuration (Required for game data persistence)
-REDIS_URL=your_upstash_redis_url
-REDIS_TOKEN=your_upstash_redis_token
-
-# OnchainKit Configuration
-NEXT_PUBLIC_ONCHAINKIT_PROJECT_NAME="Around the World"
-NEXT_PUBLIC_URL=http://localhost:3000
-NEXT_PUBLIC_ONCHAINKIT_API_KEY=your_coinbase_api_key
-
-# App Metadata
-NEXT_PUBLIC_APP_ICON=/icon.png
-NEXT_PUBLIC_APP_SUBTITLE="Match-3 Adventure Game"
-NEXT_PUBLIC_APP_DESCRIPTION="Journey around the world in this captivating match-3 puzzle game"
-NEXT_PUBLIC_APP_TAGLINE="Match, Travel, Conquer!"
-```
-
-> **Note**: Redis is essential for the game to function properly. Sign up at [Upstash](https://upstash.com) for a free Redis database.
-
-4. **Start the development server:**
-```bash
-npm run dev
-```
-
-5. **Open your browser:**
-Navigate to [http://localhost:3000](http://localhost:3000) to start playing!
-
-## 🎯 How to Play
-
-See [HOW_TO_PLAY.md](./HOW_TO_PLAY.md) for detailed gameplay instructions and strategies.
-
-## 🏗️ Project Structure
-
-```
-app/
-├── components/          # React components
-│   ├── GameWrapper.tsx     # Main game container
-│   ├── Match3Game.tsx      # Core game logic
-│   ├── LevelSelector.tsx   # Level selection UI
-│   ├── Leaderboard.tsx     # Competitive rankings
-│   ├── SettingsModal.tsx   # Audio/visual settings
-│   └── UserProfile.tsx     # Player profile management
-├── hooks/               # Custom React hooks
-│   └── useGameData.ts      # Game state management
-├── services/            # Backend services
-│   └── gameDataService.ts  # Redis data operations
-├── utils/               # Utility functions
-│   └── soundManager.ts     # Audio management
-├── api/                 # API routes
-│   ├── player/             # Player data endpoints
-│   └── leaderboard/        # Leaderboard endpoints
-└── data/                # Game configuration
-    └── levels.ts           # Level definitions
-```
-
-## 🎨 Game Features
-
-### 🌍 Regional Levels
-- **Africa**: Tropical fruits and safari themes
-- **India**: Spices and vibrant colors
-- **Latin America**: Festive celebrations and flavors
-- **Southeast Asia**: Exotic fruits and paradise vibes
-- **Europe**: Elegant gardens and classical elements
-
-### 🎵 Audio System
-- Regional background music for each level
-- Sound effects for matches, combos, and special actions
-- Volume controls for music and sound effects
-- Mute/unmute functionality
-
-### 🏆 Competitive Features
-- **Weekly Leaderboards**: Reset every Monday (ISO 8601)
-- **Monthly Leaderboards**: Monthly competition cycles
-- **All-Time Rankings**: Permanent hall of fame
-- **Player Profiles**: Track progress and achievements
-- **Cross-Device Sync**: Play anywhere with wallet connection
-
-### 🎮 Game Mechanics
-- **Match-3 Core**: Classic swap-and-match gameplay
-- **Special Candies**: Striped, wrapped, and combination effects
-- **Chain Reactions**: Cascading matches for bonus points
-- **Progressive Unlocking**: Complete levels to access new regions
-- **Objective-Based**: Score targets and move limits
-- **Auto-Reshuffle**: Prevents unwinnable board states
-
-### 🔧 Technical Features
-- **Persistent Data**: Redis-backed player progress
-- **Wallet Integration**: Coinbase Wallet connectivity
-- **Responsive Design**: Works on desktop and mobile
-- **Smooth Animations**: Framer Motion powered effects
-- **Theme Support**: Light/dark mode compatibility
-- **Type Safety**: Full TypeScript implementation
-
-## 🚀 Deployment
-
-### Vercel (Recommended)
-1. Connect your GitHub repository to Vercel
-2. Add environment variables in Vercel dashboard
-3. Deploy automatically on push to main branch
-
-### Manual Deployment
-```bash
-npm run build
-npm start
-```
+Navigate to [http://localhost:3000](http://localhost:3000) to play.
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Commit changes: `git commit -m 'Add amazing feature'`
-4. Push to branch: `git push origin feature/amazing-feature`
-5. Open a Pull Request
+This is a community-focused project. Contributions are welcome! Please fork the repository, create a feature branch, and open a pull request.
 
 ## 📝 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
-
-- Built with [MiniKit](https://docs.base.org/builderkits/minikit/overview) and [OnchainKit](https://www.base.org/builders/onchainkit)
-- Regional music sourced from authentic cultural compositions
-- Game assets designed for cultural authenticity and respect
-- Special thanks to the Base ecosystem for blockchain infrastructure
-
-## 📞 Support
-
-For questions, issues, or feature requests:
-- Open an issue on GitHub
-- Join our community discussions
-- Check the [HOW_TO_PLAY.md](./HOW_TO_PLAY.md) guide
-
----
-
-**Ready to embark on your around-the-world adventure? Start matching and exploring! 🌍✨**
-
-## Technical Implementation
-
-### MiniKit Provider
-The app is wrapped with `MiniKitProvider` in `providers.tsx`, configured with:
-- OnchainKit integration
-- Access to Frames context
-- Sets up Wagmi Connectors
-- Sets up Frame SDK listeners
-- Applies Safe Area Insets
-
-## Customization
-
-To get started building your own frame, follow these steps:
-
-1. Remove the DemoComponents:
-   - Delete `components/DemoComponents.tsx`
-   - Remove demo-related imports from `page.tsx`
-
-2. Start building your Frame:
-   - Modify `page.tsx` to create your Frame UI
-   - Update theme variables in `theme.css`
-   - Adjust MiniKit configuration in `providers.tsx`
-
-3. Add your frame to your account:
-   - Cast your frame to see it in action
-   - Share your frame with others to start building your community
-
-## Learn More
-
-- [MiniKit Documentation](https://docs.base.org/builderkits/minikit/overview)
-- [OnchainKit Documentation](https://docs.base.org/builderkits/onchainkit/getting-started)
-- [Next.js Documentation](https://nextjs.org/docs)
-- [Tailwind CSS Documentation](https://tailwindcss.com/docs)
