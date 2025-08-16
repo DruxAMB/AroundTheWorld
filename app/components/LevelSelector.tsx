@@ -74,7 +74,7 @@ export function LevelSelector({ onLevelSelect, unlockedLevels, isWalletConnected
                 />
                 
                 {/* Content */}
-                <div className="relative bg-[var(--app-card-bg)] bg-opacity-90 p-4">
+                <div className="relative backdrop-blur-sm p-4">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center space-x-2">
                       <span className="text-2xl">

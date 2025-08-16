@@ -604,7 +604,7 @@ export function Match3Game({ level, onLevelComplete, onBackToLevels }: Match3Gam
       
       <div className="relative z-10 flex flex-col h-full space-y-4">
       {/* Level Header */}
-      <div className="bg-[var(--app-card-bg)] bg-opacity-90 rounded-lg p-3 border border-[var(--app-card-border)]">
+      <div className="bg-[var(--app-card-bg)] bg-opacity-90 backdrop-blur-sm rounded-lg p-3 border border-[var(--app-card-border)]">
         <div className="flex items-center justify-between mb-2">
           <motion.button
             onClick={onBackToLevels}
@@ -677,7 +677,7 @@ export function Match3Game({ level, onLevelComplete, onBackToLevels }: Match3Gam
       {/* Game Grid */}
       <div className="flex-1 flex items-center justify-center">
         <div className="w-full max-w-sm aspect-square">
-          <div className="grid grid-cols-6 gap-1 h-full p-2 bg-[var(--app-card-bg)] rounded-lg border border-[var(--app-card-border)]">
+          <div className="grid grid-cols-6 gap-1 h-full p-2 bg-[var(--app-card-bg)] backdrop-blur-sm rounded-lg border border-[var(--app-card-border)]">
             <AnimatePresence>
               {gameState.grid.map((row, rowIndex) =>
                 row.map((candy, colIndex) => {
@@ -736,7 +736,7 @@ export function Match3Game({ level, onLevelComplete, onBackToLevels }: Match3Gam
       </div>
 
       {/* Game Controls */}
-      <div className="bg-[var(--app-card-bg)] bg-opacity-90 rounded-lg p-3 border border-[var(--app-card-border)]">
+      <div className="bg-[var(--app-card-bg)] bg-opacity-90 backdrop-blur-sm rounded-lg p-3 border border-[var(--app-card-border)]">
         {gameState.gameStatus !== 'playing' && (
           <div className="text-center mb-3">
             <div className={`text-lg font-bold ${
