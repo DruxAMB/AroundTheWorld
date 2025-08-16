@@ -148,7 +148,7 @@ export function UserProfile({ isOpen, onClose }: UserProfileProps) {
               title="Refresh profile data"
             >
               {loading ? (
-                <div className="animate-spin text-lg">⚪</div>
+                <div className="animate-spin text-lg">🌎</div>
               ) : (
                 <span className="text-lg">🔄</span>
               )}
@@ -165,7 +165,7 @@ export function UserProfile({ isOpen, onClose }: UserProfileProps) {
 
         {loading ? (
           <div className="text-center py-8">
-            <div className="animate-spin text-2xl mb-2">⚪</div>
+            <div className="animate-spin text-2xl mb-2">🌎</div>
             <p className="text-gray-400">Loading profile...</p>
           </div>
         ) : player ? (

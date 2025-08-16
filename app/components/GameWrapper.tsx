@@ -316,7 +316,7 @@ export function GameWrapper() {
           animate={{ opacity: 1 }}
           className="text-center"
         >
-          <div className="animate-spin text-4xl mb-4">⚪</div>
+          <div className="animate-spin text-4xl mb-4">🌎</div>
           <p className="text-[var(--app-foreground-muted)]">
             Loading your progress...
           </p>

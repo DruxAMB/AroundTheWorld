@@ -25,8 +25,9 @@ import { Button } from "./components/DemoComponents";
 import { GameWrapper } from "./components/GameWrapper";
 import { SettingsModal } from "./components/SettingsModal";
 import { Leaderboard } from "./components/Leaderboard";
-import { NameInputModal } from "./components/NameInputModal";
 import { UserProfile } from "./components/UserProfile";
+import { NameInputModal } from "./components/NameInputModal";
+import { InfoModal } from "./components/InfoModal";
 import { soundManager } from "./utils/soundManager";
 import { useGameData } from "./hooks/useGameData";
 
@@ -43,6 +44,7 @@ export default function App() {
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showNameInput, setShowNameInput] = useState(false);
   const [showUserProfile, setShowUserProfile] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
 
   // const addFrame = useAddFrame();
   const openUrl = useOpenUrl();
@@ -79,6 +81,11 @@ export default function App() {
   const handleOpenUserProfile = () => {
     soundManager.play('click');
     setShowUserProfile(true);
+  };
+
+  const handleOpenInfo = () => {
+    soundManager.play('click');
+    setShowInfo(true);
   };
 
   const handleCloseUserProfile = () => {
@@ -156,6 +163,16 @@ export default function App() {
             >
               <span className="text-lg">🏆</span>
             </motion.button>
+            {/* Info Button */}
+            <motion.button
+              onClick={handleOpenInfo}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              className="p-2 rounded-lg bg-[var(--app-card-bg)] border border-[var(--app-card-border)] hover:bg-[var(--app-gray)] transition-colors shadow-sm"
+              title="How to Play"
+            >
+              <span className="text-lg">ℹ️</span>
+            </motion.button>
             {/* Settings Button */}
             <motion.button
               onClick={handleOpenSettings}
@@ -193,6 +210,12 @@ export default function App() {
       <SettingsModal
         isOpen={showSettings}
         onClose={handleCloseSettings}
+      />
+      
+      {/* Info Modal */}
+      <InfoModal
+        isOpen={showInfo}
+        onClose={() => setShowInfo(false)}
       />
       
       {/* Name Input Modal */}
