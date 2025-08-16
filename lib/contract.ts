@@ -1,5 +1,5 @@
 // Contract integration for PlayerRegistry
-import { createPublicClient, createWalletClient, custom, http } from 'viem';
+import { createPublicClient, http } from 'viem';
 import { base } from 'viem/chains';
 
 // PlayerRegistry contract ABI (from deployed contract)
@@ -118,7 +118,7 @@ export async function getTotalPlayers(): Promise<number> {
 }
 
 // Helper function to register a new player (requires wallet connection)
-export async function registerPlayer(walletClient: any): Promise<boolean> {
+export async function registerPlayer(walletClient: any): Promise<boolean> { // eslint-disable-line @typescript-eslint/no-explicit-any
   try {
     const { request } = await publicClient.simulateContract({
       address: PLAYER_REGISTRY_ADDRESS,
