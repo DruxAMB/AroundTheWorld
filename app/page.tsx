@@ -124,7 +124,7 @@ export default function App() {
           <div>
             <div className="flex items-center space-x-2">
               <Wallet className="z-10">
-                <ConnectWallet>
+                <ConnectWallet className="text-inherit !w-20 !min-w-0 bg-transparent hover:bg-transparent hover:text-blue-600" disconnectedLabel='Log In'>
                   <Name className="text-inherit" />
                 </ConnectWallet>
                 <WalletDropdown>
@@ -134,7 +134,7 @@ export default function App() {
                     <Address />
                     <EthBalance />
                   </Identity>
-                  <WalletDropdownDisconnect />
+                  <WalletDropdownDisconnect text="Log Out" />
                 </WalletDropdown>
               </Wallet>
             </div>
@@ -191,7 +191,7 @@ export default function App() {
           <GameWrapper />
         </main>
 
-        <footer className="mt-2 pt-4 flex justify-center hidden">
+        <footer className="mt-2 pt-4 justify-center hidden">
           <Button
             variant="ghost"
             size="sm"
