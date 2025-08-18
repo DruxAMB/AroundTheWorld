@@ -88,7 +88,14 @@ export default function App() {
     setShowUserProfile(false);
   };
 
+  const { context } = useMiniKit();
 
+  // Access user information
+  const userFid = context?.user?.fid;           // Farcaster ID (always available)
+  const username = context?.user?.username;     // Username (when available)
+  const displayName = context?.user?.displayName; // Display name (when available)
+  const pfpUrl = context?.user?.pfpUrl;         // Profile picture URL (when available)
+  
   // Automatically set up player when wallet connects (no name needed - use Farcaster data for display)
   useEffect(() => {
     if (isConnected && player && !player.name && address) {
@@ -106,16 +113,7 @@ export default function App() {
       
       setupPlayer();
     }
-  }, [isConnected, address, player, updatePlayerName]);
-
-    const { context } = useMiniKit();
-  
-    // Access user information
-    const userFid = context?.user?.fid;           // Farcaster ID (always available)
-    const username = context?.user?.username;     // Username (when available)
-    const displayName = context?.user?.displayName; // Display name (when available)
-    const pfpUrl = context?.user?.pfpUrl;         // Profile picture URL (when available)
-    
+  }, [isConnected, address, player, updatePlayerName, displayName, pfpUrl, userFid, username]);
 
   return (
     <div className="flex flex-col min-h-screen font-sans text-[var(--app-foreground)] mini-app-theme from-[var(--app-background)] to-[var(--app-gray)]">

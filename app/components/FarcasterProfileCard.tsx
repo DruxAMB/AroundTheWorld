@@ -3,6 +3,14 @@
 import { useViewProfile } from "@coinbase/onchainkit/minikit";
 import { motion } from "framer-motion";
 import { soundManager } from "../utils/soundManager";
+import Image from "next/image";
+
+interface FarcasterProfile {
+  fid: number;
+  name?: string;
+  username?: string;
+  avatar?: string;
+}
 
 interface FarcasterProfileCardProps {
   fid: number;
@@ -40,10 +48,12 @@ export function FarcasterProfileCard({
       {/* Avatar */}
       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-blue-500 flex items-center justify-center overflow-hidden">
         {avatar ? (
-          <img 
+          <Image
             src={avatar} 
             alt={name || username || `User ${fid}`}
             className="w-full h-full object-cover"
+            width={40}
+            height={40}
           />
         ) : (
           <span className="text-white font-bold text-sm">
@@ -80,13 +90,8 @@ export function FarcasterProfileCard({
 }
 
 interface FarcasterProfileListProps {
-  profiles: Array<{
-    fid: number;
-    name?: string;
-    username?: string;
-    avatar?: string;
-  }>;
-  onProfileSelect?: (profile: any) => void;
+  profiles: FarcasterProfile[];
+  onProfileSelect?: (profile: FarcasterProfile) => void;
 }
 
 export function FarcasterProfileList({ profiles, onProfileSelect }: FarcasterProfileListProps) {

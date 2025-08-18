@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { useGameData } from "../hooks/useGameData";
 import { useMiniKit } from "@coinbase/onchainkit/minikit";
+import Image from "next/image";
 
 interface UserProfileProps {
   isOpen: boolean;
@@ -55,10 +56,12 @@ export function UserProfile({ isOpen, onClose }: UserProfileProps) {
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-purple-400 to-blue-500 flex items-center justify-center">
               {pfpUrl ? (
-                <img 
+                <Image
                   src={pfpUrl} 
                   alt={player?.name || 'Profile'} 
                   className="w-full h-full object-cover"
+                  width={40}
+                  height={40}
                 />
               ) : (
                 <span className="text-2xl">{player?.avatar || '🎮'}</span>
