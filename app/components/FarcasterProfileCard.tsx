@@ -19,7 +19,7 @@ export function FarcasterProfileCard({
   avatar, 
   onClick 
 }: FarcasterProfileCardProps) {
-  const viewProfile = useViewProfile(fid);
+  const viewProfile = useViewProfile();
   
   const handleClick = () => {
     soundManager.play('click');

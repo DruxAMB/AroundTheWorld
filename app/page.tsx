@@ -2,8 +2,7 @@
 
 import {
   useMiniKit,
-  useOpenUrl,
-  useViewProfile,
+  useOpenUrl
 } from "@coinbase/onchainkit/minikit";
 import {
   Name,
@@ -34,10 +33,7 @@ import { useGameData } from "./hooks/useGameData";
 export default function App() {
   const { isFrameReady, setFrameReady } = useMiniKit();
   const { address, isConnected } = useAccount();
-  const { 
-    player,
-    updatePlayerName, 
-  } = useGameData();
+  const { player, updatePlayerName } = useGameData();
   
   // const [frameAdded, setFrameAdded] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -93,21 +89,16 @@ export default function App() {
   };
 
 
-
-  // Automatically set up player with Farcaster profile when wallet connects
+  // Automatically set up player when wallet connects (no name needed - use Farcaster data for display)
   useEffect(() => {
     if (isConnected && player && !player.name && address) {
-      // Create a player profile using wallet-based identity
-      // In a full Farcaster integration, you would fetch the user's Farcaster profile here
       const setupPlayer = async () => {
         try {
-          // For now, create a clean player name based on wallet
+          // Just create a basic player record - Farcaster data will be used for display
           const playerName = `Player${address.slice(-4)}`;
           await updatePlayerName(playerName);
           
-          // Register player on-chain automatically
-          // This happens in the background without user interaction
-          console.log('Player profile created and on-chain registration initiated');
+          console.log('Player profile created, using Farcaster data for display:', { userFid, username, displayName, pfpUrl });
         } catch (error) {
           console.error('Failed to set up player profile:', error);
         }
@@ -116,6 +107,15 @@ export default function App() {
       setupPlayer();
     }
   }, [isConnected, address, player, updatePlayerName]);
+
+    const { context } = useMiniKit();
+  
+    // Access user information
+    const userFid = context?.user?.fid;           // Farcaster ID (always available)
+    const username = context?.user?.username;     // Username (when available)
+    const displayName = context?.user?.displayName; // Display name (when available)
+    const pfpUrl = context?.user?.pfpUrl;         // Profile picture URL (when available)
+    
 
   return (
     <div className="flex flex-col min-h-screen font-sans text-[var(--app-foreground)] mini-app-theme from-[var(--app-background)] to-[var(--app-gray)]">

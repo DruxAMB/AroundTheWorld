@@ -14,6 +14,7 @@ interface GameDataHook {
   
   // Actions
   updatePlayerName: (name: string) => Promise<void>;
+  createOrUpdatePlayer: (playerData: Partial<PlayerProfile>) => Promise<void>;
   checkNameAvailability: (name: string) => Promise<boolean>;
   saveProgress: (progress: LevelProgress[]) => Promise<void>;
   saveSettings: (settings: PlayerSettings) => Promise<void>;
@@ -235,6 +236,7 @@ export function useGameData(): GameDataHook {
     loading,
     saving,
     updatePlayerName,
+    createOrUpdatePlayer,
     checkNameAvailability,
     saveProgress,
     saveSettings,
