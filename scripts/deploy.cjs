@@ -1,5 +1,4 @@
-import hre from "hardhat";
-import "@nomicfoundation/hardhat-ethers";
+const hre = require("hardhat");
 
 async function main() {
   const PlayerRegistry = await hre.ethers.getContractFactory("PlayerRegistry");
