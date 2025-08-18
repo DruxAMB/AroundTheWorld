@@ -10,6 +10,14 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  // Configure image domains for Farcaster profile pictures
+  images: {
+    domains: [
+      'imagedelivery.net', // Farcaster profile images
+      'i.imgur.com',       // Common image hosting
+      'res.cloudinary.com' // Another common CDN
+    ],
+  },
 };
 
 export default nextConfig;
