@@ -1,73 +1,187 @@
-# 🌍 Around the World: An Onchain Match-3 Adventure
+# 🌍# Around the World 🌍
 
-**Around the World** is more than just a game—it's a vibrant, onchain experience designed to connect players with global cultures through fun, accessible, and competitive puzzle gameplay. Our mission is to build a captivating game that serves as a joyful entry point into the blockchain ecosystem for users everywhere.
+**Match your way around the world.**
 
-This project is our submission for the **Onchain Summer Awards**, built on Base to showcase how onchain mechanics can create a more engaging and rewarding player experience.
+A captivating match-3 puzzle game that takes players on a cultural journey across five vibrant regions: Africa, India, Latin America, Southeast Asia, and Europe. Built with cutting-edge web3 technology on Base, Around the World transforms casual gaming into meaningful on-chain experiences.
 
-**[Play the Live Demo]** • **[Watch the Trailer]** • **[Join our Community]**
+## Why Onchain?
 
-## ✨ Why Onchain?
+Traditional mobile games trap your progress on a single device or centralized server. Around the World liberates your achievements by storing them permanently on the blockchain, creating true digital ownership of your gaming accomplishments.
 
-Bringing a classic match-3 game onchain allows us to move beyond traditional gaming and offer unique benefits to our players:
+**🔗 Persistent Progress**: Your scores, level completions, and achievements are permanently recorded on-chain, accessible from any device, forever.
 
-- **True Ownership**: Your wallet is your passport. Player profiles, progress, and achievements are tied to your onchain identity, not a disposable email login. Your journey is verifiably yours.
-- **Transparent Competition**: Leaderboards are powered by real, on-chain data and persistent storage, ensuring a fair and transparent competitive environment for all players.
-- **Composable Future**: By building on Base, we open the door to future integrations like NFT-based rewards, in-game economies, and collaborations with other onchain projects.
-- **Global Accessibility**: Anyone with a wallet can play, compete, and own their progress, breaking down barriers and creating a truly global player base.
+**🏆 Real Competition**: Weekly leaderboards with ETH rewards turn skill into tangible value, creating genuine stakes in casual gaming.
 
-## 🎮 Game Features
+**🌐 Global Community**: Connect with players worldwide through verifiable, transparent competition that transcends traditional gaming silos.
 
-- **Five Themed Worlds**: Journey through Africa, India, Latin America, Southeast Asia, and Europe, each with unique visuals and authentic regional music.
-- **Classic Match-3 Fun**: Intuitive swap-and-match gameplay that's easy to learn but hard to master.
-- **Dynamic Mechanics**: Create special items, trigger explosive combos, and watch cascading chain reactions light up the board.
-- **Competitive Leaderboards**: Climb the ranks on weekly, monthly, and all-time leaderboards to prove your skills.
-- **Persistent & Cross-Device**: Connect your wallet and your progress is automatically saved and synced across all your devices.
+## Game Features
 
-## 🔮 Roadmap: The Onchain Summer & Beyond
+### 🎮 Core Gameplay
+- **Classic Match-3 Mechanics**: Swap adjacent items to create matches of 3 or more
+- **Special Power-ups**: Create striped, wrapped, and color bomb candies with strategic matches
+- **Chain Reactions**: Cascading matches create satisfying combo chains and higher scores
+- **Auto-Reshuffle**: Smart board management prevents unwinnable states
 
-We're just getting started. Our vision is to deepen the onchain experience throughout the Onchain Summer event. Our immediate roadmap includes:
+### 🗺️ Cultural Journey
+- **5 Themed Levels**: Each region features unique visual assets and authentic cultural elements
+- **Regional Soundtracks**: Immersive audio experiences featuring music from each region
+- **Progressive Difficulty**: Carefully balanced challenge curve keeps players engaged
+- **Cultural Authenticity**: Respectful representation of diverse global cultures
 
-1.  **Onchain Power-ups**: Implement a system for players to purchase extra moves or boosts using ETH, directly generating onchain activity.
-2.  **NFT Achievements**: Award players with unique, non-transferable NFTs for completing levels or achieving high ranks.
-3.  **Community Treasury**: A portion of revenue from onchain purchases will fund a community-governed treasury for future development and prizes.
+### 🏆 Competitive Features
+- **Global Leaderboards**: Real-time rankings with weekly competitions
+- **ETH Rewards**: Top performers earn cryptocurrency prizes
+- **Player Profiles**: Comprehensive stats tracking and achievement systems
+- **Social Integration**: Wallet-based identity with customizable player names
 
-## 🛠️ Technology Stack
+### 🎨 Technical Excellence
+- **Smooth Animations**: Framer Motion powers fluid, satisfying visual feedback
+- **Responsive Design**: Optimized for mobile-first gameplay
+- **Sound Design**: Rich audio feedback enhances every interaction
+- **Performance Optimized**: Fast loading and smooth gameplay across devices
 
-- **Frontend**: Next.js, React, TypeScript
-- **Styling**: Tailwind CSS
-- **Animations**: Framer Motion
-- **Blockchain**: Base, OnchainKit, MiniKit
-- **Data Persistence**: Redis (via Upstash)
+## Smart Contract Integration
 
-## 🚀 Getting Started (For Developers)
+### PlayerRegistry Contract
+**Contract Address**: `0x654a8aa6edf449f92229231b9754404bf22b9ade` (Base Mainnet)
+**[View on BaseScan](https://basescan.org/address/0x654a8aa6edf449f92229231b9754404bf22b9ade)**
+
+Our PlayerRegistry smart contract creates permanent, verifiable records of all game participants:
+
+#### Features
+- **Automatic Registration**: New players are registered on-chain when they join
+- **Transparent Participation**: All player addresses are publicly verifiable
+- **Gas Efficient**: Optimized contract design minimizes transaction costs
+- **Decentralized Identity**: Wallet-based authentication eliminates traditional accounts
+
+#### Contract Functions
+- `register()`: Register a new player address on-chain
+- `isRegistered(address)`: Check if an address is already registered
+- `getTotalPlayers()`: Get the total number of registered players
+- `players(uint256)`: Access the list of registered player addresses
+
+### Web3 Integration
+- **Seamless Wallet Connection**: OnchainKit and MiniKit integration
+- **Cross-Device Progress**: Your achievements follow your wallet everywhere
+- **Real-time Registration**: Players are registered automatically during onboarding
+- **Verifiable Participation**: All registrations are permanently recorded on Base
+
+## Technical Architecture
+
+### Frontend Stack
+- **Next.js 15**: React framework with App Router
+- **TypeScript**: Type-safe development
+- **Tailwind CSS**: Utility-first styling
+- **Framer Motion**: Smooth animations and transitions
+
+### Blockchain Integration
+- **Base Mainnet**: Ethereum L2 for fast, cheap transactions
+- **Viem**: TypeScript-first Ethereum library
+- **Wagmi**: React hooks for Ethereum
+- **OnchainKit**: Coinbase's web3 development toolkit
+
+### Data Layer
+- **Upstash Redis**: Real-time game state and leaderboards
+- **Smart Contracts**: On-chain player registry and future features
+- **Hybrid Architecture**: Critical data on-chain, game state optimized for speed
+
+## Getting Started
 
 ### Prerequisites
-- Node.js 18+, npm/yarn/pnpm
-- Redis database (Upstash recommended)
-- Coinbase Wallet
+- Node.js 18+ and npm
+- A Base-compatible wallet (Coinbase Wallet recommended)
+- Redis database (Upstash recommended for production)
 
 ### Installation
 
-1.  **Clone & Install**:
-    ```bash
-    git clone https://github.com/DruxAMB/AroundTheWorld.git
-    cd AroundTheWorld
-    npm install
-    ```
-2.  **Environment Setup**:
-    Create a `.env.local` file. See `.env.example` for required variables (Redis URL/Token, OnchainKit API Key).
-3.  **Run Locally**:
-    ```bash
-    npm run dev
-    ```
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/DruxAMB/AroundTheWorld.git
+   cd AroundTheWorld
+   ```
 
-Navigate to [http://localhost:3000](http://localhost:3000) to play.
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-## 🤝 Contributing
+3. **Environment Setup**
+   Create a `.env.local` file:
+   ```env
+   # Redis Configuration
+   UPSTASH_REDIS_REST_URL=your_redis_url
+   UPSTASH_REDIS_REST_TOKEN=your_redis_token
+   
+   # OnchainKit Configuration
+   NEXT_PUBLIC_ONCHAINKIT_API_KEY=your_api_key
+   
+   # App Metadata
+   NEXT_PUBLIC_APP_NAME="Around the World"
+   NEXT_PUBLIC_APP_DESCRIPTION="Match-3 puzzle adventure across global cultures"
+   NEXT_PUBLIC_APP_URL="https://your-app-url.com"
+   NEXT_PUBLIC_APP_ICON="https://your-app-url.com/icon.png"
+   ```
 
-This is a community-focused project. Contributions are welcome! Please fork the repository, create a feature branch, and open a pull request.
+4. **Start Development Server**
+   ```bash
+   npm run dev
+   ```
 
-## 📝 License
+5. **Build for Production**
+   ```bash
+   npm run build
+   npm start
+   ```
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+## Game Instructions
 
+### Getting Started
+1. **Connect Your Wallet**: Link your Base-compatible wallet to save progress
+2. **Automatic Registration**: Your wallet is registered on-chain automatically
+3. **Choose Your Name**: Set a display name for leaderboards
+4. **Select a Region**: Start your journey in any of the 5 cultural regions
+5. **Match and Score**: Swap adjacent items to create matches of 3 or more
+
+### Advanced Strategies
+- **Special Candies**: Match 4+ items to create powerful special effects
+- **Combo Chains**: Plan moves to trigger cascading reactions
+- **Score Optimization**: Focus on special candy combinations for maximum points
+- **Leaderboard Competition**: Compete weekly for ETH rewards
+
+## Roadmap
+
+### Phase 1: Enhanced Onchain Mechanics ⏳
+- **NFT Achievements**: Mint unique tokens for major milestones
+- **Power-up Marketplace**: Purchase special abilities with ETH
+- **Tournament System**: Structured competitions with entry fees and prizes
+
+### Phase 2: Community Features 🔮
+- **Guild System**: Team-based competitions and shared rewards
+- **User-Generated Content**: Custom level creation and sharing
+- **Governance Token**: Community voting on game features and updates
+
+### Phase 3: Cross-Chain Expansion 🚀
+- **Multi-Chain Support**: Expand to Ethereum, Polygon, and other networks
+- **Interoperability**: Cross-chain leaderboards and asset transfers
+- **DeFi Integration**: Yield farming with game tokens and rewards
+
+## Contributing
+
+We welcome contributions from developers, designers, and cultural consultants. Please read our contributing guidelines and code of conduct before submitting pull requests.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+- Cultural consultants from each represented region
+- The Base ecosystem for providing robust L2 infrastructure
+- The open-source community for foundational tools and libraries
+- Players worldwide who make this global gaming community possible
+
+---
+
+**Built with ❤️ for the global gaming community on Base**
+
+*Submitted for Base Builder Quest 9 - Mini App Week*

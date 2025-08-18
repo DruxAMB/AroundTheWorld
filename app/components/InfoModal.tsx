@@ -236,7 +236,7 @@ export function InfoModal({ isOpen, onClose }: InfoModalProps) {
           <div className="bg-[var(--app-card-bg)] p-4 rounded-lg border border-[var(--app-card-border)]">
             <h4 className="font-bold mb-3 text-[var(--app-foreground)]">Your Adventure Awaits!</h4>
             <div className="text-sm text-[var(--app-foreground-muted)] space-y-2">
-              <p>You're now ready to begin your around-the-world journey!</p>
+              <p>You&quote;re now ready to begin your around-the-world journey!</p>
               <p>Start with Africa and work your way through each unique region.</p>
               <p>Remember: practice makes perfect, and every match brings you closer to mastery!</p>
             </div>
