@@ -4,7 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { soundManager } from "../utils/soundManager";
 import { useLeaderboard } from "../hooks/useGameData";
-import { useMiniKit } from "@coinbase/onchainkit/minikit";
+import { useMiniKit } from "@coinbase/onchainkit/dist/minikit";
 import Image from "next/image";
 
 interface LeaderboardProps {
