@@ -29,10 +29,10 @@ export function NameInputModal({ isOpen, onNameSubmit, walletAddress }: NameInpu
     soundManager.play('click');
     
     try {
-      // First, save the player name to our database
+      // Save the player profile to our database
       await onNameSubmit(name.trim());
       
-      // Then try to register on-chain if wallet is connected and not already registered
+      // Try to register on-chain if wallet is connected and not already registered
       if (walletClient && walletAddress) {
         setRegistrationStatus('checking');
         
@@ -47,7 +47,7 @@ export function NameInputModal({ isOpen, onNameSubmit, walletAddress }: NameInpu
             soundManager.play('win'); // Success sound
           } else {
             setRegistrationStatus('error');
-            console.log('On-chain registration failed, but player name was saved successfully');
+            console.log('On-chain registration failed, but player profile was saved successfully');
           }
         } else {
           setRegistrationStatus('success');

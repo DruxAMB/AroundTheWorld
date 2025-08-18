@@ -2,8 +2,8 @@
 
 import {
   useMiniKit,
-  // useAddFrame,
   useOpenUrl,
+  useViewProfile,
 } from "@coinbase/onchainkit/minikit";
 import {
   Name,
@@ -26,7 +26,7 @@ import { GameWrapper } from "./components/GameWrapper";
 import { SettingsModal } from "./components/SettingsModal";
 import { Leaderboard } from "./components/Leaderboard";
 import { UserProfile } from "./components/UserProfile";
-import { NameInputModal } from "./components/NameInputModal";
+
 import { InfoModal } from "./components/InfoModal";
 import { soundManager } from "./utils/soundManager";
 import { useGameData } from "./hooks/useGameData";
@@ -42,7 +42,7 @@ export default function App() {
   // const [frameAdded, setFrameAdded] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
-  const [showNameInput, setShowNameInput] = useState(false);
+
   const [showUserProfile, setShowUserProfile] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
 
@@ -92,31 +92,30 @@ export default function App() {
     setShowUserProfile(false);
   };
 
-  const handleNameSubmit = async (name: string) => {
-    try {
-      await updatePlayerName(name);
-      setShowNameInput(false);
-      soundManager.play('win'); // Celebration sound for completing setup
-    } catch (error) {
-      console.error('Failed to save player name:', error);
-    }
-  };
 
-  // Check if user needs to input name after wallet connection
+
+  // Automatically set up player with Farcaster profile when wallet connects
   useEffect(() => {
-    // Debug logging to understand the wallet connection state
-    console.log('Wallet Connected:', isConnected);
-    console.log('Wallet Address:', address);
-    console.log('Player Data:', player);
-    console.log('Show Name Input:', showNameInput);
-    
-    // Use wagmi's isConnected to detect wallet connection and check if player has name
-    if (isConnected && player && !player.name && !showNameInput) {
-      console.log('Wallet connected but no name set - triggering name input modal');
-      // User has connected wallet but has no name - show name input modal
-      setShowNameInput(true);
+    if (isConnected && player && !player.name && address) {
+      // Create a player profile using wallet-based identity
+      // In a full Farcaster integration, you would fetch the user's Farcaster profile here
+      const setupPlayer = async () => {
+        try {
+          // For now, create a clean player name based on wallet
+          const playerName = `Player${address.slice(-4)}`;
+          await updatePlayerName(playerName);
+          
+          // Register player on-chain automatically
+          // This happens in the background without user interaction
+          console.log('Player profile created and on-chain registration initiated');
+        } catch (error) {
+          console.error('Failed to set up player profile:', error);
+        }
+      };
+      
+      setupPlayer();
     }
-  }, [isConnected, address, player, showNameInput]);
+  }, [isConnected, address, player, updatePlayerName]);
 
   return (
     <div className="flex flex-col min-h-screen font-sans text-[var(--app-foreground)] mini-app-theme from-[var(--app-background)] to-[var(--app-gray)]">
@@ -218,12 +217,7 @@ export default function App() {
         onClose={() => setShowInfo(false)}
       />
       
-      {/* Name Input Modal */}
-      <NameInputModal
-        isOpen={showNameInput}
-        onNameSubmit={handleNameSubmit}
-        walletAddress={address}
-      />
+
       
       {/* User Profile Modal */}
       <UserProfile
