@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useGameData } from "../hooks/useGameData";
-import { useMiniKit } from "@coinbase/onchainkit/dist/minikit";
+import { useMiniKit } from "@coinbase/onchainkit/minikit";
 import Image from "next/image";
 
 interface UserProfileProps {

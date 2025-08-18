@@ -3,20 +3,20 @@
 import {
   useMiniKit,
   useOpenUrl
-} from "@coinbase/onchainkit/dist/minikit";
+} from "@coinbase/onchainkit/minikit";
 import {
   Name,
   Identity,
   Address,
   Avatar,
   EthBalance,
-} from "@coinbase/onchainkit/dist/identity";
+} from "@coinbase/onchainkit/identity";
 import {
   ConnectWallet,
   Wallet,
   WalletDropdown,
   WalletDropdownDisconnect,
-} from "@coinbase/onchainkit/dist/wallet";
+} from "@coinbase/onchainkit/wallet";
 import { useAccount } from 'wagmi';
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";

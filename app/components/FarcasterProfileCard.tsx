@@ -1,6 +1,6 @@
 "use client";
 
-import { useViewProfile } from "@coinbase/onchainkit/dist/minikit";
+import { useViewProfile } from "@coinbase/onchainkit/minikit";
 import { motion } from "framer-motion";
 import { soundManager } from "../utils/soundManager";
 import Image from "next/image";
