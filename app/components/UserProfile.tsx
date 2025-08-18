@@ -53,23 +53,25 @@ export function UserProfile({ isOpen, onClose }: UserProfileProps) {
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-purple-400 to-blue-500 flex items-center justify-center">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-purple-400 to-blue-500 flex items-center justify-center">
               {pfpUrl ? (
                 <Image
                   src={pfpUrl} 
                   alt={player?.name || 'Profile'} 
                   className="w-full h-full object-cover"
-                  width={40}
-                  height={40}
+                  width={100}
+                  height={100}
                 />
               ) : (
                 <span className="text-2xl">{player?.avatar || '🎮'}</span>
               )}
             </div>
             <div>
-              <h2 className="text-xl font-bold text-white">User Profile</h2>
-              <p className="text-gray-400 text-sm">
+              <h2 className="text-md font-bold text-white">
+                {context?.user?.displayName || context?.user?.username || player?.name || 'User Profile'}
+              </h2>
+              <p className="text-gray-400 text-xs">
                 {userFid ? `FID: ${userFid}` : 'Player Statistics'}
               </p>
             </div>

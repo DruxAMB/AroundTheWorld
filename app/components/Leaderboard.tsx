@@ -4,6 +4,8 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { soundManager } from "../utils/soundManager";
 import { useLeaderboard } from "../hooks/useGameData";
+import { useMiniKit } from "@coinbase/onchainkit/minikit";
+import Image from "next/image";
 
 interface LeaderboardProps {
   onClose: () => void;
@@ -16,6 +18,10 @@ type TimeFilter = 'week' | 'month' | 'all-time';
 export function Leaderboard({ onClose, currentPlayerName = "You" }: LeaderboardProps) {
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('week');
   const { data: leaderboardData, loading } = useLeaderboard(timeFilter);
+  const { context } = useMiniKit();
+  
+  // Get current user's Farcaster data for comparison
+  const currentUserName = context?.user?.displayName || context?.user?.username || currentPlayerName;
 
   const handleTimeFilterChange = (newFilter: TimeFilter) => {
     setTimeFilter(newFilter);
@@ -247,7 +253,7 @@ export function Leaderboard({ onClose, currentPlayerName = "You" }: LeaderboardP
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.05 }}
                     className={`flex items-center space-x-3 p-3 rounded-lg ${
-                      player.name === currentPlayerName 
+                      player.name === currentUserName 
                         ? 'bg-[var(--app-accent)] bg-opacity-10 border border-[var(--app-accent)] border-opacity-30'
                         : 'bg-[var(--app-background)] hover:bg-[var(--app-gray)]'
                     } transition-colors`}
@@ -267,8 +273,20 @@ export function Leaderboard({ onClose, currentPlayerName = "You" }: LeaderboardP
 
                     {/* Avatar */}
                     <div className="flex-shrink-0">
-                      <div className="w-8 h-8 rounded-full bg-[var(--app-gray)] flex items-center justify-center text-lg">
-                        {player.avatar}
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-blue-500 flex items-center justify-center overflow-hidden">
+                        {player.name === currentUserName && context?.user?.pfpUrl ? (
+                          <Image
+                            src={context.user.pfpUrl}
+                            alt={player.name}
+                            className="w-full h-full object-cover"
+                            width={32}
+                            height={32}
+                          />
+                        ) : (
+                          <span className="text-white font-bold text-sm">
+                            {(player.name || 'U').charAt(0).toUpperCase()}
+                          </span>
+                        )}
                       </div>
                     </div>
 
@@ -276,8 +294,8 @@ export function Leaderboard({ onClose, currentPlayerName = "You" }: LeaderboardP
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center space-x-2">
                         <div className="font-medium text-[var(--app-foreground)] truncate">
-                          {player.name}
-                          {player.name === currentPlayerName && (
+                          {player.name === currentUserName ? currentUserName : player.name}
+                          {player.name === currentUserName && (
                             <span className="ml-2 px-2 py-0.5 bg-[var(--app-accent)] text-white text-xs rounded-full">
                               YOU
                             </span>
