@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { gameDataService } from '../../services/gameDataService';
 import { farcasterService } from '../../services/farcasterService';
+import { RewardDistributionService } from '@/lib/reward-distribution';
 
 export async function GET(request: NextRequest) {
   try {
@@ -30,18 +31,25 @@ export async function GET(request: NextRequest) {
     // Get global stats
     const globalStats = await gameDataService.getGlobalStats();
     
+    // Calculate reward pool (example: 1 ETH total pool)
+    const totalRewardPool = 1e18; // 1 ETH in wei
+    const rewardDistribution = RewardDistributionService.calculateRewardDistribution(totalRewardPool);
+    
     // Get player rank if wallet address provided
     let playerRank = null;
     let playerRewards = "0.000";
+    let rewardTier = null;
+    let motivationMessage = null;
     
     if (walletAddress) {
       playerRank = await gameDataService.getPlayerRank(walletAddress, timeframe);
       
       if (playerRank) {
-        // Calculate rewards based on rank (mock calculation)
-        const baseReward = 0.1;
-        const rankMultiplier = Math.max(0.1, 1 - (playerRank - 1) * 0.01);
-        playerRewards = (baseReward * rankMultiplier).toFixed(3);
+        // Calculate actual rewards based on Top 10 distribution
+        const rewardAmount = RewardDistributionService.getRewardForRank(playerRank, totalRewardPool);
+        playerRewards = RewardDistributionService.formatRewardAmount(rewardAmount);
+        rewardTier = RewardDistributionService.getRewardTier(playerRank);
+        motivationMessage = RewardDistributionService.getRewardMotivationMessage(playerRank, totalRewardPool);
       }
     }
 
@@ -50,6 +58,9 @@ export async function GET(request: NextRequest) {
       globalStats,
       playerRank,
       playerRewards,
+      rewardTier,
+      motivationMessage,
+      rewardDistribution,
       timeframe
     });
   } catch (error) {

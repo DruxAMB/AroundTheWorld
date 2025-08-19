@@ -21,11 +21,11 @@ export class CompetitiveNotificationService {
       if (!redis) return;
 
       // Get all players with lower scores than the new score
-      const allPlayers = await redis.zrevrange('leaderboard:global', 0, -1, 'WITHSCORES');
+      const allPlayers = await redis.zrange('leaderboard:global', 0, -1, { rev: true, withScores: true }) as string[];
       
       for (let i = 0; i < allPlayers.length; i += 2) {
-        const fid = parseInt(allPlayers[i]);
-        const currentScore = parseInt(allPlayers[i + 1]);
+        const fid = parseInt(allPlayers[i] as string);
+        const currentScore = parseInt(allPlayers[i + 1] as string);
         
         // Skip the player who just scored
         if (fid === playerFid) continue;
@@ -46,11 +46,11 @@ export class CompetitiveNotificationService {
       if (!redis) return;
 
       // Get top 15 players (to catch those near top 10)
-      const topPlayers = await redis.zrevrange('leaderboard:global', 0, 14, 'WITHSCORES');
+      const topPlayers = await redis.zrange('leaderboard:global', 0, 14, { rev: true, withScores: true }) as string[];
       
       for (let i = 0; i < topPlayers.length; i += 2) {
-        const fid = parseInt(topPlayers[i]);
-        const score = parseInt(topPlayers[i + 1]);
+        const fid = parseInt(topPlayers[i] as string);
+        const score = parseInt(topPlayers[i + 1] as string);
         const currentRank = Math.floor(i / 2) + 1;
         
         // Notify players who are close to top 10
@@ -93,8 +93,8 @@ export class CompetitiveNotificationService {
     const notification = {
       fid,
       notification: {
-        title: "So Close to Top 10! 🎯",
-        body: `You're only ${spotsFromTop10} spots away from the top 10! Can you climb higher?`,
+        title: "So Close to Rewards! 🎯",
+        body: `You're only ${spotsFromTop10} spots away from Top 10 rewards! Push now to earn ETH!`,
         notificationDetails: {
           type: 'near_top10',
           spotsFromTop10
@@ -110,8 +110,8 @@ export class CompetitiveNotificationService {
     const notification = {
       fid,
       notification: {
-        title: "Elite Player! 🔥",
-        body: `You're in the top 5% globally! One more game to secure your rank`,
+        title: "Elite Rewards Zone! 🔥",
+        body: `You're in the Top 10 earning ETH rewards! Defend your position now!`,
         notificationDetails: {
           type: 'top_percent',
           rank
@@ -147,11 +147,11 @@ export class CompetitiveNotificationService {
       if (!redis) return false;
 
       const key = `notification_sent:${fid}:${type}`;
-      const lastSent = await redis.get(key);
+      const lastSent = await redis.get(key) as string | null;
       
       // Don't send same type of notification more than once per hour
       if (lastSent) {
-        const timeSince = Date.now() - parseInt(lastSent);
+        const timeSince = Date.now() - parseInt(lastSent as string);
         if (timeSince < 60 * 60 * 1000) { // 1 hour
           return false;
         }
