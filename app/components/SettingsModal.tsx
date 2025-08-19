@@ -13,7 +13,6 @@ interface SettingsModalProps {
 interface GameSettings {
   soundEnabled: boolean;
   soundVolume: number;
-  musicVolume: number;
   animationsEnabled: boolean;
   vibrationEnabled: boolean;
 }
@@ -25,7 +24,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const defaultSettings: GameSettings = {
     soundEnabled: true,
     soundVolume: 30,
-    musicVolume: 15,
     animationsEnabled: true,
     vibrationEnabled: true,
   };
@@ -46,7 +44,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       // Apply settings to sound manager
       soundManager.setEnabled(settings.soundEnabled);
       soundManager.setVolume(settings.soundVolume / 100);
-      soundManager.setMusicVolume(settings.musicVolume / 100);
     } else if (settings === null && !isSettingsLoaded) {
       // No Redis settings found, use defaults
       setLocalSettings(defaultSettings);
@@ -54,7 +51,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       // Apply default settings to sound manager
       soundManager.setEnabled(defaultSettings.soundEnabled);
       soundManager.setVolume(defaultSettings.soundVolume / 100);
-      soundManager.setMusicVolume(defaultSettings.musicVolume / 100);
     }
   }, [settings, defaultSettings, isSettingsLoaded]);
 
@@ -83,7 +79,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     // 2. Apply settings to sound manager immediately
     soundManager.setEnabled(newSettings.soundEnabled);
     soundManager.setVolume(newSettings.soundVolume / 100);
-    soundManager.setMusicVolume(newSettings.musicVolume / 100);
     
     // 3. Save to Redis with debounce
     debouncedSaveToRedis(newSettings);
@@ -120,11 +115,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     }
   };
 
-  const handleMusicVolumeChange = (volume: number) => {
-    if (!localSettings) return;
-    const newSettings = { ...localSettings, musicVolume: volume };
-    updateSettings(newSettings);
-  };
 
   const handleAnimationsToggle = () => {
     if (!localSettings) return;
@@ -281,25 +271,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     </div>
                   )}
 
-                  {/* Music Volume */}
-                  <div className="mb-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-[var(--app-foreground)]">
-                        Music Volume
-                      </span>
-                      <span className="text-sm text-[var(--app-foreground-muted)]">
-                        {localSettings.musicVolume}%
-                      </span>
-                    </div>
-                    <input
-                      type="range"
-                      min="0"
-                      max="50"
-                      value={localSettings.musicVolume}
-                      onChange={(e) => handleMusicVolumeChange(Number(e.target.value))}
-                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-                    />
-                  </div>
                 </div>
 
                 {/* Visual Settings */}

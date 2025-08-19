@@ -24,7 +24,6 @@ export interface LevelProgress {
 
 export interface PlayerSettings {
   soundEnabled: boolean;
-  musicVolume: number;
   soundVolume: number;
   animationsEnabled: boolean;
   vibrationEnabled: boolean;
@@ -35,7 +34,6 @@ export interface PlayerGameData {
   progress: LevelProgress[];
   settings: {
     soundEnabled: boolean;
-    musicVolume: number;
     soundVolume: number;
     animationsEnabled: boolean;
     vibrationEnabled: boolean;
