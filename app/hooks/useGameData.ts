@@ -76,6 +76,23 @@ export function useGameData(): GameDataHook {
       if (response.ok) {
         const data = await response.json();
         
+        console.log('📊 Player data loaded:', {
+          hasPlayer: !!data.player,
+          hasFid: !!data.player?.fid,
+          farcasterData: {
+            fid: data.player?.fid,
+            username: data.player?.farcasterUsername,
+            displayName: data.player?.farcasterDisplayName,
+            pfpUrl: data.player?.farcasterPfpUrl
+          },
+          contextData: {
+            fid: context?.user?.fid,
+            username: context?.user?.username,
+            displayName: context?.user?.displayName,
+            pfpUrl: context?.user?.pfpUrl
+          }
+        });
+        
         setPlayer(data.player);
         setProgress(data.progress || []);
         
@@ -91,21 +108,8 @@ export function useGameData(): GameDataHook {
           const playerData: Partial<PlayerProfile> = {};
           if (context?.user?.fid) {
             playerData.fid = context.user.fid;
-            playerData.farcasterUsername = context.user.username;
-            playerData.farcasterDisplayName = context.user.displayName;
-            playerData.farcasterPfpUrl = context.user.pfpUrl;
           }
           await createOrUpdatePlayer(playerData);
-        } 
-        // Migration: Update existing users with missing Farcaster data
-        else if (data.player && context?.user?.fid && !data.player.fid) {
-          const updateData: Partial<PlayerProfile> = {
-            fid: context.user.fid,
-            farcasterUsername: context.user.username,
-            farcasterDisplayName: context.user.displayName,
-            farcasterPfpUrl: context.user.pfpUrl,
-          };
-          await createOrUpdatePlayer(updateData);
         }
       }
     } catch (error) {
@@ -113,7 +117,7 @@ export function useGameData(): GameDataHook {
     } finally {
       setLoading(false);
     }
-  }, [address, isConnected, createOrUpdatePlayer, context]);
+  }, [address, isConnected, context]);
 
   const checkNameAvailability = async (name: string): Promise<boolean> => {
     if (!address) return false;

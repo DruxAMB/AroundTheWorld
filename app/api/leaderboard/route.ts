@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { gameDataService } from '../../services/gameDataService';
+import { farcasterService } from '../../services/farcasterService';
 
 export async function GET(request: NextRequest) {
   try {
@@ -8,8 +9,23 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50');
     const walletAddress = searchParams.get('address');
 
-    // Get leaderboard data (now includes stored Farcaster profile data)
+    // Get leaderboard data
     const leaderboard = await gameDataService.getLeaderboard(timeframe, limit);
+    
+    // Get Farcaster profiles for players with FIDs
+    const fidsToFetch = leaderboard
+      .filter(player => player.fid)
+      .map(player => player.fid!);
+    
+    const farcasterProfiles = fidsToFetch.length > 0 
+      ? await farcasterService.getUsersByFids(fidsToFetch)
+      : {};
+    
+    // Enhance leaderboard with Farcaster data
+    const enhancedLeaderboard = leaderboard.map(player => ({
+      ...player,
+      farcasterProfile: player.fid ? farcasterProfiles[player.fid] : null
+    }));
     
     // Get global stats
     const globalStats = await gameDataService.getGlobalStats();
@@ -30,7 +46,7 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
-      leaderboard,
+      leaderboard: enhancedLeaderboard,
       globalStats,
       playerRank,
       playerRewards,

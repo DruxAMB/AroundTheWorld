@@ -248,14 +248,16 @@ export function Leaderboard({ onClose, currentPlayerName = "You" }: LeaderboardP
               </div>
             ) : (
               <div className="p-4 space-y-2">
-                {players.slice(0, 10).map((player, index) => (
+                {players.slice(0, 10).map((player, index) => {
+                  const isCurrentUser = player.playerId === address;
+                  return (
                   <motion.div
                     key={`${player.playerId}-${index}-${player.score}`}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.05 }}
                     className={`flex items-center space-x-3 p-3 rounded-lg ${
-                      player.playerId === address 
+                      isCurrentUser 
                         ? 'bg-[var(--app-accent)] bg-opacity-10 border border-[var(--app-accent)] border-opacity-30'
                         : 'bg-[var(--app-background)] hover:bg-[var(--app-gray)]'
                     } transition-colors`}
@@ -276,43 +278,42 @@ export function Leaderboard({ onClose, currentPlayerName = "You" }: LeaderboardP
                     {/* Avatar */}
                     <div className="flex-shrink-0">
                       <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-blue-500 flex items-center justify-center overflow-hidden">
-                        {(player.playerId === address && context?.user?.pfpUrl) || 
-                         (player.farcasterPfpUrl) ? (
-                          <Image
-                            src={player.playerId === address && context?.user?.pfpUrl 
-                              ? context.user.pfpUrl 
-                              : player.farcasterPfpUrl || ''}
-                            alt={player.playerId === address ? currentUserName : 
-                                 player.farcasterDisplayName || player.name}
-                            className="w-full h-full object-cover"
-                            width={32}
-                            height={32}
-                          />
-                        ) : (
-                          <span className="text-white font-bold text-sm">
-                            {(player.farcasterDisplayName || player.name || 'U').charAt(0).toUpperCase()}
-                          </span>
-                        )}
+                        <img
+                          src={
+                            // Show live MiniKit data for current user if connected
+                            isCurrentUser && context?.user?.pfpUrl
+                              ? context.user.pfpUrl
+                              : player.farcasterProfile?.pfpUrl || player.avatar
+                          }
+                          alt={
+                            isCurrentUser && context?.user?.displayName
+                              ? context.user.displayName
+                              : player.farcasterProfile?.displayName || player.name
+                          }
+                          className="w-8 h-8 rounded-full object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = player.avatar;
+                          }}
+                        />
                       </div>
                     </div>
 
                     {/* Player Info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center space-x-2">
-                        <div className="font-medium text-[var(--app-foreground)] truncate">
-                          {player.playerId === address ? currentUserName : 
-                           player.farcasterDisplayName || player.name}
-                          {player.playerId === address && (
-                            <span className="ml-2 px-2 py-0.5 bg-[var(--app-accent)] text-white text-xs rounded-full">
-                              YOU
-                            </span>
-                          )}
-                        </div>
-                        {player.levelsCompleted >= 5 && (
-                          <span className="text-sm">👑</span>
-                        )}
-                        {player.farcasterUsername && (
-                          <span className="text-xs text-purple-400 ml-1">@{player.farcasterUsername}</span>
+                        <span className="font-medium text-[var(--app-foreground)] truncate">
+                          {/* Show live MiniKit data for current user if connected */}
+                          {isCurrentUser && context?.user?.displayName
+                            ? context.user.displayName
+                            : player.farcasterProfile?.displayName || player.name}
+                        </span>
+                        {(player.farcasterProfile?.username || (isCurrentUser && context?.user?.username)) && (
+                          <span className="text-xs text-purple-400 ml-1">
+                            @{isCurrentUser && context?.user?.username
+                              ? context.user.username
+                              : player.farcasterProfile?.username}
+                          </span>
                         )}
                       </div>
                       <div className="text-xs text-[var(--app-foreground-muted)]">
@@ -332,7 +333,8 @@ export function Leaderboard({ onClose, currentPlayerName = "You" }: LeaderboardP
                       )}
                     </div>
                   </motion.div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
