@@ -9,6 +9,7 @@ import { soundManager } from "../utils/soundManager";
 import { useGameData } from "../hooks/useGameData";
 import { useAccount } from 'wagmi';
 import { LevelProgress } from '../services/gameDataService';
+import { useComposeCast } from '@coinbase/onchainkit/minikit';
 
 type GameState = 'level-select' | 'playing' | 'level-complete' | 'error';
 
@@ -22,6 +23,31 @@ interface GameWrapperProps {
 export function GameWrapper({ onGameStateChange }: GameWrapperProps = {}) {
   const { progress, saveProgress: saveGameProgress, loading: gameDataLoading } = useGameData();
   const { address, isConnected } = useAccount();
+  const { composeCast } = useComposeCast();
+
+  // Share score functionality
+  const handleShareScore = useCallback((level: Level, score: number, stars: number) => {
+    const starEmojis = '⭐'.repeat(stars);
+    const regionEmoji = {
+      'Africa': '🌍',
+      'India': '🇮🇳', 
+      'Latin America': '🌎',
+      'Southeast Asia': '🌏',
+      'Europe': '🇪🇺'
+    }[level.region] || '🌍';
+
+    const shareText = `Just completed ${level.name} in Around the World! ${regionEmoji}\n\n${starEmojis} Score: ${score.toLocaleString()} points\n\nPlay the match-3 adventure across the globe! 🎮`;
+
+    try {
+      composeCast({ 
+        text: shareText,
+        embeds: [window.location.origin]
+      });
+      soundManager.play('click');
+    } catch (error) {
+      console.error('Failed to share score:', error);
+    }
+  }, [composeCast]);
   
   const [gameState, setGameState] = useState<GameState>('level-select');
 
@@ -178,11 +204,8 @@ export function GameWrapper({ onGameStateChange }: GameWrapperProps = {}) {
           console.warn('Audio playback failed:', audioError);
         }
         
-        // Return to level select after celebration
-        setTimeout(() => {
-          setGameState('level-select');
-          // No background music on menu
-        }, 3000);
+        // Level completion screen stays open until user manually continues
+        // No automatic timeout - user controls when to return to level select
         
       } else {
         // Level failed - return to level select
@@ -204,6 +227,15 @@ export function GameWrapper({ onGameStateChange }: GameWrapperProps = {}) {
     
     // Stop any background music
     soundManager.fadeOutMusic(500);
+  }, []);
+
+  // Function to get next level in sequence
+  const getNextLevel = useCallback((currentLevelId: string) => {
+    const currentIndex = LEVEL_ORDER.findIndex(id => id === currentLevelId);
+    if (currentIndex >= 0 && currentIndex < LEVEL_ORDER.length - 1) {
+      return LEVEL_ORDER[currentIndex + 1];
+    }
+    return null; // No next level (completed all levels)
   }, []);
 
   // Error state UI
@@ -243,7 +275,7 @@ export function GameWrapper({ onGameStateChange }: GameWrapperProps = {}) {
     const stars = levelProgressData?.stars || 1;
     
     return (
-      <div className="flex flex-col h-full max-w-md mx-auto p-4 justify-center items-center space-y-6">
+      <div className="flex flex-col h-screen max-w-md mx-auto p-4 justify-center items-center space-y-6">
         <motion.div
           initial={{ scale: 0, rotate: -180 }}
           animate={{ scale: 1, rotate: 0 }}
@@ -278,15 +310,55 @@ export function GameWrapper({ onGameStateChange }: GameWrapperProps = {}) {
           </div>
         </motion.div>
         
+        {/* Share Button */}
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.5 }}
-          className="text-center"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.2 }}
+          className="flex flex-col items-center space-y-3"
         >
-          <p className="text-sm text-[var(--app-foreground-muted)]">
-            Returning to level select...
-          </p>
+          <motion.button
+            onClick={() => handleShareScore(currentLevel, levelProgressData?.score || 0, stars)}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="bg-[var(--app-accent)] text-white px-6 py-3 rounded-lg font-medium hover:opacity-90 transition-opacity flex items-center space-x-2"
+          >
+            <span>📢</span>
+            <span>Share Achievement</span>
+          </motion.button>
+          
+          {(() => {
+            const nextLevelId = getNextLevel(currentLevel.id);
+            const isNextLevelUnlocked = nextLevelId && unlockedLevels.includes(nextLevelId);
+            
+            return isNextLevelUnlocked ? (
+              <motion.button
+                onClick={() => {
+                  // Find and load next level
+                  import('../data/levels').then(({ LEVELS }) => {
+                    const nextLevel = LEVELS.find(l => l.id === nextLevelId);
+                    if (nextLevel) {
+                      handleLevelSelect(nextLevel);
+                    }
+                  });
+                }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="mt-2 px-6 py-3 bg-[var(--app-accent)] text-white rounded-lg hover:opacity-90 transition-opacity font-medium"
+              >
+                Next Level →
+              </motion.button>
+            ) : (
+              <motion.button
+                onClick={() => setGameState('level-select')}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="mt-2 px-4 py-2 bg-[var(--app-gray)] text-[var(--app-foreground)] rounded-lg hover:bg-[var(--app-gray-dark)] transition-colors"
+              >
+                Back to Levels
+              </motion.button>
+            );
+          })()}
         </motion.div>
       </div>
     );
