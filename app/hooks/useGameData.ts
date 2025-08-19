@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAccount } from 'wagmi';
+import { useMiniKit } from '@coinbase/onchainkit/minikit';
 import { PlayerProfile, LevelProgress, LeaderboardEntry, PlayerSettings } from '../services/gameDataService';
 
 interface GameDataHook {
@@ -36,6 +37,7 @@ interface LeaderboardData {
 
 export function useGameData(): GameDataHook {
   const { address, isConnected } = useAccount();
+  const { context } = useMiniKit();
   const [player, setPlayer] = useState<PlayerProfile | null>(null);
   const [progress, setProgress] = useState<LevelProgress[]>([]);
   const [settings, setSettings] = useState<PlayerSettings | null>(null);
@@ -84,9 +86,16 @@ export function useGameData(): GameDataHook {
           setSettings(null);
         }
         
-        // If player doesn't exist, create one
+        // If player doesn't exist, create one with Farcaster data if available
         if (!data.player) {
-          await createOrUpdatePlayer({});
+          const playerData: Partial<PlayerProfile> = {};
+          if (context?.user?.fid) {
+            playerData.fid = context.user.fid;
+            playerData.farcasterUsername = context.user.username;
+            playerData.farcasterDisplayName = context.user.displayName;
+            playerData.farcasterPfpUrl = context.user.pfpUrl;
+          }
+          await createOrUpdatePlayer(playerData);
         }
       }
     } catch (error) {
@@ -94,7 +103,7 @@ export function useGameData(): GameDataHook {
     } finally {
       setLoading(false);
     }
-  }, [address, isConnected, createOrUpdatePlayer]);
+  }, [address, isConnected, createOrUpdatePlayer, context]);
 
   const checkNameAvailability = async (name: string): Promise<boolean> => {
     if (!address) return false;

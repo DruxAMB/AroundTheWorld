@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50');
     const walletAddress = searchParams.get('address');
 
-    // Get leaderboard data
+    // Get leaderboard data (now includes stored Farcaster profile data)
     const leaderboard = await gameDataService.getLeaderboard(timeframe, limit);
     
     // Get global stats

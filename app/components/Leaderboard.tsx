@@ -276,17 +276,21 @@ export function Leaderboard({ onClose, currentPlayerName = "You" }: LeaderboardP
                     {/* Avatar */}
                     <div className="flex-shrink-0">
                       <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-blue-500 flex items-center justify-center overflow-hidden">
-                        {player.playerId === address && context?.user?.pfpUrl ? (
+                        {(player.playerId === address && context?.user?.pfpUrl) || 
+                         (player.farcasterPfpUrl) ? (
                           <Image
-                            src={context.user.pfpUrl}
-                            alt={currentUserName}
+                            src={player.playerId === address && context?.user?.pfpUrl 
+                              ? context.user.pfpUrl 
+                              : player.farcasterPfpUrl || ''}
+                            alt={player.playerId === address ? currentUserName : 
+                                 player.farcasterDisplayName || player.name}
                             className="w-full h-full object-cover"
                             width={32}
                             height={32}
                           />
                         ) : (
                           <span className="text-white font-bold text-sm">
-                            {(player.name || 'U').charAt(0).toUpperCase()}
+                            {(player.farcasterDisplayName || player.name || 'U').charAt(0).toUpperCase()}
                           </span>
                         )}
                       </div>
@@ -296,7 +300,8 @@ export function Leaderboard({ onClose, currentPlayerName = "You" }: LeaderboardP
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center space-x-2">
                         <div className="font-medium text-[var(--app-foreground)] truncate">
-                          {player.playerId === address ? currentUserName : player.name}
+                          {player.playerId === address ? currentUserName : 
+                           player.farcasterDisplayName || player.name}
                           {player.playerId === address && (
                             <span className="ml-2 px-2 py-0.5 bg-[var(--app-accent)] text-white text-xs rounded-full">
                               YOU
@@ -305,6 +310,9 @@ export function Leaderboard({ onClose, currentPlayerName = "You" }: LeaderboardP
                         </div>
                         {player.levelsCompleted >= 5 && (
                           <span className="text-sm">👑</span>
+                        )}
+                        {player.farcasterUsername && (
+                          <span className="text-xs text-purple-400 ml-1">@{player.farcasterUsername}</span>
                         )}
                       </div>
                       <div className="text-xs text-[var(--app-foreground-muted)]">

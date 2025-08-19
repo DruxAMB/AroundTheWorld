@@ -5,12 +5,16 @@ export interface PlayerProfile {
   name: string;
   walletAddress: string;
   avatar: string;
+  fid?: number; // Farcaster ID
+  farcasterUsername?: string; // Farcaster username
+  farcasterDisplayName?: string; // Farcaster display name  
+  farcasterPfpUrl?: string; // Farcaster profile picture URL
   totalScore: number;
   levelsCompleted: number;
   bestLevel: number;
   createdAt: string;
   lastActive: string;
-  [key: string]: string | number; // Index signature for Redis compatibility
+  [key: string]: string | number | undefined; // Index signature for Redis compatibility
 }
 
 export interface LevelProgress {
@@ -44,6 +48,10 @@ export interface LeaderboardEntry {
   playerId: string;
   name: string;
   avatar: string;
+  fid?: number; // Farcaster ID
+  farcasterUsername?: string; // Farcaster username
+  farcasterDisplayName?: string; // Farcaster display name  
+  farcasterPfpUrl?: string; // Farcaster profile picture URL
   score: number;
   levelsCompleted: number;
   bestLevel: number;
@@ -69,6 +77,7 @@ class GameDataService {
       name: playerData.name || existingPlayer?.name || `Player${walletAddress.slice(-4)}`,
       walletAddress,
       avatar: playerData.avatar || existingPlayer?.avatar || this.generateAvatar(),
+      fid: playerData.fid || existingPlayer?.fid,
       totalScore: playerData.totalScore || existingPlayer?.totalScore || 0,
       levelsCompleted: playerData.levelsCompleted || existingPlayer?.levelsCompleted || 0,
       bestLevel: playerData.bestLevel || existingPlayer?.bestLevel || 0,
@@ -82,6 +91,10 @@ class GameDataService {
       name: player.name,
       walletAddress: player.walletAddress,
       avatar: player.avatar,
+      ...(player.fid && { fid: player.fid }),
+      ...(player.farcasterUsername && { farcasterUsername: player.farcasterUsername }),
+      ...(player.farcasterDisplayName && { farcasterDisplayName: player.farcasterDisplayName }),
+      ...(player.farcasterPfpUrl && { farcasterPfpUrl: player.farcasterPfpUrl }),
       totalScore: player.totalScore,
       levelsCompleted: player.levelsCompleted,
       bestLevel: player.bestLevel,
@@ -110,6 +123,10 @@ class GameDataService {
       name: playerData.name || `Player${walletAddress.slice(-4)}`,
       walletAddress: playerData.walletAddress || walletAddress,
       avatar: playerData.avatar || this.generateAvatar(),
+      fid: playerData.fid ? parseInt(playerData.fid as string) : undefined,
+      farcasterUsername: playerData.farcasterUsername as string,
+      farcasterDisplayName: playerData.farcasterDisplayName as string,
+      farcasterPfpUrl: playerData.farcasterPfpUrl as string,
       totalScore: parseInt(playerData.totalScore) || 0,
       levelsCompleted: parseInt(playerData.levelsCompleted) || 0,
       bestLevel: parseInt(playerData.bestLevel) || 1,
@@ -345,6 +362,10 @@ class GameDataService {
       playerId: walletAddress,
       name: player.name,
       avatar: player.avatar,
+      fid: player.fid,
+      farcasterUsername: player.farcasterUsername,
+      farcasterDisplayName: player.farcasterDisplayName,
+      farcasterPfpUrl: player.farcasterPfpUrl,
       score: totalScore,
       levelsCompleted,
       bestLevel
