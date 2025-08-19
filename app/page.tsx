@@ -20,11 +20,11 @@ import { useAccount } from 'wagmi';
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { GameWrapper } from "./components/GameWrapper";
-import { SettingsModal } from "./components/SettingsModal";
 import { Leaderboard } from "./components/Leaderboard";
 import { UserProfile } from "./components/UserProfile";
-
+import { SettingsModal } from "./components/SettingsModal";
 import { InfoModal } from "./components/InfoModal";
+import SaveButton from "./components/SaveButton";
 import { soundManager } from "./utils/soundManager";
 import { useGameData } from "./hooks/useGameData";
 
@@ -115,7 +115,7 @@ export default function App() {
   }, [isConnected, address, player, updatePlayerName, displayName, pfpUrl, userFid, username]);
 
   return (
-    <div className="flex flex-col min-h-screen font-sans text-[var(--app-foreground)] mini-app-theme from-[var(--app-background)] to-[var(--app-gray)]">
+    <div className="no-scrollbar flex flex-col min-h-screen font-sans text-[var(--app-foreground)] mini-app-theme from-[var(--app-background)] to-[var(--app-gray)]">
       {/* Fixed Header - Hidden during gameplay */}
       {gameState !== 'playing' && (
         <header className="fixed top-0 left-0 right-0 z-50 bg-transparent border-b border-[var(--app-card-border)] backdrop-blur-sm">
@@ -180,6 +180,8 @@ export default function App() {
             >
               <span className="text-lg">⚙️</span>
             </motion.button>
+            {/* Save Mini App Button */}
+            <SaveButton />
           </div>
           </div>
         </div>

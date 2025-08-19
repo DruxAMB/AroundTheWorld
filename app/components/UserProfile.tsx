@@ -54,7 +54,7 @@ export function UserProfile({ isOpen, onClose }: UserProfileProps) {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-purple-400 to-blue-500 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-blue-700 to-blue-500 border-2 border-blue-600 flex items-center justify-center">
               {pfpUrl ? (
                 <Image
                   src={pfpUrl} 
