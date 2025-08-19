@@ -20,7 +20,6 @@ import {
 import { useAccount } from 'wagmi';
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Button } from "./components/DemoComponents";
 import { GameWrapper } from "./components/GameWrapper";
 import { SettingsModal } from "./components/SettingsModal";
 import { Leaderboard } from "./components/Leaderboard";
@@ -194,7 +193,7 @@ export default function App() {
           <GameWrapper onGameStateChange={setGameState} />
         </main>
 
-        <footer className="mt-2 pt-4 justify-center hidden">
+        {/* <footer className="mt-2 pt-4 justify-center hidden">
           <Button
             variant="ghost"
             size="sm"
@@ -203,7 +202,7 @@ export default function App() {
           >
             Built on Base with MiniKit
           </Button>
-        </footer>
+        </footer> */}
       </div>
       
       {/* Settings Modal */}
