@@ -37,6 +37,7 @@ export default function App() {
   
   // const [frameAdded, setFrameAdded] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [gameState, setGameState] = useState<'level-select' | 'playing' | 'level-complete' | 'error'>('level-select');
   const [showLeaderboard, setShowLeaderboard] = useState(false);
 
   const [showUserProfile, setShowUserProfile] = useState(false);
@@ -117,9 +118,10 @@ export default function App() {
 
   return (
     <div className="flex flex-col min-h-screen font-sans text-[var(--app-foreground)] mini-app-theme from-[var(--app-background)] to-[var(--app-gray)]">
-      {/* Fixed Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-transparent border-b border-[var(--app-card-border)] backdrop-blur-sm">
-        <div className="w-full max-w-md mx-auto px-4 py-3">
+      {/* Fixed Header - Hidden during gameplay */}
+      {gameState !== 'playing' && (
+        <header className="fixed top-0 left-0 right-0 z-50 bg-transparent border-b border-[var(--app-card-border)] backdrop-blur-sm">
+        <div className="w-full max-w-md mx-auto px-5 py-3">
           <div className="flex justify-between items-center h-11">
           <div>
             <div className="flex items-center space-x-2">
@@ -183,12 +185,13 @@ export default function App() {
           </div>
           </div>
         </div>
-      </header>
+        </header>
+      )}
 
       {/* Main Content with Top Padding for Fixed Header */}
-      <div className="w-full max-w-md mx-auto px-4 pt-20 pb-3">
+      <div className="w-full max-w-md mx-auto">
         <main className="flex-1">
-          <GameWrapper />
+          <GameWrapper onGameStateChange={setGameState} />
         </main>
 
         <footer className="mt-2 pt-4 justify-center hidden">

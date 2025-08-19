@@ -15,11 +15,20 @@ type GameState = 'level-select' | 'playing' | 'level-complete' | 'error';
 // Define level progression order as a constant to prevent inconsistencies
 const LEVEL_ORDER = ['africa-1', 'india-1', 'latam-1', 'southeast-asia-1', 'europe-1'] as const;
 
-export function GameWrapper() {
+interface GameWrapperProps {
+  onGameStateChange?: (gameState: GameState) => void;
+}
+
+export function GameWrapper({ onGameStateChange }: GameWrapperProps = {}) {
   const { progress, saveProgress: saveGameProgress, loading: gameDataLoading } = useGameData();
   const { address, isConnected } = useAccount();
   
   const [gameState, setGameState] = useState<GameState>('level-select');
+
+  // Notify parent component of game state changes
+  useEffect(() => {
+    onGameStateChange?.(gameState);
+  }, [gameState, onGameStateChange]);
   const [currentLevel, setCurrentLevel] = useState<Level | null>(null);
   const [unlockedLevels, setUnlockedLevels] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);

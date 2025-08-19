@@ -591,12 +591,13 @@ export function Match3Game({ level, onLevelComplete, onBackToLevels }: Match3Gam
 
   return (
     <div 
-      className="flex flex-col h-full max-w-md mx-auto p-4 space-y-4 relative"
+      className="flex flex-col h-screen max-w-md mx-auto p-4 space-y-4 relative"
       style={{
         backgroundImage: `url(${level.backgroundImage})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
-        backgroundAttachment: 'fixed'
+        backgroundRepeat: 'no-repeat',
+        minHeight: '100vh'
       }}
     >
       {/* Background overlay */}
