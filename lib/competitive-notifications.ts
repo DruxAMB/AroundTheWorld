@@ -50,7 +50,6 @@ export class CompetitiveNotificationService {
       
       for (let i = 0; i < topPlayers.length; i += 2) {
         const fid = parseInt(topPlayers[i] as string);
-        const score = parseInt(topPlayers[i + 1] as string);
         const currentRank = Math.floor(i / 2) + 1;
         
         // Notify players who are close to top 10
@@ -123,7 +122,7 @@ export class CompetitiveNotificationService {
   }
 
   // Send the actual notification
-  private static async sendNotification(payload: any) {
+  private static async sendNotification(payload: { fid: number; notification: { title: string; body: string; notificationDetails: Record<string, unknown> } }) {
     try {
       const response = await fetch('/api/notify', {
         method: 'POST',

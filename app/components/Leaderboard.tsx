@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 import { soundManager } from "../utils/soundManager";
 import { useLeaderboard } from "../hooks/useGameData";
 import { useMiniKit } from "@coinbase/onchainkit/minikit";
@@ -277,17 +278,19 @@ export function Leaderboard({ onClose }: LeaderboardProps) {
                       <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-700 to-blue-500 border-2 border-blue-600 flex items-center justify-center overflow-hidden">
                         {/* Check if we have a real image URL or just an emoji */}
                         {(isCurrentUser && context?.user?.pfpUrl) || player.farcasterProfile?.pfpUrl ? (
-                          <img
+                          <Image
                             src={
                               isCurrentUser && context?.user?.pfpUrl
                                 ? context.user.pfpUrl
-                                : player.farcasterProfile?.pfpUrl
+                                : player.farcasterProfile?.pfpUrl || ''
                             }
                             alt={
                               isCurrentUser && context?.user?.displayName
                                 ? context.user.displayName
                                 : player.farcasterProfile?.displayName || player.name
                             }
+                            width={32}
+                            height={32}
                             className="w-8 h-8 rounded-full object-cover"
                             onError={(e) => {
                               const target = e.target as HTMLImageElement;
