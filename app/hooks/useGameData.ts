@@ -205,6 +205,26 @@ export function useGameData(): GameDataHook {
       // Update local state immediately for optimistic updates
       setProgress(newProgress);
       
+      // Trigger competitive notifications for score updates
+      if (player && context?.user?.fid) {
+        const totalScore = newProgress.reduce((sum, p) => sum + p.score, 0);
+        if (totalScore > (player.totalScore || 0)) {
+          // Trigger competitive notifications
+          fetch('/api/competitive-notify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              type: 'score_update',
+              playerFid: context.user.fid,
+              playerName: player.name || `Player${address.slice(-4)}`,
+              score: totalScore
+            })
+          }).catch(error => {
+            console.warn('Failed to trigger competitive notifications:', error);
+          });
+        }
+      }
+      
       // Reload player data to get updated stats (but don't await to prevent blocking)
       loadPlayerData().catch(error => {
         console.warn('Failed to reload player data after progress save:', error);
@@ -216,7 +236,7 @@ export function useGameData(): GameDataHook {
     } finally {
       setSaving(false);
     }
-  }, [address, isConnected, loadPlayerData]);
+  }, [address, isConnected, loadPlayerData, player, context]);
 
   const saveSettings = async (newSettings: PlayerSettings) => {
     if (!address) return;

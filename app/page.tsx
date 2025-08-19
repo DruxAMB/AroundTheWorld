@@ -120,7 +120,7 @@ export default function App() {
     if (context && context.client && !context.client.added) {
       const timer = setTimeout(() => {
         setShowSaveModal(true);
-      }, 2000); // Show after 2 seconds
+      }, 3000); // Show after 2 seconds
       
       return () => clearTimeout(timer);
     }
