@@ -378,15 +378,19 @@ export function Match3Game({ level, onLevelComplete, onBackToLevels }: Match3Gam
       animating: false,
       matchedCandies: [],
       soundEnabled: true,
-      specialCandiesCreated: 0,
       gameStatus: 'playing',
+      specialCandiesCreated: 0
     };
   });
+  
+  const [isCompleting, setIsCompleting] = useState(false);
 
-  const handleCandyClick = useCallback((row: number, col: number) => {
-    if (gameState.moves <= 0) return;
+  const handleCandyClick = useCallback((position: Position) => {
+    if (gameState.animating || gameState.gameStatus !== 'playing' || isCompleting) {
+      return;
+    }
 
-    const position = { row, col };
+    const { row, col } = position;
     
     if (!gameState.selectedCandy) {
       // Select first candy
@@ -432,7 +436,6 @@ export function Match3Game({ level, onLevelComplete, onBackToLevels }: Match3Gam
         // Valid move - show match animation first
         setGameState(prev => ({
           ...prev,
-          matchedCandies: matches,
           animating: true,
         }));
         
@@ -462,10 +465,12 @@ export function Match3Game({ level, onLevelComplete, onBackToLevels }: Match3Gam
             let gameStatus: 'playing' | 'won' | 'lost' = 'playing';
             if (completed) {
               gameStatus = 'won';
-              setTimeout(() => onLevelComplete(true, newScore), 1000);
+              setIsCompleting(true);
+              setTimeout(() => onLevelComplete(true, newScore), 300);
             } else if (newMoves <= 0) {
               gameStatus = 'lost';
-              setTimeout(() => onLevelComplete(false, newScore), 1000);
+              setIsCompleting(true);
+              setTimeout(() => onLevelComplete(false, newScore), 300);
             }
             
             // Check if reshuffle is needed after cascading matches
@@ -492,7 +497,6 @@ export function Match3Game({ level, onLevelComplete, onBackToLevels }: Match3Gam
               moves: newMoves,
               selectedCandy: null,
               animating: false,
-              matchedCandies: [],
               specialCandiesCreated: newSpecialCount,
               gameStatus
             };
@@ -518,7 +522,7 @@ export function Match3Game({ level, onLevelComplete, onBackToLevels }: Match3Gam
         selectedCandy: position,
       }));
     }
-  }, [gameState, level, onLevelComplete]);
+  }, [gameState, level, onLevelComplete, isCompleting]);
 
   const resetGame = useCallback(() => {
     const { grid, ids } = createInitialGrid(level.candyTheme);
@@ -534,8 +538,8 @@ export function Match3Game({ level, onLevelComplete, onBackToLevels }: Match3Gam
       animating: false,
       matchedCandies: [],
       soundEnabled: gameState.soundEnabled,
-      specialCandiesCreated: 0,
       gameStatus: 'playing',
+      specialCandiesCreated: 0
     });
   }, [level, gameState.soundEnabled]);
 
@@ -677,8 +681,32 @@ export function Match3Game({ level, onLevelComplete, onBackToLevels }: Match3Gam
 
       {/* Game Grid */}
       <div className="flex-1 flex items-center justify-center">
-        <div className="w-full max-w-sm aspect-square">
-          <div className="grid grid-cols-6 gap-1 h-full p-2 bg-[var(--app-card-bg)] backdrop-blur-sm rounded-lg border border-[var(--app-card-border)]">
+        <div className="w-full max-w-sm aspect-square relative">
+          {/* Completion Overlay */}
+          {isCompleting && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="absolute inset-0 bg-black bg-opacity-50 rounded-lg flex items-center justify-center z-20"
+            >
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", duration: 0.5 }}
+                className="text-center"
+              >
+                <div className="text-4xl mb-2">🎉</div>
+                <div className="text-white font-bold text-lg">
+                  {gameState.gameStatus === 'won' ? 'Level Complete!' : 'Game Over'}
+                </div>
+                <div className="text-white text-sm opacity-75 mt-1">
+                  Calculating results...
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+          
+          <div className={`grid grid-cols-6 gap-1 h-full p-2 bg-[var(--app-card-bg)] backdrop-blur-sm rounded-lg border border-[var(--app-card-border)] ${isCompleting ? 'pointer-events-none opacity-75' : ''}`}>
             <AnimatePresence>
               {gameState.grid.map((row, rowIndex) =>
                 row.map((candy, colIndex) => {
@@ -711,7 +739,7 @@ export function Match3Game({ level, onLevelComplete, onBackToLevels }: Match3Gam
                         damping: 25,
                         layout: { duration: 0.3 }
                       }}
-                      onClick={() => handleCandyClick(rowIndex, colIndex)}
+                      onClick={() => handleCandyClick({ row: rowIndex, col: colIndex })}
                       className={getCandyStyle(rowIndex, colIndex)}
                       disabled={gameState.moves <= 0 || gameState.animating}
                     >
