@@ -24,7 +24,7 @@ import { Leaderboard } from "./components/Leaderboard";
 import { UserProfile } from "./components/UserProfile";
 import { SettingsModal } from "./components/SettingsModal";
 import { InfoModal } from "./components/InfoModal";
-import SaveButton from "./components/SaveButton";
+import SmartSaveButton from "./components/SmartSaveButton";
 import { soundManager } from "./utils/soundManager";
 import { useGameData } from "./hooks/useGameData";
 
@@ -114,6 +114,17 @@ export default function App() {
       setupPlayer();
     }
   }, [isConnected, address, player, updatePlayerName, displayName, pfpUrl, userFid, username]);
+
+  // Show save modal on first load for users who haven't added the app
+  useEffect(() => {
+    if (context && context.client && !context.client.added) {
+      const timer = setTimeout(() => {
+        setShowSaveModal(true);
+      }, 2000); // Show after 2 seconds
+      
+      return () => clearTimeout(timer);
+    }
+  }, [context]);
 
   return (
     <div className="no-scrollbar flex flex-col min-h-screen font-sans text-[var(--app-foreground)] mini-app-theme from-[var(--app-background)] to-[var(--app-gray)]">
@@ -235,7 +246,7 @@ export default function App() {
       )}
       
       {/* Save Mini App Modal */}
-      <SaveButton
+      <SmartSaveButton
         isOpen={showSaveModal}
         onClose={() => setShowSaveModal(false)}
       />

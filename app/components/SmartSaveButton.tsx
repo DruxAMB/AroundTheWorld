@@ -5,15 +5,20 @@ import { useMiniKit } from '@coinbase/onchainkit/minikit';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-interface SaveButtonProps {
+interface SmartSaveButtonProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-export default function SaveButton({ isOpen, onClose }: SaveButtonProps) {
+export default function SmartSaveButton({ isOpen, onClose }: SmartSaveButtonProps) {
   const addFrame = useAddFrame();
   const { context } = useMiniKit();
   const [isAdding, setIsAdding] = useState(false);
+
+  // Don't show modal if already saved
+  if (context?.client?.added) {
+    return null;
+  }
 
   const handleAddFrame = async () => {
     setIsAdding(true);
