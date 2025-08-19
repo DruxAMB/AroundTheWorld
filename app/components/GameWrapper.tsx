@@ -101,11 +101,8 @@ export function GameWrapper() {
   const handleLevelSelect = (level: Level) => {
     setCurrentLevel(level);
     setGameState('playing');
-    // Start level-specific background music
+    // Stop any background music
     soundManager.fadeOutMusic(500);
-    setTimeout(() => {
-      soundManager.playMusic(level.backgroundMusic);
-    }, 600);
   };
 
   const handleLevelComplete = useCallback(async (success: boolean, score: number) => {
@@ -175,11 +172,7 @@ export function GameWrapper() {
         // Return to level select after celebration
         setTimeout(() => {
           setGameState('level-select');
-          try {
-            soundManager.playMusic('menu');
-          } catch (audioError) {
-            console.warn('Menu music failed:', audioError);
-          }
+          // No background music on menu
         }, 3000);
         
       } else {
@@ -200,15 +193,8 @@ export function GameWrapper() {
     setCurrentLevel(null);
     setError(null); // Clear any errors when returning to level select
     
-    // Switch back to menu music safely
-    try {
-      soundManager.fadeOutMusic(500);
-      setTimeout(() => {
-        soundManager.playMusic('menu');
-      }, 600);
-    } catch (audioError) {
-      console.warn('Menu music transition failed:', audioError);
-    }
+    // Stop any background music
+    soundManager.fadeOutMusic(500);
   }, []);
 
   // Error state UI
