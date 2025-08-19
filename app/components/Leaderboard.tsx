@@ -231,7 +231,7 @@ export function Leaderboard({ onClose, currentPlayerName = "You" }: LeaderboardP
           </div>
 
           {/* Leaderboard List */}
-          <div className="flex-1 overflow-y-auto max-h-96">
+          <div className="no-scrollbar flex-1 overflow-y-auto max-h-96">
             {loading ? (
               <div className="p-8 text-center">
                 <motion.div
@@ -247,7 +247,7 @@ export function Leaderboard({ onClose, currentPlayerName = "You" }: LeaderboardP
                 <div className="text-[var(--app-foreground-muted)]">No players yet. Be the first!</div>
               </div>
             ) : (
-              <div className="p-4 space-y-2">
+              <div className="no-scrollbar p-4 space-y-2">
                 {players.slice(0, 10).map((player, index) => {
                   const isCurrentUser = player.playerId === address;
                   return (
@@ -277,25 +277,37 @@ export function Leaderboard({ onClose, currentPlayerName = "You" }: LeaderboardP
 
                     {/* Avatar */}
                     <div className="flex-shrink-0">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-blue-500 flex items-center justify-center overflow-hidden">
-                        <img
-                          src={
-                            // Show live MiniKit data for current user if connected
-                            isCurrentUser && context?.user?.pfpUrl
-                              ? context.user.pfpUrl
-                              : player.farcasterProfile?.pfpUrl || player.avatar
-                          }
-                          alt={
-                            isCurrentUser && context?.user?.displayName
-                              ? context.user.displayName
-                              : player.farcasterProfile?.displayName || player.name
-                          }
-                          className="w-8 h-8 rounded-full object-cover"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.src = player.avatar;
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-700 to-blue-500 border-2 border-blue-600 flex items-center justify-center overflow-hidden">
+                        {/* Check if we have a real image URL or just an emoji */}
+                        {(isCurrentUser && context?.user?.pfpUrl) || player.farcasterProfile?.pfpUrl ? (
+                          <img
+                            src={
+                              isCurrentUser && context?.user?.pfpUrl
+                                ? context.user.pfpUrl
+                                : player.farcasterProfile?.pfpUrl
+                            }
+                            alt={
+                              isCurrentUser && context?.user?.displayName
+                                ? context.user.displayName
+                                : player.farcasterProfile?.displayName || player.name
+                            }
+                            className="w-8 h-8 rounded-full object-cover"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                              (target.nextElementSibling as HTMLElement)!.style.display = 'flex';
+                            }}
+                          />
+                        ) : null}
+                        {/* Emoji fallback */}
+                        <div 
+                          className="w-8 h-8 rounded-full flex items-center justify-center text-lg"
+                          style={{ 
+                            display: (isCurrentUser && context?.user?.pfpUrl) || player.farcasterProfile?.pfpUrl ? 'none' : 'flex' 
                           }}
-                        />
+                        >
+                          {player.avatar}
+                        </div>
                       </div>
                     </div>
 
