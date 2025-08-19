@@ -96,6 +96,16 @@ export function useGameData(): GameDataHook {
             playerData.farcasterPfpUrl = context.user.pfpUrl;
           }
           await createOrUpdatePlayer(playerData);
+        } 
+        // Migration: Update existing users with missing Farcaster data
+        else if (data.player && context?.user?.fid && !data.player.fid) {
+          const updateData: Partial<PlayerProfile> = {
+            fid: context.user.fid,
+            farcasterUsername: context.user.username,
+            farcasterDisplayName: context.user.displayName,
+            farcasterPfpUrl: context.user.pfpUrl,
+          };
+          await createOrUpdatePlayer(updateData);
         }
       }
     } catch (error) {
