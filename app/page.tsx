@@ -40,6 +40,7 @@ export default function App() {
 
   const [showUserProfile, setShowUserProfile] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
+  const [showSaveModal, setShowSaveModal] = useState(false);
 
   // const addFrame = useAddFrame();
   // const openUrl = useOpenUrl();
@@ -180,8 +181,6 @@ export default function App() {
             >
               <span className="text-lg">⚙️</span>
             </motion.button>
-            {/* Save Mini App Button */}
-            <SaveButton />
           </div>
           </div>
         </div>
@@ -234,6 +233,12 @@ export default function App() {
           currentPlayerName={player?.name}
         />
       )}
+      
+      {/* Save Mini App Modal */}
+      <SaveButton
+        isOpen={showSaveModal}
+        onClose={() => setShowSaveModal(false)}
+      />
     </div>
   );
 }
