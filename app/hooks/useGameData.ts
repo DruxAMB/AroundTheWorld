@@ -117,7 +117,7 @@ export function useGameData(): GameDataHook {
     } finally {
       setLoading(false);
     }
-  }, [address, isConnected, context]);
+  }, [address, isConnected, context, createOrUpdatePlayer]);
 
   const checkNameAvailability = async (name: string): Promise<boolean> => {
     if (!address) return false;

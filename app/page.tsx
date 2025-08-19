@@ -1,8 +1,7 @@
 "use client";
 
 import {
-  useMiniKit,
-  useOpenUrl
+  useMiniKit
 } from "@coinbase/onchainkit/minikit";
 import {
   Name,
@@ -43,7 +42,7 @@ export default function App() {
   const [showInfo, setShowInfo] = useState(false);
 
   // const addFrame = useAddFrame();
-  const openUrl = useOpenUrl();
+  // const openUrl = useOpenUrl();
 
   useEffect(() => {
     if (!isFrameReady) {

@@ -6,7 +6,6 @@ import { soundManager } from "../utils/soundManager";
 import { useLeaderboard } from "../hooks/useGameData";
 import { useMiniKit } from "@coinbase/onchainkit/minikit";
 import { useAccount } from "wagmi";
-import Image from "next/image";
 
 interface LeaderboardProps {
   onClose: () => void;
@@ -16,14 +15,12 @@ interface LeaderboardProps {
 
 type TimeFilter = 'week' | 'month' | 'all-time';
 
-export function Leaderboard({ onClose, currentPlayerName = "You" }: LeaderboardProps) {
+export function Leaderboard({ onClose }: LeaderboardProps) {
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('week');
   const { data: leaderboardData, loading } = useLeaderboard(timeFilter);
   const { context } = useMiniKit();
   const { address } = useAccount();
   
-  // Get current user's Farcaster data for comparison
-  const currentUserName = context?.user?.displayName || context?.user?.username || currentPlayerName;
 
   const handleTimeFilterChange = (newFilter: TimeFilter) => {
     setTimeFilter(newFilter);
