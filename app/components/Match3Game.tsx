@@ -466,7 +466,7 @@ export function Match3Game({ level, onLevelComplete, onBackToLevels }: Match3Gam
               score: newScore,
               moves: newMoves,
               specialCandiesCreated: newSpecialCount
-            });
+            }, true);
             
             let gameStatus: 'playing' | 'won' | 'lost' = 'playing';
             if (completed) {
@@ -668,7 +668,7 @@ export function Match3Game({ level, onLevelComplete, onBackToLevels }: Match3Gam
               score: gameState.score,
               moves: gameState.moves,
               specialCandiesCreated: gameState.specialCandiesCreated
-            });
+            }, false);
             const completed = progress[`objective_${index}`];
             
             return (

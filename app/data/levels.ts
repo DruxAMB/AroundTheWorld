@@ -211,7 +211,8 @@ export const getUnlockedLevels = (): Level[] => {
 
 export const checkLevelObjectives = (
   level: Level, 
-  gameState: { score: number; moves: number; specialCandiesCreated: number }
+  gameState: { score: number; moves: number; specialCandiesCreated: number },
+  isGameWon: boolean = false
 ): { completed: boolean; progress: { [key: string]: boolean } } => {
   const progress: { [key: string]: boolean } = {};
   let allCompleted = true;
@@ -224,7 +225,9 @@ export const checkLevelObjectives = (
         completed = gameState.score >= objective.target;
         break;
       case 'moves':
-        completed = (level.moves - gameState.moves) <= objective.target;
+        // Only consider completed if game is won and moves used <= target
+        const movesUsed = level.moves - gameState.moves;
+        completed = isGameWon && movesUsed <= objective.target;
         break;
       case 'clear_special':
         completed = gameState.specialCandiesCreated >= objective.target;
