@@ -76,7 +76,7 @@ export default function LevelCompleteModal({
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
-            className="bg-white rounded-xl p-8 max-w-md w-full mx-4 text-center"
+            className="bg-[var(--app-background)] border border-[var(--app-gray)] rounded-xl p-8 max-w-md w-full mx-4 text-center"
           >
             {success ? (
               <>
@@ -85,20 +85,20 @@ export default function LevelCompleteModal({
                 <h2 className="text-2xl font-bold text-green-600 mb-2">
                   Level Complete!
                 </h2>
-                <p className="text-gray-600 mb-4">
+                <p className="text-[var(--app-foreground-muted)] mb-4">
                   Congratulations! You've conquered {levelName}!
                 </p>
                 
-                <div className="bg-green-50 rounded-lg p-4 mb-6">
+                <div className="bg-[var(--app-gray)] rounded-lg p-4 mb-6">
                   <div className="text-3xl font-bold text-green-600 mb-1">
                     {score.toLocaleString()}
                   </div>
-                  <div className="text-sm text-green-700">Final Score</div>
+                  <div className="text-sm text-[var(--app-foreground-muted)]">Final Score</div>
                 </div>
 
                 {/* NFT Mint Section */}
                 {levelData && (
-                  <div className="bg-purple-50 rounded-lg p-4 mb-6">
+                  <div className="bg-[var(--app-gray)] rounded-lg p-4 mb-6">
                     <div className="flex items-center justify-center mb-3">
                       <img 
                         src={levelData.imageUrl} 
@@ -106,17 +106,17 @@ export default function LevelCompleteModal({
                         className="w-16 h-16 rounded-lg mr-3 object-cover"
                       />
                       <div className="text-left">
-                        <div className="font-semibold text-purple-800">
+                        <div className="font-semibold text-[var(--app-foreground)]">
                           Claim Your NFT
                         </div>
-                        <div className="text-sm text-purple-600">
+                        <div className="text-sm text-[var(--app-foreground-muted)]">
                           {levelData.name} Winner Badge
                         </div>
                       </div>
                     </div>
                     <button
                       onClick={handleMintClick}
-                      className="w-full py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-semibold transition-colors"
+                      className="w-full py-3 bg-[var(--app-accent)] text-white rounded-lg hover:opacity-90 font-semibold transition-opacity"
                     >
                       Mint NFT (~$0.20)
                     </button>
@@ -127,14 +127,14 @@ export default function LevelCompleteModal({
                 <div className="flex gap-3">
                   <button
                     onClick={onClose}
-                    className="flex-1 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 font-semibold"
+                    className="flex-1 py-3 border border-[var(--app-gray)] rounded-lg hover:bg-[var(--app-gray)] text-[var(--app-foreground)] font-semibold"
                   >
                     Back to Levels
                   </button>
                   {onNextLevel && (
                     <button
                       onClick={onNextLevel}
-                      className="flex-1 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold"
+                      className="flex-1 py-3 bg-[var(--app-accent)] text-white rounded-lg hover:opacity-90 font-semibold"
                     >
                       Next Level
                     </button>
@@ -148,29 +148,29 @@ export default function LevelCompleteModal({
                 <h2 className="text-2xl font-bold text-red-600 mb-2">
                   Level Failed
                 </h2>
-                <p className="text-gray-600 mb-4">
+                <p className="text-[var(--app-foreground-muted)] mb-4">
                   Don't give up! Try again to conquer {levelName}.
                 </p>
                 
-                <div className="bg-red-50 rounded-lg p-4 mb-6">
+                <div className="bg-[var(--app-gray)] rounded-lg p-4 mb-6">
                   <div className="text-3xl font-bold text-red-600 mb-1">
                     {score.toLocaleString()}
                   </div>
-                  <div className="text-sm text-red-700">Final Score</div>
+                  <div className="text-sm text-[var(--app-foreground-muted)]">Final Score</div>
                 </div>
 
                 {/* Action Buttons */}
                 <div className="flex gap-3">
                   <button
                     onClick={onClose}
-                    className="flex-1 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 font-semibold"
+                    className="flex-1 py-3 border border-[var(--app-gray)] rounded-lg hover:bg-[var(--app-gray)] text-[var(--app-foreground)] font-semibold"
                   >
                     Back to Levels
                   </button>
                   {onRetry && (
                     <button
                       onClick={onRetry}
-                      className="flex-1 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 font-semibold"
+                      className="flex-1 py-3 bg-[var(--app-accent)] text-white rounded-lg hover:opacity-90 font-semibold"
                     >
                       Try Again
                     </button>

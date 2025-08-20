@@ -115,12 +115,17 @@ export default function NFTMintModal({
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
-          className="bg-white rounded-xl p-6 max-w-md w-full mx-4"
+          className="bg-[var(--app-background)] border border-[var(--app-gray)] rounded-xl p-6 max-w-md w-full mx-4"
+          style={{
+            backgroundColor: 'var(--app-background)',
+            borderColor: 'var(--app-gray)',
+            color: 'var(--app-foreground)'
+          }}
           onClick={(e) => e.stopPropagation()}
         >
           {status === 'preview' && (
             <div>
-              <h3 className="text-2xl font-bold mb-4 text-center">
+              <h3 className="text-2xl font-bold mb-4 text-center text-[var(--app-foreground)]">
                 Mint Your NFT
               </h3>
               <div className="text-center mb-4">
@@ -129,17 +134,17 @@ export default function NFTMintModal({
                   alt={levelName} 
                   className="w-48 h-48 mx-auto rounded-lg mb-4 object-cover"
                 />
-                <h4 className="text-lg font-semibold mb-2">
+                <h4 className="text-lg font-semibold mb-2 text-[var(--app-foreground)]">
                   AroundTheWorld {levelName} Winner
                 </h4>
-                <p className="text-gray-600 mb-4">
+                <p className="text-[var(--app-foreground-muted)] mb-4">
                   Congratulations! You've completed the {levelName} level.
                 </p>
-                <div className="bg-gray-100 rounded-lg p-3 mb-4">
-                  <p className="text-sm text-gray-700">
+                <div className="bg-[var(--app-gray)] rounded-lg p-3 mb-4">
+                  <p className="text-sm text-[var(--app-foreground)]">
                     <strong>Mint Price:</strong> {MINT_PRICE} ETH (~$0.20)
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-[var(--app-foreground-muted)] mt-1">
                     + Base network gas fees
                   </p>
                 </div>
@@ -150,7 +155,7 @@ export default function NFTMintModal({
                   <p className="text-red-500 mb-4">Wallet not connected</p>
                   <button 
                     onClick={handleClose}
-                    className="w-full py-3 border border-gray-300 rounded-lg hover:bg-gray-50"
+                    className="w-full py-3 border border-[var(--app-gray)] rounded-lg hover:bg-[var(--app-gray)] text-[var(--app-foreground)]"
                   >
                     Close
                   </button>
@@ -159,13 +164,13 @@ export default function NFTMintModal({
                 <div className="flex gap-3">
                   <button 
                     onClick={handleClose}
-                    className="flex-1 py-3 border border-gray-300 rounded-lg hover:bg-gray-50"
+                    className="flex-1 py-3 border border-[var(--app-gray)] rounded-lg hover:bg-[var(--app-gray)] text-[var(--app-foreground)]"
                   >
                     Cancel
                   </button>
                   <button 
                     onClick={handleMint}
-                    className="flex-1 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-semibold"
+                    className="flex-1 py-3 bg-[var(--app-accent)] text-white rounded-lg hover:opacity-90 font-semibold"
                   >
                     Mint NFT
                   </button>
@@ -176,13 +181,13 @@ export default function NFTMintModal({
 
           {status === 'minting' && (
             <div className="text-center">
-              <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-600 mx-auto mb-4"></div>
-              <h3 className="text-xl font-bold mb-2">Minting Your NFT</h3>
-              <p className="text-gray-600 mb-4">
+              <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-[var(--app-accent)] mx-auto mb-4"></div>
+              <h3 className="text-xl font-bold mb-2 text-[var(--app-foreground)]">Minting Your NFT</h3>
+              <p className="text-[var(--app-foreground-muted)] mb-4">
                 Please confirm the transaction in your wallet...
               </p>
-              <div className="bg-blue-50 rounded-lg p-3">
-                <p className="text-sm text-blue-700">
+              <div className="bg-[var(--app-gray)] rounded-lg p-3">
+                <p className="text-sm text-[var(--app-foreground)]">
                   This may take a few moments to complete
                 </p>
               </div>
@@ -195,17 +200,17 @@ export default function NFTMintModal({
               <h3 className="text-xl font-bold mb-2 text-green-600">
                 Mint Successful!
               </h3>
-              <p className="text-gray-600 mb-4">
+              <p className="text-[var(--app-foreground-muted)] mb-4">
                 Your {levelName} Winner NFT has been minted successfully!
               </p>
               
               {hash && (
-                <div className="bg-green-50 rounded-lg p-3 mb-4">
+                <div className="bg-[var(--app-gray)] rounded-lg p-3 mb-4">
                   <a 
                     href={`https://basescan.org/tx/${hash}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm text-green-700 hover:underline break-all"
+                    className="text-sm text-green-500 hover:underline break-all"
                   >
                     View on Basescan →
                   </a>
@@ -227,19 +232,19 @@ export default function NFTMintModal({
               <h3 className="text-xl font-bold mb-2 text-red-600">
                 Minting Failed
               </h3>
-              <p className="text-gray-600 mb-4">
+              <p className="text-[var(--app-foreground-muted)] mb-4">
                 {errorMessage || 'Something went wrong. Please try again.'}
               </p>
               <div className="flex gap-3">
                 <button 
                   onClick={handleClose}
-                  className="flex-1 py-3 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  className="flex-1 py-3 border border-[var(--app-gray)] rounded-lg hover:bg-[var(--app-gray)] text-[var(--app-foreground)]"
                 >
                   Close
                 </button>
                 <button 
                   onClick={() => setStatus('preview')}
-                  className="flex-1 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-semibold"
+                  className="flex-1 py-3 bg-[var(--app-accent)] text-white rounded-lg hover:opacity-90 font-semibold"
                 >
                   Try Again
                 </button>
