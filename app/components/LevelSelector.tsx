@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Image from "next/image";
 import { Level, LEVELS } from "../data/levels";
 
 interface LevelSelectorProps {
@@ -120,12 +121,27 @@ export function LevelSelector({ onLevelSelect, unlockedLevels, isWalletConnected
                   </div>
                   
                   {/* Candy Preview */}
-                  <div className="flex justify-center space-x-1 mt-3">
-                    {level.candyTheme.slice(0, 4).map((candy, candyIndex) => (
-                      <span key={candyIndex} className="text-lg">
-                        {candy}
-                      </span>
-                    ))}
+                  <div className="flex justify-center items-center space-x-1 mt-3">
+                    {level.candyTheme.slice(0, 4).map((candy, candyIndex) => {
+                      const isImagePath = candy.startsWith('/') && (candy.endsWith('.jpg') || candy.endsWith('.png') || candy.endsWith('.jpeg'));
+                      return (
+                        <div key={candyIndex} className="flex items-center justify-center">
+                          {isImagePath ? (
+                            <div className="relative w-6 h-6 rounded-full overflow-hidden border border-white/30">
+                              <Image
+                                src={candy}
+                                alt="Regional candy preview"
+                                fill
+                                className="object-cover"
+                                sizes="24px"
+                              />
+                            </div>
+                          ) : (
+                            <span className="text-lg">{candy}</span>
+                          )}
+                        </div>
+                      );
+                    })}
                     <span className="text-sm text-[var(--app-foreground-muted)]">...</span>
                   </div>
                   

@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 import { soundManager } from "../utils/soundManager";
 import { Level, checkLevelObjectives } from "../data/levels";
 
@@ -69,6 +70,11 @@ const areAdjacent = (pos1: Position, pos2: Position): boolean => {
 // Check if candy is special
 const isSpecialCandy = (candy: CandyType): boolean => {
   return Object.values(SPECIAL_CANDIES).includes(candy);
+};
+
+// Check if candy is an image path
+const isImagePath = (candy: CandyType): boolean => {
+  return candy.startsWith('/') && (candy.endsWith('.jpg') || candy.endsWith('.png') || candy.endsWith('.jpeg'));
 };
 
 // Check if there are any possible moves on the board
@@ -576,18 +582,18 @@ export function Match3Game({ level, onLevelComplete, onBackToLevels }: Match3Gam
 
   const getCandyStyle = useCallback((row: number, col: number) => {
     const baseClasses = `
-      aspect-square text-2xl flex items-center justify-center rounded-md
-      border-2 border-transparent
+      aspect-square flex items-center justify-center rounded-lg
+      border-2 border-transparent transition-all duration-200
     `;
     
     let stateClasses = '';
     
     if (isSelected(row, col)) {
-      stateClasses = 'bg-[var(--app-accent)] bg-opacity-30 border-[var(--app-accent)] shadow-lg';
+      stateClasses = 'bg-[var(--app-accent)] bg-opacity-40 border-[var(--app-accent)] shadow-lg scale-105';
     } else if (isMatched(row, col)) {
-      stateClasses = 'bg-red-500 bg-opacity-50 border-red-400';
+      stateClasses = 'bg-red-500 bg-opacity-60 border-red-400 shadow-md';
     } else {
-      stateClasses = 'bg-[var(--app-background)] hover:bg-[var(--app-gray)] hover:shadow-md';
+      stateClasses = 'bg-white/10 hover:bg-white/20 hover:shadow-md backdrop-blur-sm';
     }
     
     return `${baseClasses} ${stateClasses}`;
@@ -706,7 +712,7 @@ export function Match3Game({ level, onLevelComplete, onBackToLevels }: Match3Gam
             </motion.div>
           )}
           
-          <div className={`grid grid-cols-6 gap-1 h-full p-2 bg-[var(--app-card-bg)] backdrop-blur-sm rounded-lg border border-[var(--app-card-border)] ${isCompleting ? 'pointer-events-none opacity-75' : ''}`}>
+          <div className={`grid grid-cols-6 gap-2 h-full p-3 bg-black/30 backdrop-blur-md rounded-xl border border-white/20 ${isCompleting ? 'pointer-events-none opacity-75' : ''}`}>
             <AnimatePresence>
               {gameState.grid.map((row, rowIndex) =>
                 row.map((candy, colIndex) => {
@@ -743,7 +749,7 @@ export function Match3Game({ level, onLevelComplete, onBackToLevels }: Match3Gam
                       className={getCandyStyle(rowIndex, colIndex)}
                       disabled={gameState.moves <= 0 || gameState.animating}
                     >
-                      <motion.span
+                      <motion.div
                         animate={{
                           scale: isSpecialCandy(candy) ? [1, 1.2, 1] : 1
                         }}
@@ -752,9 +758,25 @@ export function Match3Game({ level, onLevelComplete, onBackToLevels }: Match3Gam
                           duration: 2,
                           ease: "easeInOut"
                         }}
+                        className="w-full h-full flex items-center justify-center"
                       >
-                        {candy}
-                      </motion.span>
+                        {isSpecialCandy(candy) ? (
+                          <span className="text-2xl">{candy}</span>
+                        ) : isImagePath(candy) ? (
+                          <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-white/20 shadow-sm">
+                            <Image
+                              src={candy}
+                              alt="Regional candy"
+                              fill
+                              className="object-cover hover:scale-110 transition-transform duration-200"
+                              sizes="40px"
+                              priority={rowIndex < 2 && colIndex < 3}
+                            />
+                          </div>
+                        ) : (
+                          <span className="text-2xl">{candy}</span>
+                        )}
+                      </motion.div>
                     </motion.button>
                   );
                 })
@@ -801,7 +823,7 @@ export function Match3Game({ level, onLevelComplete, onBackToLevels }: Match3Gam
         
         {/* Instructions */}
         <div className="text-xs text-[var(--app-foreground-muted)] text-center mt-3">
-          Match 3+ {level.candyTheme[0]} to score points!
+          Match 3+ regional icons to score points!
         </div>
       </div>
       

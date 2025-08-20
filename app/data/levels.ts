@@ -22,11 +22,46 @@ export interface Level {
 }
 
 export const REGIONAL_CANDY_THEMES = {
-  africa: ['🥭', '🍌', '🥥', '🍊', '🫐', '🍇'], // Tropical fruits
-  india: ['🌶️', '🧄', '🧅', '🥒', '🍅', '🌽'], // Spices and vegetables
-  latam: ['🌮', '🥑', '🌶️', '🍋', '🥭', '🫘'], // Latin American foods
-  southeastAsia: ['🥭', '🥥', '🍍', '🌶️', '🍌', '🫐'], // Tropical Asian fruits
-  europe: ['🍎', '🍊', '🍋', '🍇', '🍓', '🍒'], // Traditional European fruits
+  africa: [
+    '/africa/derick.jpg',
+    '/africa/dami.jpg', 
+    '/africa/basedeastafrica.jpg',
+    '/africa/basedsouthernafrica.jpg',
+    '/africa/basedwestafrica.jpg',
+    '/africa/basedzambia.jpg'
+  ],
+  india: [
+    '/india/akhil.jpg',
+    '/india/dacoit.jpg',
+    '/india/gayatri.jpg',
+    '/india/kabir.jpg',
+    '/india/mentalist.jpg',
+    '/india/saxenasaheb.jpg'
+  ],
+  latam: [
+    '/latam/basedlatam.jpg',
+    '/latam/basedturkiye.jpg',
+    '/latam/carlos.jpg',
+    '/latam/juampi.jpg',
+    '/latam/junkie.jpg',
+    '/latam/simon.jpg'
+  ],
+  southeastAsia: [
+    '/southeast-asia/basedjapan.jpg',
+    '/southeast-asia/basedkorea.jpg',
+    '/southeast-asia/basesg.jpg',
+    '/southeast-asia/basevietnam.jpg',
+    '/southeast-asia/kinjo.jpg',
+    '/southeast-asia/nibel.jpg'
+  ],
+  europe: [
+    '/europe/basedbrazil.jpg',
+    '/europe/basedgermany.jpg',
+    '/europe/basedindonisea.jpg',
+    '/europe/basedireland.jpg',
+    '/europe/baseduk.jpg',
+    '/europe/slatt.jpg'
+  ]
 };
 
 export const LEVELS: Level[] = [
