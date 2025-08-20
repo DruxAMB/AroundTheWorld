@@ -73,9 +73,11 @@ export class RewardDistributionService {
     // Format as ETH with appropriate decimals
     const eth = amount / 1e18;
     if (eth >= 1) {
+      return `${eth.toFixed(3)}`;
+    } else if (eth >= 0.001) {
       return `${eth.toFixed(4)}`;
     } else {
-      return `${(eth * 1000).toFixed(3)}`;
+      return `${eth.toFixed(6)}`;
     }
   }
 
