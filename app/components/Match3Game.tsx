@@ -435,7 +435,7 @@ export function Match3Game({ level, onLevelComplete, onBackToLevels }: Match3Gam
           specialCandies.forEach(({ type }) => {
             setTimeout(() => {
               soundManager.playSpecialSound(type);
-            }, 300);
+            }, 150);
           });
         }
         
@@ -445,7 +445,7 @@ export function Match3Game({ level, onLevelComplete, onBackToLevels }: Match3Gam
           animating: true,
         }));
         
-        // Process cascading matches after animation delay
+        // Process cascading matches after reduced animation delay
         setTimeout(() => {
           setGameState(prev => {
             // Use cascading matches instead of single match processing
@@ -458,7 +458,7 @@ export function Match3Game({ level, onLevelComplete, onBackToLevels }: Match3Gam
             if (cascadeCount > 1 && prev.soundEnabled) {
               setTimeout(() => {
                 soundManager.play('combo'); // Play combo sound for cascades
-              }, 200);
+              }, 100);
             }
             
             // Check level objectives
@@ -472,11 +472,11 @@ export function Match3Game({ level, onLevelComplete, onBackToLevels }: Match3Gam
             if (completed) {
               gameStatus = 'won';
               setIsCompleting(true);
-              setTimeout(() => onLevelComplete(true, newScore), 300);
+              setTimeout(() => onLevelComplete(true, newScore), 150);
             } else if (newMoves <= 0) {
               gameStatus = 'lost';
               setIsCompleting(true);
-              setTimeout(() => onLevelComplete(false, newScore), 300);
+              setTimeout(() => onLevelComplete(false, newScore), 150);
             }
             
             // Check if reshuffle is needed after cascading matches
@@ -491,7 +491,7 @@ export function Match3Game({ level, onLevelComplete, onBackToLevels }: Match3Gam
               
               // Play reshuffle sound
               if (prev.soundEnabled) {
-                setTimeout(() => soundManager.play('shuffle'), 100);
+                setTimeout(() => soundManager.play('shuffle'), 50);
               }
             }
 
@@ -507,7 +507,7 @@ export function Match3Game({ level, onLevelComplete, onBackToLevels }: Match3Gam
               gameStatus
             };
           });
-        }, 600);
+        }, 200);
       } else {
         // Invalid move - swap back
         if (gameState.soundEnabled) {
@@ -735,15 +735,15 @@ export function Match3Game({ level, onLevelComplete, onBackToLevels }: Match3Gam
                         scale: 0, 
                         opacity: 0, 
                         rotate: 90,
-                        transition: { duration: 0.2 }
+                        transition: { duration: 0.1 }
                       }}
                       whileHover={{ scale: gameState.animating ? 1 : 1.1 }}
                       whileTap={{ scale: gameState.animating ? 1 : 0.95 }}
                       transition={{
                         type: "spring",
-                        stiffness: 400,
-                        damping: 25,
-                        layout: { duration: 0.3 }
+                        stiffness: 600,
+                        damping: 30,
+                        layout: { duration: 0.15 }
                       }}
                       onClick={() => handleCandyClick({ row: rowIndex, col: colIndex })}
                       className={getCandyStyle(rowIndex, colIndex)}
