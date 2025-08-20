@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { LevelSelector } from "./LevelSelector";
 import { Match3Game } from "./Match3Game";
+import LevelCompleteModal from "./LevelCompleteModal";
 import { Level } from "../data/levels";
 import { soundManager } from "../utils/soundManager";
 import { useGameData } from "../hooks/useGameData";
@@ -270,99 +271,41 @@ export function GameWrapper({ onGameStateChange }: GameWrapperProps = {}) {
   }
 
 
-  if (gameState === 'level-complete' && currentLevel) {
-    const levelProgressData = progress?.find(p => p.levelId === currentLevel.id);
-    const stars = levelProgressData?.stars || 1;
+  // Helper function to get level ID for NFT mapping
+  const getLevelIdForNFT = (levelId: string): number => {
+    const levelMap: { [key: string]: number } = {
+      'africa-1': 1,
+      'india-1': 2,
+      'europe-1': 3,
+      'latam-1': 4,
+      'southeast-asia-1': 5
+    };
+    return levelMap[levelId] || 1;
+  };
+
+  // Helper function to handle next level navigation
+  const handleNextLevel = useCallback(() => {
+    if (!currentLevel) return;
     
-    return (
-      <div className="flex flex-col h-screen max-w-md mx-auto p-4 justify-center items-center space-y-6">
-        <motion.div
-          initial={{ scale: 0, rotate: -180 }}
-          animate={{ scale: 1, rotate: 0 }}
-          transition={{ type: "spring", duration: 0.8 }}
-          className="text-center"
-        >
-          <div className="text-6xl mb-4">🎉</div>
-          <h2 className="text-2xl font-bold text-[var(--app-foreground)] mb-2">
-            Level Complete!
-          </h2>
-          <p className="text-[var(--app-foreground-muted)] mb-4">
-            {currentLevel.name} - {currentLevel.region}
-          </p>
-          
-          {/* Stars */}
-          <div className="flex justify-center space-x-2 mb-4">
-            {[1, 2, 3].map((star) => (
-              <motion.div
-                key={star}
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: star * 0.2, type: "spring" }}
-                className="text-3xl"
-              >
-                {star <= stars ? '⭐' : '☆'}
-              </motion.div>
-            ))}
-          </div>
-          
-          <div className="text-lg font-bold text-[var(--app-accent)]">
-            Score: {levelProgressData?.score || 0}
-          </div>
-        </motion.div>
-        
-        {/* Share Button */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1.2 }}
-          className="flex flex-col items-center space-y-3"
-        >
-          <motion.button
-            onClick={() => handleShareScore(currentLevel, levelProgressData?.score || 0, stars)}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="bg-[var(--app-accent)] text-white px-6 py-3 rounded-lg font-medium hover:opacity-90 transition-opacity flex items-center space-x-2"
-          >
-            <span>📢</span>
-            <span>Share Achievement</span>
-          </motion.button>
-          
-          {(() => {
-            const nextLevelId = getNextLevel(currentLevel.id);
-            const isNextLevelUnlocked = nextLevelId && unlockedLevels.includes(nextLevelId);
-            
-            return isNextLevelUnlocked ? (
-              <motion.button
-                onClick={() => {
-                  // Find and load next level
-                  import('../data/levels').then(({ LEVELS }) => {
-                    const nextLevel = LEVELS.find(l => l.id === nextLevelId);
-                    if (nextLevel) {
-                      handleLevelSelect(nextLevel);
-                    }
-                  });
-                }}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="mt-2 px-6 py-3 bg-[var(--app-accent)] text-white rounded-lg hover:opacity-90 transition-opacity font-medium"
-              >
-                Next Level →
-              </motion.button>
-            ) : (
-              <motion.button
-                onClick={() => setGameState('level-select')}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="mt-2 px-4 py-2 bg-[var(--app-gray)] text-[var(--app-foreground)] rounded-lg hover:bg-[var(--app-gray-dark)] transition-colors"
-              >
-                Back to Levels
-              </motion.button>
-            );
-          })()}
-        </motion.div>
-      </div>
-    );
-  }
+    const nextLevelId = getNextLevel(currentLevel.id);
+    const isNextLevelUnlocked = nextLevelId && unlockedLevels.includes(nextLevelId);
+    
+    if (isNextLevelUnlocked) {
+      import('../data/levels').then(({ LEVELS }) => {
+        const nextLevel = LEVELS.find(l => l.id === nextLevelId);
+        if (nextLevel) {
+          handleLevelSelect(nextLevel);
+        }
+      });
+    }
+  }, [currentLevel, getNextLevel, unlockedLevels, handleLevelSelect]);
+
+  // Helper function to handle retry
+  const handleRetry = useCallback(() => {
+    if (currentLevel) {
+      handleLevelSelect(currentLevel);
+    }
+  }, [currentLevel, handleLevelSelect]);
 
   if (gameState === 'playing' && currentLevel) {
     return (
@@ -393,10 +336,30 @@ export function GameWrapper({ onGameStateChange }: GameWrapperProps = {}) {
   }
 
   return (
-    <LevelSelector
-      onLevelSelect={handleLevelSelect}
-      unlockedLevels={unlockedLevels}
-      isWalletConnected={isConnected}
-    />
+    <>
+      <LevelSelector
+        onLevelSelect={handleLevelSelect}
+        unlockedLevels={unlockedLevels}
+        isWalletConnected={isConnected}
+      />
+      
+      {/* Level Complete Modal with NFT Minting */}
+      {gameState === 'level-complete' && currentLevel && (
+        <LevelCompleteModal
+          isOpen={true}
+          onClose={handleBackToLevels}
+          success={true}
+          score={progress?.find(p => p.levelId === currentLevel.id)?.score || 0}
+          levelId={getLevelIdForNFT(currentLevel.id)}
+          levelName={currentLevel.region}
+          onRetry={handleRetry}
+          onNextLevel={(() => {
+            const nextLevelId = getNextLevel(currentLevel.id);
+            const isNextLevelUnlocked = nextLevelId && unlockedLevels.includes(nextLevelId);
+            return isNextLevelUnlocked ? handleNextLevel : undefined;
+          })()}
+        />
+      )}
+    </>
   );
 }

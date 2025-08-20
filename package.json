@@ -12,16 +12,19 @@
     "@coinbase/onchainkit": "^0.38.19",
     "@farcaster/frame-sdk": "^0.1.8",
     "@openzeppelin/contracts": "^5.4.0",
-    "@tanstack/react-query": "^5",
+    "@tanstack/react-query": "^5.85.5",
     "@upstash/redis": "^1.34.4",
+    "@wagmi/connectors": "^5.9.4",
+    "@wagmi/core": "^2.19.0",
+    "connectkit": "^1.9.1",
     "erc721a": "^4.3.0",
     "framer-motion": "^12.23.12",
     "lucide-react": "^0.539.0",
     "next": "^15.3.3",
     "react": "^18",
     "react-dom": "^18",
-    "viem": "^2.27.2",
-    "wagmi": "^2.16.0"
+    "viem": "^2.34.0",
+    "wagmi": "^2.16.4"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^6.1.0",
