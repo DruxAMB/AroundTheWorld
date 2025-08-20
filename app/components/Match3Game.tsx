@@ -45,18 +45,33 @@ const getRandomCandy = (candyTypes: CandyType[]): CandyType => {
   return candyTypes[Math.floor(Math.random() * candyTypes.length)];
 };
 
-// Create initial grid with unique IDs
+// Create initial grid with unique IDs and no initial matches
 const createInitialGrid = (candyTypes: CandyType[]): { grid: GameGrid; ids: string[][] } => {
-  const grid: GameGrid = [];
-  const ids: string[][] = [];
-  for (let row = 0; row < GRID_SIZE; row++) {
-    grid[row] = [];
-    ids[row] = [];
-    for (let col = 0; col < GRID_SIZE; col++) {
-      grid[row][col] = getRandomCandy(candyTypes);
-      ids[row][col] = `${row}-${col}-${Date.now()}-${Math.random()}`;
+  let grid: GameGrid = [];
+  let ids: string[][] = [];
+  let attempts = 0;
+  const maxAttempts = 50;
+  
+  do {
+    grid = [];
+    ids = [];
+    for (let row = 0; row < GRID_SIZE; row++) {
+      grid[row] = [];
+      ids[row] = [];
+      for (let col = 0; col < GRID_SIZE; col++) {
+        grid[row][col] = getRandomCandy(candyTypes);
+        ids[row][col] = `${row}-${col}-${Date.now()}-${Math.random()}`;
+      }
     }
-  }
+    attempts++;
+    
+    // Safety check to prevent infinite loops
+    if (attempts >= maxAttempts) {
+      console.warn('Max attempts reached creating initial grid, using current grid');
+      break;
+    }
+  } while (findMatches(grid).matches.length > 0);
+  
   return { grid, ids };
 };
 
