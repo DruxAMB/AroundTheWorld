@@ -606,10 +606,11 @@ class GameDataService {
         return;
       }
 
-      console.log(`🔔 [GameDataService] Triggering competitive notifications for ${player.name} (FID: ${player.fid})`);
+      const scoreImprovement = newScore - previousScore;
+      console.log(`🔔 [GameDataService] Triggering competitive notifications for ${player.name} (FID: ${player.fid}) - Score improved by ${scoreImprovement}`);
       
       // Check if this player's score beat others
-      await CompetitiveNotificationService.checkScoreBeaten(newScore, player.fid, player.name);
+      await CompetitiveNotificationService.checkScoreBeaten(newScore, player.fid, player.name, previousScore);
       
     } catch (error) {
       console.error('Error triggering competitive notifications:', error);

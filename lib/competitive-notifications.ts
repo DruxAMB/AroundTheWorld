@@ -1,5 +1,5 @@
 import { redis } from './redis';
-import { gameDataService } from '@/app/services/gameDataService';
+import { gameDataService, LeaderboardEntry } from '@/app/services/gameDataService';
 
 export interface CompetitiveNotification {
   type: 'score_beaten' | 'rank_change' | 'near_top10';
@@ -17,15 +17,16 @@ export interface CompetitiveNotification {
 export class CompetitiveNotificationService {
   
   // Check if a new score beats existing players and notify them
-  static async checkScoreBeaten(newScore: number, winnerFid: number, winnerName: string) {
+  static async checkScoreBeaten(newScore: number, winnerFid: number, winnerName: string, previousScore?: number) {
     try {
-      console.log(`🔔 [CompetitiveNotifications] Checking if score ${newScore} beats others`);
+      const scoreImprovement = previousScore ? newScore - previousScore : newScore;
+      console.log(`🔔 [CompetitiveNotifications] Checking if score ${newScore} beats others (improved by ${scoreImprovement})`);
       
       // Get current leaderboard to find players with lower scores
       const leaderboard = await gameDataService.getLeaderboard('all-time', 50);
       
       // Find players whose scores were beaten
-      const beatenPlayers = leaderboard.filter((player: any) => 
+      const beatenPlayers = leaderboard.filter((player) => 
         player.score < newScore && player.fid !== winnerFid
       );
 
@@ -34,7 +35,7 @@ export class CompetitiveNotificationService {
       // Send notifications to beaten players
       for (const player of beatenPlayers) {
         if (player.fid) {
-          await this.sendScoreBeatenNotification(player.fid, winnerName, newScore, player.score);
+          await this.sendScoreBeatenNotification(player.fid, winnerName, newScore, player.score, scoreImprovement);
         }
       }
 
@@ -74,7 +75,7 @@ export class CompetitiveNotificationService {
   }
 
   // Check rank-based reward notifications for new high scorer
-  private static async checkRankRewardNotifications(winnerFid: number, winnerName: string, leaderboard: any[]) {
+  private static async checkRankRewardNotifications(winnerFid: number, winnerName: string, leaderboard: LeaderboardEntry[]) {
     try {
       // Find winner's new rank
       const winnerIndex = leaderboard.findIndex(player => player.fid === winnerFid);
@@ -94,20 +95,23 @@ export class CompetitiveNotificationService {
   }
 
   // Send notification when someone beats user's score
-  private static async sendScoreBeatenNotification(fid: number, beaterName: string, newScore: number, oldScore: number) {
+  private static async sendScoreBeatenNotification(fid: number, beaterName: string, newScore: number, oldScore: number, scoreImprovement?: number) {
     // Calculate potential rewards based on ranking with dynamic symbol
     const rewardText = await this.getRewardText(oldScore);
+    
+    const improvementText = scoreImprovement ? ` (improved by ${scoreImprovement.toLocaleString()})` : '';
     
     const notification = {
       fid,
       notification: {
         title: "⚡ Someone Beat Your Score!",
-        body: `${beaterName} scored ${newScore.toLocaleString()} points! ${rewardText} - Time to reclaim your throne!`,
+        body: `${beaterName} scored ${newScore.toLocaleString()} points${improvementText}! ${rewardText} - Time to reclaim your throne!`,
         notificationDetails: {
           type: 'score_beaten',
           beaterName,
           newScore,
-          oldScore
+          oldScore,
+          scoreImprovement
         }
       }
     };
