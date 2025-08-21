@@ -7,7 +7,7 @@ Welcome to **Around the World**, an exciting match-3 adventure that takes you on
 ### 1. Connect Your Wallet
 - Click the **Connect Wallet** button in the top-right corner
 - Use your Coinbase Wallet to sign in
-- This enables progress saving and leaderboard participation
+- This enables progress saving, NFT minting, and leaderboard participation
 
 ### 2. Set Your Player Name
 - After connecting, you'll be prompted to enter a player name
@@ -90,24 +90,52 @@ Travel through five themed destinations, each with unique:
 - **Special Combinations**: Extra bonus for combining power-ups
 - **Remaining Moves**: Bonus points for completing with moves left
 
-## 🏆 Competitive Features
+## 🏆 Rewards & Social Features
+
+### NFT Collectibles
+
+#### Winner Badges
+- **Mint Requirement**: Complete any level successfully
+- **Cost**: 0.0001 ETH per NFT
+- **Artwork**: Beautiful region-themed collectible art
+- **Blockchain**: Permanently stored on Base network
+- **Uniqueness**: Each region has distinct visual themes
+
+#### How to Mint
+1. Complete a level successfully
+2. Click "Mint NFT" in the completion modal
+3. Confirm transaction in your wallet
+4. Receive your unique winner badge NFT
+
+### Social Sharing
+
+#### Farcaster Integration
+- **Share Scores**: Post achievements directly to Farcaster
+- **Regional Emojis**: Automatic region-specific emojis in posts
+- **Star Ratings**: Visual star display based on performance
+- **Community**: Connect with other players and compete
+
+#### Share Button
+- Available in level completion modal
+- Click "Share Score 🚀" to post to Farcaster
+- Includes score, stars, and game invitation link
 
 ### Leaderboards
 
 #### Weekly Leaderboard
 - **Reset Schedule**: Every Monday at 00:00 UTC
 - **Competition**: Fresh start each week
-- **Rewards**: Weekly champions recognition
+- **Social**: Share weekly achievements
 
 #### Monthly Leaderboard
 - **Reset Schedule**: First day of each month
 - **Competition**: Month-long tournaments
-- **Rewards**: Monthly achievement badges
+- **Recognition**: Monthly champion announcements
 
 #### All-Time Leaderboard
 - **Permanent Rankings**: Never resets
 - **Hall of Fame**: Eternal recognition for top players
-- **Legacy Scores**: Historical achievement tracking
+- **Legacy**: Historical achievement tracking
 
 ### Player Profile
 Track your progress with detailed statistics:
@@ -140,18 +168,20 @@ Each level features authentic music from its region:
 2. **Plan Ahead**: Consider where new candies will fall
 3. **Use Specials Wisely**: Save power-ups for difficult situations
 4. **Focus on Objectives**: Don't just chase high scores
+5. **Connect Wallet**: Enable NFT minting and progress saving
 
 ### Advanced Strategies
 1. **Cascade Setup**: Create matches that trigger multiple chain reactions
 2. **Special Combinations**: Learn to combine different power-ups
 3. **Board Management**: Keep the board balanced, avoid clustering
 4. **Move Efficiency**: Complete objectives with moves to spare for bonus points
+5. **Social Sharing**: Share achievements to build community
 
-### Leaderboard Competition
-1. **Replay Levels**: Improve scores on completed levels
-2. **Perfect Timing**: Play during off-peak hours for better rankings
-3. **Consistent Play**: Regular sessions maintain leaderboard position
-4. **Study Patterns**: Learn optimal candy combinations
+### NFT & Social Strategy
+1. **Collect All Regions**: Mint NFTs from each themed level
+2. **Share Achievements**: Use Farcaster integration to celebrate wins
+3. **Build Collection**: Each region offers unique artwork
+4. **Community Engagement**: Connect with other players through shared posts
 
 ## 🔧 Technical Features
 

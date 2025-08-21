@@ -28,11 +28,12 @@ Traditional mobile games trap your progress on a single device or centralized se
 - **Progressive Difficulty**: Carefully balanced challenge curve keeps players engaged
 - **Cultural Authenticity**: Respectful representation of diverse global cultures
 
-### 🏆 Competitive Features
+### 🏆 Rewards & Social Features
+- **NFT Collectibles**: Mint unique winner badges for each completed level (0.0001 ETH)
+- **Farcaster Integration**: Share achievements and scores directly to social feeds
 - **Global Leaderboards**: Real-time rankings with weekly competitions
-- **ETH Rewards**: Top performers earn cryptocurrency prizes
 - **Player Profiles**: Comprehensive stats tracking and achievement systems
-- **Social Integration**: Wallet-based identity with customizable player names
+- **Social Sharing**: Connect with the gaming community through verifiable achievements
 
 ### 🎨 Technical Excellence
 - **Smooth Animations**: Framer Motion powers fluid, satisfying visual feedback
@@ -60,11 +61,30 @@ Our PlayerRegistry smart contract creates permanent, verifiable records of all g
 - `getTotalPlayers()`: Get the total number of registered players
 - `players(uint256)`: Access the list of registered player addresses
 
+### NFT Rewards Contract
+**Contract Address**: `0xccc312aee3a136faacc535a2f3050c75db6c921d` (Base Mainnet)
+**[View on BaseScan](https://basescan.org/address/0xccc312aee3a136faacc535a2f3050c75db6c921d)**
+
+The NFT contract enables players to mint collectible winner badges for completed levels:
+
+#### Features
+- **Level-Based Minting**: Unique NFTs for each of the 5 regional levels
+- **Affordable Pricing**: 0.0001 ETH per NFT mint
+- **Duplicate Prevention**: Players can only mint one NFT per level
+- **Regional Artwork**: Each level features distinct cultural artwork
+
+#### Contract Functions
+- `mint(uint256 levelId)`: Mint an NFT for a completed level
+- `hasMinted(address, uint256)`: Check if player has minted specific level NFT
+- `mintPrice()`: Get current minting price
+
 ### Web3 Integration
 - **Seamless Wallet Connection**: OnchainKit and MiniKit integration
 - **Cross-Device Progress**: Your achievements follow your wallet everywhere
 - **Real-time Registration**: Players are registered automatically during onboarding
-- **Verifiable Participation**: All registrations are permanently recorded on Base
+- **NFT Minting**: Mint collectible winner badges directly from game completion
+- **Social Sharing**: Farcaster integration for sharing achievements
+- **Verifiable Participation**: All registrations and NFTs permanently recorded on Base
 
 ## Technical Architecture
 
@@ -141,17 +161,22 @@ Our PlayerRegistry smart contract creates permanent, verifiable records of all g
 3. **Choose Your Name**: Set a display name for leaderboards
 4. **Select a Region**: Start your journey in any of the 5 cultural regions
 5. **Match and Score**: Swap adjacent items to create matches of 3 or more
+6. **Mint NFTs**: Complete levels to unlock collectible winner badges
+7. **Share Achievements**: Use Farcaster integration to celebrate wins
 
 ### Advanced Strategies
 - **Special Candies**: Match 4+ items to create powerful special effects
 - **Combo Chains**: Plan moves to trigger cascading reactions
 - **Score Optimization**: Focus on special candy combinations for maximum points
-- **Leaderboard Competition**: Compete weekly for ETH rewards
+- **NFT Collection**: Complete all regions to build your badge collection
+- **Social Engagement**: Share scores to connect with the gaming community
+- **Leaderboard Competition**: Compete weekly for recognition and rewards
 
 ## Roadmap
 
-### Phase 1: Enhanced Onchain Mechanics ⏳
-- **NFT Achievements**: Mint unique tokens for major milestones
+### Phase 1: Enhanced Onchain Mechanics ✅
+- **NFT Achievements**: ✅ Mint unique tokens for level completions
+- **Social Integration**: ✅ Farcaster sharing for community engagement
 - **Power-up Marketplace**: Purchase special abilities with ETH
 - **Tournament System**: Structured competitions with entry fees and prizes
 

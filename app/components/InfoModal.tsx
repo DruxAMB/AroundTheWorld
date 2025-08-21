@@ -136,49 +136,65 @@ export function InfoModal({ isOpen, onClose }: InfoModalProps) {
       )
     },
     {
-      title: "🏆 Leaderboards & Competition",
+      title: "🏆 Rewards & Social Features",
       content: (
         <div className="space-y-4">
           <div className="bg-[var(--app-card-bg)] p-4 rounded-lg border border-[var(--app-card-border)]">
-            <h4 className="font-bold mb-3 text-[var(--app-foreground)]">Competition Types</h4>
+            <h4 className="font-bold mb-3 text-[var(--app-foreground)]">NFT Rewards</h4>
             
             <div className="space-y-3">
               <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">📅</span>
+                <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">🎖️</span>
                 </div>
                 <div className="flex-1">
-                  <div className="font-medium text-[var(--app-foreground)]">Weekly Leaderboard</div>
-                  <div className="text-xs text-[var(--app-foreground-muted)]">Resets every Monday • Fresh competition</div>
+                  <div className="font-medium text-[var(--app-foreground)]">Winner Badges</div>
+                  <div className="text-xs text-[var(--app-foreground-muted)]">Mint unique NFTs for each level completed</div>
                 </div>
               </div>
               
               <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">📆</span>
+                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">💎</span>
                 </div>
                 <div className="flex-1">
-                  <div className="font-medium text-[var(--app-foreground)]">Monthly Leaderboard</div>
-                  <div className="text-xs text-[var(--app-foreground-muted)]">Month-long tournaments • Bigger rewards</div>
+                  <div className="font-medium text-[var(--app-foreground)]">Collectible Art</div>
+                  <div className="text-xs text-[var(--app-foreground-muted)]">Beautiful region-themed artwork • 0.0001 ETH</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-[var(--app-card-bg)] p-4 rounded-lg border border-[var(--app-card-border)]">
+            <h4 className="font-bold mb-3 text-[var(--app-foreground)]">Share Your Success</h4>
+            
+            <div className="space-y-3">
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">🚀</span>
+                </div>
+                <div className="flex-1">
+                  <div className="font-medium text-[var(--app-foreground)]">Farcaster Integration</div>
+                  <div className="text-xs text-[var(--app-foreground-muted)]">Share scores and achievements with friends</div>
                 </div>
               </div>
               
               <div className="flex items-center space-x-3">
                 <div className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">👑</span>
+                  <span className="text-white text-xs font-bold">🏆</span>
                 </div>
                 <div className="flex-1">
-                  <div className="font-medium text-[var(--app-foreground)]">All-Time Rankings</div>
-                  <div className="text-xs text-[var(--app-foreground-muted)]">Permanent hall of fame • Eternal glory</div>
+                  <div className="font-medium text-[var(--app-foreground)]">Leaderboard Competition</div>
+                  <div className="text-xs text-[var(--app-foreground-muted)]">Climb the rankings • Compete globally</div>
                 </div>
               </div>
             </div>
           </div>
           
           <div className="bg-[var(--app-card-bg)] p-4 rounded-lg border border-[var(--app-card-border)]">
-            <h4 className="font-bold mb-2 text-[var(--app-foreground)]">Your Progress</h4>
+            <h4 className="font-bold mb-2 text-[var(--app-foreground)]">Connect Your Wallet</h4>
             <div className="text-sm text-[var(--app-foreground-muted)]">
-              Connect your wallet to save progress across devices and compete on leaderboards. Your best scores from each level contribute to your total ranking!
+              Connect your wallet to save progress, mint NFTs, and compete on leaderboards. Your achievements are permanently stored on-chain!
             </div>
           </div>
         </div>
@@ -248,7 +264,8 @@ export function InfoModal({ isOpen, onClose }: InfoModalProps) {
               <div className="text-[var(--app-foreground-muted)] space-y-1">
                 <div>• Look for 4+ matches to create special candies</div>
                 <div>• Plan moves to trigger chain reactions</div>
-                <div>• Connect your wallet to save progress</div>
+                <div>• Connect your wallet to mint NFTs & save progress</div>
+                <div>• Share your achievements on Farcaster</div>
                 <div>• Compete on leaderboards for glory!</div>
               </div>
             </div>
