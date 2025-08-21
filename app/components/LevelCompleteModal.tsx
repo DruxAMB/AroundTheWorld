@@ -26,12 +26,32 @@ const MINT_PRICE = "0.0001"; // 0.0001 ETH
 const CONTRACT_ABI = [
   {
     "inputs": [
-      { "internalType": "address", "name": "to", "type": "address" },
       { "internalType": "uint256", "name": "levelId", "type": "uint256" }
     ],
     "name": "mint",
     "outputs": [],
     "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "", "type": "address" },
+      { "internalType": "uint256", "name": "", "type": "uint256" }
+    ],
+    "name": "hasMinted",
+    "outputs": [
+      { "internalType": "bool", "name": "", "type": "bool" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "mintPrice",
+    "outputs": [
+      { "internalType": "uint256", "name": "", "type": "uint256" }
+    ],
+    "stateMutability": "view",
     "type": "function"
   }
 ] as const;
@@ -46,7 +66,7 @@ export default function LevelCompleteModal({
   onRetry,
   onNextLevel,
 }: LevelCompleteModalProps) {
-  const levelData = levels.find(level => level.name === levelName);
+  const levelData = levels.find(level => level.region === levelName || level.name === levelName);
   const [modalState, setModalState] = useState<ModalState>('complete');
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -70,11 +90,22 @@ export default function LevelCompleteModal({
     setErrorMessage('');
     
     try {
+      // Convert level region to numeric ID for contract
+      const levelIdMap: { [key: string]: number } = {
+        'Africa': 1,
+        'India': 2,
+        'Europe': 3,
+        'Latin America': 4,
+        'Southeast Asia': 5
+      };
+      
+      const numericLevelId = levelIdMap[levelData.region] || 1;
+      
       await writeContract({
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
         functionName: 'mint',
-        args: [address, BigInt(levelData.id)],
+        args: [BigInt(numericLevelId)],
         value: parseEther(MINT_PRICE),
       });
     } catch (err: any) {
@@ -242,14 +273,6 @@ export default function LevelCompleteModal({
                   <p className="text-[var(--app-foreground-muted)] mb-4">
                     Congratulations! You've completed the {levelData.name} level.
                   </p>
-                  <div className="bg-[var(--app-gray)] rounded-lg p-3 mb-4">
-                    <p className="text-sm text-[var(--app-foreground)]">
-                      <strong>Mint Price:</strong> {MINT_PRICE} ETH (~$0.10)
-                    </p>
-                    <p className="text-xs text-[var(--app-foreground-muted)] mt-1">
-                      + Base network gas fees
-                    </p>
-                  </div>
                 </div>
                 
                 {!isConnected ? (
