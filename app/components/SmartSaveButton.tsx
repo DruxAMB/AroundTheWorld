@@ -74,12 +74,12 @@ export default function SmartSaveButton({ isOpen, onClose }: SmartSaveButtonProp
               
               {/* Content */}
               <div className="text-center space-y-4">
-                <div className="text-4xl mb-2">📱</div>
+                <div className="text-4xl mb-2">🟦</div>
                 <h2 className="text-xl font-bold text-[var(--app-foreground)]">
-                  Save Mini App
+                  Save App
                 </h2>
                 <p className="text-[var(--app-foreground-muted)] text-sm">
-                  Add AroundTheWorld to your home screen for quick access
+                  Add AroundTheWorld to your home screen for quick access. Are you on the baseapp? Click on the three dot <b className='font-bold text-6xl'>...</b> on your top left to save
                 </p>
                 
                 <div className="flex gap-2 pt-4">
