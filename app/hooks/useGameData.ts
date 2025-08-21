@@ -28,10 +28,16 @@ interface LeaderboardData {
   globalStats: {
     totalPlayers: number;
     totalRewards: string;
+    rewardSymbol: string;
     lastUpdated: string;
   };
   playerRank: number | null;
   playerRewards: string;
+  rewardConfig: {
+    symbol: string;
+    amount: string;
+    description: string;
+  };
   timeframe: string;
 }
 

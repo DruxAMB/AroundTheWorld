@@ -479,6 +479,41 @@ class GameDataService {
     return playerEntry.rank ?? 0;
   }
 
+  // Reward Configuration Management
+  async setRewardConfig(symbol: string, amount: string, description?: string): Promise<void> {
+    if (!redis) return;
+    
+    const config = {
+      symbol,
+      amount,
+      description: description || `${amount} ${symbol} reward pool`,
+      lastUpdated: new Date().toISOString()
+    };
+    
+    await redis.hset('reward:config', config);
+  }
+
+  async getRewardConfig(): Promise<{ symbol: string; amount: string; description: string; lastUpdated: string }> {
+    if (!redis) {
+      return { symbol: 'ETH', amount: '1.000', description: '1.000 ETH reward pool', lastUpdated: new Date().toISOString() };
+    }
+
+    const config = await redis.hgetall('reward:config') as Record<string, string>;
+    
+    if (!config || Object.keys(config).length === 0) {
+      // Set default ETH configuration
+      await this.setRewardConfig('ETH', '1.000', '1.000 ETH reward pool');
+      return { symbol: 'ETH', amount: '1.000', description: '1.000 ETH reward pool', lastUpdated: new Date().toISOString() };
+    }
+    
+    return {
+      symbol: config.symbol || 'ETH',
+      amount: config.amount || '1.000',
+      description: config.description || `${config.amount} ${config.symbol} reward pool`,
+      lastUpdated: config.lastUpdated || new Date().toISOString()
+    };
+  }
+
   // Global Statistics
   async updateGlobalStats(): Promise<void> {
     if (!redis) return;
@@ -490,37 +525,42 @@ class GameDataService {
     const topScoreResult = await redis.zrange(`${this.LEADERBOARD_PREFIX}all-time`, -1, -1, { withScores: true });
     const topScore = topScoreResult.length >= 2 ? topScoreResult[1] as number : 0;
     
+    // Get current reward configuration
+    const rewardConfig = await this.getRewardConfig();
+    const baseRewardAmount = parseFloat(rewardConfig.amount);
+    
     // Calculate total rewards based on player count and activity
     // Simple formula: base reward pool + bonus per player
-    const baseRewardPool = 1.0; // 1 ETH base
-    const rewardPerPlayer = 0.01; // 0.01 ETH per player
-    const totalRewards = (baseRewardPool + (totalPlayers * rewardPerPlayer)).toFixed(3);
+    const rewardPerPlayer = baseRewardAmount * 0.01; // 1% of base per player
+    const totalRewards = (baseRewardAmount + (totalPlayers * rewardPerPlayer)).toFixed(3);
     
     const stats = {
       totalPlayers,
       topScore,
       totalRewards,
+      rewardSymbol: rewardConfig.symbol,
       lastUpdated: new Date().toISOString()
     };
     
     await redis.hset('global:stats', stats);
   }
 
-  async getGlobalStats(): Promise<{ totalPlayers: number; topScore: number; totalRewards: string; lastUpdated: string }> {
+  async getGlobalStats(): Promise<{ totalPlayers: number; topScore: number; totalRewards: string; rewardSymbol: string; lastUpdated: string }> {
     if (!redis) {
-      return { totalPlayers: 0, topScore: 0, totalRewards: "0.000", lastUpdated: new Date().toISOString() };
+      return { totalPlayers: 0, topScore: 0, totalRewards: "0.000", rewardSymbol: "ETH", lastUpdated: new Date().toISOString() };
     }
 
     const stats = await redis.hgetall('global:stats') as Record<string, string>;
     
     if (!stats || Object.keys(stats).length === 0) {
-      return { totalPlayers: 0, topScore: 0, totalRewards: "0.000", lastUpdated: new Date().toISOString() };
+      return { totalPlayers: 0, topScore: 0, totalRewards: "0.000", rewardSymbol: "ETH", lastUpdated: new Date().toISOString() };
     }
     
     return {
       totalPlayers: parseInt(stats.totalPlayers) || 0,
       topScore: parseInt(stats.topScore) || 0,
       totalRewards: stats.totalRewards || "0.000",
+      rewardSymbol: stats.rewardSymbol || "ETH",
       lastUpdated: stats.lastUpdated || new Date().toISOString()
     };
   }

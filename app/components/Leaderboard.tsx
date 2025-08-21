@@ -38,10 +38,12 @@ export function Leaderboard({ onClose }: LeaderboardProps) {
   const globalStats = leaderboardData?.globalStats || {
     totalPlayers: 0,
     totalRewards: "0.000",
+    rewardSymbol: "ETH",
     lastUpdated: new Date().toISOString()
   };
   const playerRank = leaderboardData?.playerRank || null;
   const playerRewards = leaderboardData?.playerRewards || "0.000";
+  const rewardSymbol = leaderboardData?.rewardConfig?.symbol || globalStats.rewardSymbol || "ETH";
 
   return (
     <AnimatePresence>
@@ -157,7 +159,7 @@ export function Leaderboard({ onClose }: LeaderboardProps) {
                       animate={{ scale: 1 }}
                       transition={{ duration: 0.3, delay: 0.3, ease: "easeOut" }}
                     >
-                      {globalStats.totalRewards} ETH
+                      {globalStats.totalRewards} {rewardSymbol}
                     </motion.div>
                     <div className="text-xs text-[var(--app-foreground-muted)]">Total Rewards</div>
                   </>
@@ -219,7 +221,7 @@ export function Leaderboard({ onClose }: LeaderboardProps) {
                       animate={{ scale: 1 }}
                       transition={{ duration: 0.3, delay: 0.5, ease: "easeOut" }}
                     >
-                      {playerRewards} ETH
+                      {playerRewards} {rewardSymbol}
                     </motion.div>
                     <div className="text-xs text-[var(--app-foreground-muted)]">Your Rewards</div>
                   </>

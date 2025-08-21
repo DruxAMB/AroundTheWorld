@@ -95,8 +95,8 @@ export class CompetitiveNotificationService {
 
   // Send notification when someone beats user's score
   private static async sendScoreBeatenNotification(fid: number, beaterName: string, newScore: number, oldScore: number) {
-    // Calculate potential ETH rewards based on ranking
-    const rewardText = this.getRewardText(oldScore);
+    // Calculate potential rewards based on ranking with dynamic symbol
+    const rewardText = await this.getRewardText(oldScore);
     
     const notification = {
       fid,
@@ -117,16 +117,17 @@ export class CompetitiveNotificationService {
 
   // Send notification for players near top 10
   private static async sendNearTop10Notification(fid: number, spotsFromTop10: number) {
-    const ethAmount = this.calculateETHReward(11 + spotsFromTop10 - 1);
+    const reward = await this.calculateReward(11 + spotsFromTop10 - 1);
     const notification = {
       fid,
       notification: {
-        title: "🎯 So Close to ETH Rewards!",
-        body: `You're only ${spotsFromTop10} spots away from earning ${ethAmount} ETH! Push now to claim rewards!`,
+        title: `🎯 So Close to ${reward.symbol} Rewards!`,
+        body: `You're only ${spotsFromTop10} spots away from earning ${reward.amount} ${reward.symbol}! Push now to claim rewards!`,
         notificationDetails: {
           type: 'near_top10',
           spotsFromTop10,
-          potentialReward: ethAmount
+          potentialReward: reward.amount,
+          rewardSymbol: reward.symbol
         }
       }
     };
@@ -136,16 +137,17 @@ export class CompetitiveNotificationService {
 
   // Send notification for top rank achievement
   private static async sendTopRankRewardNotification(fid: number, rank: number) {
-    const ethAmount = this.calculateETHReward(rank);
+    const reward = await this.calculateReward(rank);
     const notification = {
       fid,
       notification: {
         title: "🏆 Champion Status Achieved!",
-        body: `Congratulations! You're #${rank} and earning ${ethAmount} ETH rewards! Mint your NFT now!`,
+        body: `Congratulations! You're #${rank} and earning ${reward.amount} ${reward.symbol} rewards! Mint your NFT now!`,
         notificationDetails: {
           type: 'top_rank_reward',
           rank,
-          ethReward: ethAmount
+          rewardAmount: reward.amount,
+          rewardSymbol: reward.symbol
         }
       }
     };
@@ -155,16 +157,17 @@ export class CompetitiveNotificationService {
 
   // Send notification for top 10 achievement
   private static async sendTop10RewardNotification(fid: number, rank: number) {
-    const ethAmount = this.calculateETHReward(rank);
+    const reward = await this.calculateReward(rank);
     const notification = {
       fid,
       notification: {
         title: "💎 Top 10 Elite Status!",
-        body: `Amazing! You're #${rank} earning ${ethAmount} ETH rewards! Secure your position!`,
+        body: `Amazing! You're #${rank} earning ${reward.amount} ${reward.symbol} rewards! Secure your position!`,
         notificationDetails: {
           type: 'top10_reward',
           rank,
-          ethReward: ethAmount
+          rewardAmount: reward.amount,
+          rewardSymbol: reward.symbol
         }
       }
     };
@@ -174,16 +177,17 @@ export class CompetitiveNotificationService {
 
   // Send notification for top 5% players
   private static async sendTop5PercentNotification(fid: number, rank: number) {
-    const ethAmount = this.calculateETHReward(rank);
+    const reward = await this.calculateReward(rank);
     const notification = {
       fid,
       notification: {
         title: "🔥 Elite Rewards Zone!",
-        body: `You're #${rank} earning ${ethAmount} ETH rewards! Defend your elite position!`,
+        body: `You're #${rank} earning ${reward.amount} ${reward.symbol} rewards! Defend your elite position!`,
         notificationDetails: {
           type: 'top_percent',
           rank,
-          ethReward: ethAmount
+          rewardAmount: reward.amount,
+          rewardSymbol: reward.symbol
         }
       }
     };
@@ -191,23 +195,56 @@ export class CompetitiveNotificationService {
     await this.sendNotification(notification);
   }
 
-  // Calculate ETH reward based on rank
-  private static calculateETHReward(rank: number): string {
-    if (rank === 1) return "0.1";
-    if (rank === 2) return "0.05";
-    if (rank === 3) return "0.025";
-    if (rank <= 5) return "0.01";
-    if (rank <= 10) return "0.005";
-    return "0.001";
+  // Calculate reward based on rank with dynamic symbol
+  private static async calculateReward(rank: number): Promise<{amount: string, symbol: string}> {
+    try {
+      // Get current reward configuration from database
+      const response = await fetch('/api/reward-config');
+      const config = response.ok ? await response.json() : { symbol: 'ETH', amount: '1.000' };
+      
+      const baseAmount = parseFloat(config.amount);
+      let rewardAmount: number;
+      
+      if (rank === 1) rewardAmount = baseAmount * 0.1;
+      else if (rank === 2) rewardAmount = baseAmount * 0.05;
+      else if (rank === 3) rewardAmount = baseAmount * 0.025;
+      else if (rank <= 5) rewardAmount = baseAmount * 0.01;
+      else if (rank <= 10) rewardAmount = baseAmount * 0.005;
+      else rewardAmount = baseAmount * 0.001;
+      
+      return {
+        amount: rewardAmount.toFixed(3),
+        symbol: config.symbol
+      };
+    } catch (error) {
+      console.error('Error fetching reward config:', error);
+      // Fallback to ETH
+      const ethAmounts = ["0.1", "0.05", "0.025", "0.01", "0.005", "0.001"];
+      const amount = rank === 1 ? ethAmounts[0] : 
+                   rank === 2 ? ethAmounts[1] : 
+                   rank === 3 ? ethAmounts[2] : 
+                   rank <= 5 ? ethAmounts[3] : 
+                   rank <= 10 ? ethAmounts[4] : ethAmounts[5];
+      return { amount, symbol: 'ETH' };
+    }
   }
 
-  // Get reward text for beaten score notifications
-  private static getRewardText(oldScore: number): string {
-    // Estimate rank based on score (simplified)
-    if (oldScore > 50000) return "You could earn 0.01+ ETH in top ranks";
-    if (oldScore > 30000) return "Top 10 rewards up to 0.1 ETH available";
-    if (oldScore > 20000) return "ETH rewards await in the leaderboard";
-    return "Climb higher for ETH rewards";
+  // Get reward text for beaten score notifications with dynamic symbol
+  private static async getRewardText(oldScore: number): Promise<string> {
+    try {
+      const response = await fetch('/api/reward-config');
+      const config = response.ok ? await response.json() : { symbol: 'ETH', amount: '1.000' };
+      const symbol = config.symbol;
+      
+      // Estimate rank based on score (simplified)
+      if (oldScore > 50000) return `You could earn 0.01+ ${symbol} in top ranks`;
+      if (oldScore > 30000) return `Top 10 rewards up to 0.1 ${symbol} available`;
+      if (oldScore > 20000) return `${symbol} rewards await in the leaderboard`;
+      return `Climb higher for ${symbol} rewards`;
+    } catch (error) {
+      console.error('Error fetching reward config for text:', error);
+      return "Climb higher for rewards";
+    }
   }
 
   // Send the actual notification

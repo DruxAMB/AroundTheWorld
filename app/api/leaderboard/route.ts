@@ -28,11 +28,13 @@ export async function GET(request: NextRequest) {
       farcasterProfile: player.fid ? farcasterProfiles[player.fid] : null
     }));
     
-    // Get global stats
+    // Get global stats with dynamic reward symbol
     const globalStats = await gameDataService.getGlobalStats();
+    const rewardConfig = await gameDataService.getRewardConfig();
     
-    // Calculate reward pool (example: 1 ETH total pool)
-    const totalRewardPool = 1e18; // 1 ETH in wei
+    // Calculate reward pool using dynamic reward configuration
+    const baseRewardAmount = parseFloat(rewardConfig.amount);
+    const totalRewardPool = baseRewardAmount * 1e18; // Convert to wei equivalent
     const rewardDistribution = RewardDistributionService.calculateRewardDistribution(totalRewardPool);
     
     // Get player rank if wallet address provided
@@ -55,12 +57,20 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       leaderboard: enhancedLeaderboard,
-      globalStats,
+      globalStats: {
+        ...globalStats,
+        rewardSymbol: rewardConfig.symbol
+      },
       playerRank,
       playerRewards,
       rewardTier,
       motivationMessage,
       rewardDistribution,
+      rewardConfig: {
+        symbol: rewardConfig.symbol,
+        amount: rewardConfig.amount,
+        description: rewardConfig.description
+      },
       timeframe
     });
   } catch (error) {

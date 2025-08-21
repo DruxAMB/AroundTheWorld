@@ -1,0 +1,42 @@
+# Test reward configuration API
+
+### Get current reward config
+GET http://localhost:3000/api/reward-config
+
+### Set ENB rewards
+POST http://localhost:3000/api/reward-config
+Content-Type: application/json
+
+{
+  "symbol": "ENB",
+  "amount": "1000.000",
+  "description": "1000 ENB weekly tournament"
+}
+
+### Set USDC rewards
+POST http://localhost:3000/api/reward-config
+Content-Type: application/json
+
+{
+  "symbol": "USDC", 
+  "amount": "500.00",
+  "description": "500 USDC monthly competition"
+}
+
+### Set ETH rewards (back to default)
+POST http://localhost:3000/api/reward-config
+Content-Type: application/json
+
+{
+  "symbol": "ETH",
+  "amount": "1.000",
+  "description": "1.000 ETH reward pool"
+}
+
+# Get current config
+curl http://localhost:3000/api/reward-config
+
+# Set ENB rewards
+curl -X POST http://localhost:3000/api/reward-config \
+  -H "Content-Type: application/json" \
+  -d '{"symbol": "ENB", "amount": "1000.000", "description": "1000 ENB weekly tournament"}'
