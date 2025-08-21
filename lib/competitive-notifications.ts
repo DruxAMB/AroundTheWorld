@@ -1,4 +1,5 @@
 import { redis } from './redis';
+import { gameDataService } from '@/app/services/gameDataService';
 
 export interface CompetitiveNotification {
   type: 'score_beaten' | 'rank_change' | 'near_top10';
@@ -15,26 +16,30 @@ export interface CompetitiveNotification {
 
 export class CompetitiveNotificationService {
   
-  // Check if someone beat a user's high score and notify them
-  static async checkScoreBeaten(newScore: number, playerFid: number, playerName: string) {
+  // Check if a new score beats existing players and notify them
+  static async checkScoreBeaten(newScore: number, winnerFid: number, winnerName: string) {
     try {
-      if (!redis) return;
-
-      // Get all players with lower scores than the new score
-      const allPlayers = await redis.zrange('leaderboard:global', 0, -1, { rev: true, withScores: true }) as string[];
+      console.log(`🔔 [CompetitiveNotifications] Checking if score ${newScore} beats others`);
       
-      for (let i = 0; i < allPlayers.length; i += 2) {
-        const fid = parseInt(allPlayers[i] as string);
-        const currentScore = parseInt(allPlayers[i + 1] as string);
-        
-        // Skip the player who just scored
-        if (fid === playerFid) continue;
-        
-        // If this player's score was beaten by the new score
-        if (currentScore < newScore) {
-          await this.sendScoreBeatenNotification(fid, playerName, newScore, currentScore);
+      // Get current leaderboard to find players with lower scores
+      const leaderboard = await gameDataService.getLeaderboard('all-time', 50);
+      
+      // Find players whose scores were beaten
+      const beatenPlayers = leaderboard.filter((player: any) => 
+        player.score < newScore && player.fid !== winnerFid
+      );
+
+      console.log(`Found ${beatenPlayers.length} players to notify about being beaten`);
+
+      // Send notifications to beaten players
+      for (const player of beatenPlayers) {
+        if (player.fid) {
+          await this.sendScoreBeatenNotification(player.fid, winnerName, newScore, player.score);
         }
       }
+
+      // Check for rank-based rewards notifications
+      await this.checkRankRewardNotifications(winnerFid, winnerName, leaderboard);
     } catch (error) {
       console.error('Error checking score beaten:', error);
     }
@@ -68,13 +73,36 @@ export class CompetitiveNotificationService {
     }
   }
 
+  // Check rank-based reward notifications for new high scorer
+  private static async checkRankRewardNotifications(winnerFid: number, winnerName: string, leaderboard: any[]) {
+    try {
+      // Find winner's new rank
+      const winnerIndex = leaderboard.findIndex(player => player.fid === winnerFid);
+      if (winnerIndex === -1) return;
+      
+      const newRank = winnerIndex + 1;
+      
+      // Send reward notifications based on rank
+      if (newRank <= 3) {
+        await this.sendTopRankRewardNotification(winnerFid, newRank);
+      } else if (newRank <= 10) {
+        await this.sendTop10RewardNotification(winnerFid, newRank);
+      }
+    } catch (error) {
+      console.error('Error checking rank reward notifications:', error);
+    }
+  }
+
   // Send notification when someone beats user's score
   private static async sendScoreBeatenNotification(fid: number, beaterName: string, newScore: number, oldScore: number) {
+    // Calculate potential ETH rewards based on ranking
+    const rewardText = this.getRewardText(oldScore);
+    
     const notification = {
       fid,
       notification: {
-        title: "Your Score Was Beaten! 🏆",
-        body: `${beaterName} just scored ${newScore.toLocaleString()} points! Time to reclaim your throne`,
+        title: "⚡ Someone Beat Your Score!",
+        body: `${beaterName} scored ${newScore.toLocaleString()} points! ${rewardText} - Time to reclaim your throne!`,
         notificationDetails: {
           type: 'score_beaten',
           beaterName,
@@ -89,14 +117,54 @@ export class CompetitiveNotificationService {
 
   // Send notification for players near top 10
   private static async sendNearTop10Notification(fid: number, spotsFromTop10: number) {
+    const ethAmount = this.calculateETHReward(11 + spotsFromTop10 - 1);
     const notification = {
       fid,
       notification: {
-        title: "So Close to Rewards! 🎯",
-        body: `You're only ${spotsFromTop10} spots away from Top 10 rewards! Push now to earn ETH!`,
+        title: "🎯 So Close to ETH Rewards!",
+        body: `You're only ${spotsFromTop10} spots away from earning ${ethAmount} ETH! Push now to claim rewards!`,
         notificationDetails: {
           type: 'near_top10',
-          spotsFromTop10
+          spotsFromTop10,
+          potentialReward: ethAmount
+        }
+      }
+    };
+
+    await this.sendNotification(notification);
+  }
+
+  // Send notification for top rank achievement
+  private static async sendTopRankRewardNotification(fid: number, rank: number) {
+    const ethAmount = this.calculateETHReward(rank);
+    const notification = {
+      fid,
+      notification: {
+        title: "🏆 Champion Status Achieved!",
+        body: `Congratulations! You're #${rank} and earning ${ethAmount} ETH rewards! Mint your NFT now!`,
+        notificationDetails: {
+          type: 'top_rank_reward',
+          rank,
+          ethReward: ethAmount
+        }
+      }
+    };
+
+    await this.sendNotification(notification);
+  }
+
+  // Send notification for top 10 achievement
+  private static async sendTop10RewardNotification(fid: number, rank: number) {
+    const ethAmount = this.calculateETHReward(rank);
+    const notification = {
+      fid,
+      notification: {
+        title: "💎 Top 10 Elite Status!",
+        body: `Amazing! You're #${rank} earning ${ethAmount} ETH rewards! Secure your position!`,
+        notificationDetails: {
+          type: 'top10_reward',
+          rank,
+          ethReward: ethAmount
         }
       }
     };
@@ -106,14 +174,16 @@ export class CompetitiveNotificationService {
 
   // Send notification for top 5% players
   private static async sendTop5PercentNotification(fid: number, rank: number) {
+    const ethAmount = this.calculateETHReward(rank);
     const notification = {
       fid,
       notification: {
-        title: "Elite Rewards Zone! 🔥",
-        body: `You're in the Top 10 earning ETH rewards! Defend your position now!`,
+        title: "🔥 Elite Rewards Zone!",
+        body: `You're #${rank} earning ${ethAmount} ETH rewards! Defend your elite position!`,
         notificationDetails: {
           type: 'top_percent',
-          rank
+          rank,
+          ethReward: ethAmount
         }
       }
     };
@@ -121,9 +191,37 @@ export class CompetitiveNotificationService {
     await this.sendNotification(notification);
   }
 
+  // Calculate ETH reward based on rank
+  private static calculateETHReward(rank: number): string {
+    if (rank === 1) return "0.1";
+    if (rank === 2) return "0.05";
+    if (rank === 3) return "0.025";
+    if (rank <= 5) return "0.01";
+    if (rank <= 10) return "0.005";
+    return "0.001";
+  }
+
+  // Get reward text for beaten score notifications
+  private static getRewardText(oldScore: number): string {
+    // Estimate rank based on score (simplified)
+    if (oldScore > 50000) return "You could earn 0.01+ ETH in top ranks";
+    if (oldScore > 30000) return "Top 10 rewards up to 0.1 ETH available";
+    if (oldScore > 20000) return "ETH rewards await in the leaderboard";
+    return "Climb higher for ETH rewards";
+  }
+
   // Send the actual notification
   private static async sendNotification(payload: { fid: number; notification: { title: string; body: string; notificationDetails: Record<string, unknown> } }) {
     try {
+      // Check rate limiting first
+      const notificationType = payload.notification.notificationDetails.type as string;
+      const shouldSend = await this.shouldSendNotification(payload.fid, notificationType);
+      
+      if (!shouldSend) {
+        console.log(`Rate limited: Not sending ${notificationType} notification to FID ${payload.fid}`);
+        return;
+      }
+
       const response = await fetch('/api/notify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

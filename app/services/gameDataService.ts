@@ -1,4 +1,5 @@
 import { redis } from "../../lib/redis";
+import { CompetitiveNotificationService } from "../../lib/competitive-notifications";
 
 export interface PlayerProfile {
   id: string;
@@ -242,6 +243,10 @@ class GameDataService {
     const playerId = this.getPlayerKey(walletAddress);
     const progressKey = `${playerId}:progress`;
     
+    // Get previous total score for comparison
+    const previousPlayer = await redis.hgetall(playerId) as PlayerProfile | null;
+    const previousScore = previousPlayer?.totalScore || 0;
+    
     // Calculate stats from progress - USE BEST SCORES ONLY for total score
     const totalScore = progress.reduce((sum, level) => sum + (level.bestScore || level.score), 0);
     const levelsCompleted = progress.filter(level => level.completed).length;
@@ -255,7 +260,8 @@ class GameDataService {
       totalScore,
       levelsCompleted,
       bestLevel,
-      progressCount: progress.length
+      progressCount: progress.length,
+      previousScore
     });
 
     // Save progress
@@ -271,6 +277,11 @@ class GameDataService {
     
     // Update leaderboard
     await this.updateLeaderboards(walletAddress, totalScore, levelsCompleted, bestLevel);
+    
+    // Trigger competitive notifications if score improved
+    if (totalScore > previousScore) {
+      await this.triggerCompetitiveNotifications(walletAddress, totalScore, previousScore);
+    }
     
     // Update global stats after leaderboard changes
     await this.updateGlobalStats();
@@ -543,6 +554,26 @@ class GameDataService {
       target.setMonth(0, 1 + ((4 - target.getDay()) + 7) % 7); // First Thursday of year
     }
     return 1 + Math.ceil((firstThursday - target.valueOf()) / 604800000); // 604800000 = 7 * 24 * 3600 * 1000
+  }
+
+  // Trigger competitive notifications when a player's score improves
+  private async triggerCompetitiveNotifications(walletAddress: string, newScore: number, previousScore: number): Promise<void> {
+    try {
+      // Get player info for notifications
+      const player = await this.getPlayer(walletAddress);
+      if (!player || !player.fid) {
+        console.log('No FID found for player, skipping notifications');
+        return;
+      }
+
+      console.log(`🔔 [GameDataService] Triggering competitive notifications for ${player.name} (FID: ${player.fid})`);
+      
+      // Check if this player's score beat others
+      await CompetitiveNotificationService.checkScoreBeaten(newScore, player.fid, player.name);
+      
+    } catch (error) {
+      console.error('Error triggering competitive notifications:', error);
+    }
   }
 
   private generateAvatar(): string {
