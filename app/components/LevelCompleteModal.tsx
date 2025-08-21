@@ -144,13 +144,13 @@ export default function LevelCompleteModal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-40"
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40 p-0"
         >
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
-            className="bg-[var(--app-background)] border border-[var(--app-gray)] rounded-xl p-8 max-w-md w-full mx-4 text-center"
+            className="backdrop-blur-lg border border-[var(--app-gray)] rounded-xl p-8 w-full h-full mx-0 my-0 text-center flex flex-col justify-center"
           >
             {modalState === 'complete' && success && (
               <>
@@ -192,7 +192,7 @@ export default function LevelCompleteModal({
                       onClick={handleMintClick}
                       className="w-full py-3 bg-[var(--app-accent)] text-white rounded-lg hover:opacity-90 font-semibold transition-opacity"
                     >
-                      Mint NFT (~$0.10)
+                      Mint NFT
                     </button>
                   </div>
                 )}

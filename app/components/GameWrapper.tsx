@@ -350,7 +350,6 @@ export function GameWrapper({ onGameStateChange }: GameWrapperProps = {}) {
           onClose={handleBackToLevels}
           success={true}
           score={progress?.find(p => p.levelId === currentLevel.id)?.score || 0}
-          levelId={getLevelIdForNFT(currentLevel.id)}
           levelName={currentLevel.region}
           onRetry={handleRetry}
           onNextLevel={(() => {
