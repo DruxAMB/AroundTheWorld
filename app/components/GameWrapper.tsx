@@ -37,7 +37,7 @@ export function GameWrapper({ onGameStateChange }: GameWrapperProps = {}) {
       'Europe': '🇪🇺'
     }[level.region] || '🌍';
 
-    const shareText = `Just completed ${level.name} in Around the World! ${regionEmoji}\n\n${starEmojis} Score: ${score.toLocaleString()} points\n\nPlay the match-3 adventure across the globe! 🎮`;
+    const shareText = `Just completed ${level.name} in Around the World! ${regionEmoji}\n\n${starEmojis} Score: ${score.toLocaleString()} points\n\nPlay the match-3 adventure across the globe, climb the leaderboad and earn rewards! 🎮`;
 
     try {
       composeCast({ 
@@ -134,12 +134,12 @@ export function GameWrapper({ onGameStateChange }: GameWrapperProps = {}) {
     }
   }, [progress, isConnected, address, gameDataLoading, calculateUnlockedLevels]);
 
-  const handleLevelSelect = (level: Level) => {
+  const handleLevelSelect = useCallback((level: Level) => {
     setCurrentLevel(level);
     setGameState('playing');
     // Stop any background music
     soundManager.fadeOutMusic(500);
-  };
+  }, []);
 
   const handleLevelComplete = useCallback(async (success: boolean, score: number) => {
     if (!currentLevel) {
@@ -221,67 +221,20 @@ export function GameWrapper({ onGameStateChange }: GameWrapperProps = {}) {
     }
   }, [currentLevel, progress, saveGameProgress]);
 
-  const handleBackToLevels = useCallback(() => {
-    setGameState('level-select');
+  const handleBackToLevels = () => {
     setCurrentLevel(null);
-    setError(null); // Clear any errors when returning to level select
-    
-    // Stop any background music
-    soundManager.fadeOutMusic(500);
-  }, []);
+    setGameState('level-select');
+    setError(null);
+  };
 
-  // Function to get next level in sequence
-  const getNextLevel = useCallback((currentLevelId: string) => {
-    const currentIndex = LEVEL_ORDER.findIndex(id => id === currentLevelId);
+  // Helper function to get next level in progression
+  const getNextLevel = useCallback((currentLevelId: string): string | null => {
+    const currentIndex = LEVEL_ORDER.indexOf(currentLevelId as typeof LEVEL_ORDER[number]);
     if (currentIndex >= 0 && currentIndex < LEVEL_ORDER.length - 1) {
       return LEVEL_ORDER[currentIndex + 1];
     }
-    return null; // No next level (completed all levels)
+    return null;
   }, []);
-
-  // Error state UI
-  if (gameState === 'error') {
-    return (
-      <div className="flex flex-col h-full max-w-md mx-auto p-4 justify-center items-center space-y-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center"
-        >
-          <div className="text-6xl mb-4">⚠️</div>
-          <h2 className="text-2xl font-bold text-red-500 mb-2">
-            Something went wrong
-          </h2>
-          <p className="text-[var(--app-foreground-muted)] mb-6">
-            {error || 'An unexpected error occurred'}
-          </p>
-          
-          <button
-            onClick={() => {
-              setError(null);
-              setGameState('level-select');
-            }}
-            className="bg-[var(--app-accent)] text-white px-6 py-3 rounded-lg font-medium hover:opacity-90 transition-opacity"
-          >
-            Try Again
-          </button>
-        </motion.div>
-      </div>
-    );
-  }
-
-
-  // Helper function to get level ID for NFT mapping
-  const getLevelIdForNFT = (levelId: string): number => {
-    const levelMap: { [key: string]: number } = {
-      'africa-1': 1,
-      'india-1': 2,
-      'europe-1': 3,
-      'latam-1': 4,
-      'southeast-asia-1': 5
-    };
-    return levelMap[levelId] || 1;
-  };
 
   // Helper function to handle next level navigation
   const handleNextLevel = useCallback(() => {
@@ -314,6 +267,36 @@ export function GameWrapper({ onGameStateChange }: GameWrapperProps = {}) {
         onLevelComplete={handleLevelComplete}
         onBackToLevels={handleBackToLevels}
       />
+    );
+  }
+
+  // Error state
+  if (gameState === 'error') {
+    return (
+      <div className="flex flex-col h-[100vh] max-w-md mx-auto p-4 justify-center items-center">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center"
+        >
+          <div className="text-6xl mb-4">😔</div>
+          <h2 className="text-xl font-bold text-red-600 mb-2">
+            Something went wrong
+          </h2>
+          <p className="text-[var(--app-foreground-muted)] mb-6">
+            {error || 'An unexpected error occurred'}
+          </p>
+          <button
+            onClick={() => {
+              setError(null);
+              setGameState('level-select');
+            }}
+            className="bg-[var(--app-accent)] text-white px-6 py-3 rounded-lg font-medium hover:opacity-90 transition-opacity"
+          >
+            Try Again
+          </button>
+        </motion.div>
+      </div>
     );
   }
 
@@ -357,6 +340,11 @@ export function GameWrapper({ onGameStateChange }: GameWrapperProps = {}) {
             const isNextLevelUnlocked = nextLevelId && unlockedLevels.includes(nextLevelId);
             return isNextLevelUnlocked ? handleNextLevel : undefined;
           })()}
+          onShare={() => {
+            const currentScore = progress?.find(p => p.levelId === currentLevel.id)?.score || 0;
+            const stars = Math.min(Math.floor(currentScore / 1000), 3); // Calculate stars based on score
+            handleShareScore(currentLevel, currentScore, stars);
+          }}
         />
       )}
     </>

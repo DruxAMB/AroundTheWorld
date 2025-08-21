@@ -2,11 +2,11 @@
 
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { LEVELS as levels, Level } from "../data/levels";
+import { LEVELS as levels } from "../data/levels";
 import { soundManager } from "../utils/soundManager";
-import { useMiniKit } from "@coinbase/onchainkit/minikit";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { parseEther } from "viem";
+import Image from "next/image";
 
 interface LevelCompleteModalProps {
   isOpen: boolean;
@@ -16,6 +16,7 @@ interface LevelCompleteModalProps {
   levelName: string;
   onRetry?: () => void;
   onNextLevel?: () => void;
+  onShare?: () => void;
 }
 
 type ModalState = 'complete' | 'nft-preview' | 'minting' | 'mint-success' | 'mint-error';
@@ -65,16 +66,16 @@ export default function LevelCompleteModal({
   levelName,
   onRetry,
   onNextLevel,
+  onShare,
 }: LevelCompleteModalProps) {
   const levelData = levels.find(level => level.region === levelName || level.name === levelName);
   const [modalState, setModalState] = useState<ModalState>('complete');
   const [errorMessage, setErrorMessage] = useState('');
 
-  const { context } = useMiniKit();
   const { address, isConnected } = useAccount();
   const { writeContract, data: hash, error } = useWriteContract();
   
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+  const { isSuccess } = useWaitForTransactionReceipt({
     hash,
   });
 
@@ -108,9 +109,9 @@ export default function LevelCompleteModal({
         args: [BigInt(numericLevelId)],
         value: parseEther(MINT_PRICE),
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Minting error:', err);
-      setErrorMessage(err.message || 'Transaction failed');
+      setErrorMessage(err instanceof Error ? err.message : 'Transaction failed');
       setModalState('mint-error');
     }
   };
@@ -160,7 +161,7 @@ export default function LevelCompleteModal({
                   Level Complete!
                 </h2>
                 <p className="text-[var(--app-foreground-muted)] mb-4">
-                  Congratulations! You've conquered {levelName}!
+                  Congratulations! You&apos;ve conquered {levelName}!
                 </p>
                 
                 <div className="bg-[var(--app-gray)] rounded-lg p-4 mb-6">
@@ -174,10 +175,12 @@ export default function LevelCompleteModal({
                 {levelData && (
                   <div className="bg-[var(--app-gray)] rounded-lg p-4 mb-6">
                     <div className="flex items-center justify-center mb-3">
-                      <img 
+                      <Image
                         src={levelData.backgroundImage} 
                         alt={levelData.name}
                         className="w-16 h-16 rounded-lg mr-3 object-cover"
+                        width={64}
+                        height={64}
                       />
                       <div className="text-left">
                         <div className="font-semibold text-[var(--app-foreground)]">
@@ -198,6 +201,16 @@ export default function LevelCompleteModal({
                 )}
 
                 {/* Action Buttons */}
+                <div className="flex gap-3 mb-4">
+                  {onShare && (
+                    <button
+                      onClick={onShare}
+                      className="flex-1 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold"
+                    >
+                      Share Score 🚀
+                    </button>
+                  )}
+                </div>
                 <div className="flex gap-3">
                   <button
                     onClick={handleClose}
@@ -225,7 +238,7 @@ export default function LevelCompleteModal({
                   Level Failed
                 </h2>
                 <p className="text-[var(--app-foreground-muted)] mb-4">
-                  Don't give up! Try again to conquer {levelName}.
+                  Don&apos;t give up! Try again to conquer {levelName}.
                 </p>
                 
                 <div className="bg-[var(--app-gray)] rounded-lg p-4 mb-6">
@@ -262,16 +275,18 @@ export default function LevelCompleteModal({
                   Mint Your NFT
                 </h3>
                 <div className="text-center mb-4">
-                  <img 
+                  <Image 
                     src={levelData.backgroundImage} 
                     alt={levelData.name} 
                     className="w-48 h-48 mx-auto rounded-lg mb-4 object-cover"
+                    width={192}
+                    height={192}
                   />
                   <h4 className="text-lg font-semibold mb-2 text-[var(--app-foreground)]">
                     AroundTheWorld {levelData.name} Winner
                   </h4>
                   <p className="text-[var(--app-foreground-muted)] mb-4">
-                    Congratulations! You've completed the {levelData.name} level.
+                    Congratulations! You&apos;ve completed the {levelData.name} level.
                   </p>
                 </div>
                 
