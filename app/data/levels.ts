@@ -152,8 +152,8 @@ export const LEVELS: Level[] = [
       },
       {
         type: 'clear_special',
-        target: 5,
-        description: 'Create 5 special candies'
+        target: 4,
+        description: 'Create 4 special candies'
       }
     ],
     moves: 15,
@@ -182,7 +182,7 @@ export const LEVELS: Level[] = [
       },
       {
         type: 'clear_special',
-        target: 7,
+        target: 5,
         description: 'Create 7 special candies'
       }
     ],
