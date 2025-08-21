@@ -113,27 +113,32 @@ class GameDataService {
   async getPlayer(walletAddress: string): Promise<PlayerProfile | null> {
     if (!redis) return null;
 
-    const playerId = this.getPlayerKey(walletAddress);
-    const playerData = await redis.hgetall(playerId) as Record<string, string>;
+    try {
+      const playerId = this.getPlayerKey(walletAddress);
+      const playerData = await redis.hgetall(playerId) as Record<string, string>;
 
-    if (!playerData || Object.keys(playerData).length === 0) {
+      if (!playerData || Object.keys(playerData).length === 0) {
+        return null;
+      }
+
+      const player: PlayerProfile = {
+        id: playerData.id || walletAddress,
+        name: playerData.name || `Player${walletAddress.slice(-4)}`,
+        walletAddress: playerData.walletAddress || walletAddress,
+        avatar: playerData.avatar || this.generateAvatar(),
+        fid: playerData.fid ? parseInt(playerData.fid as string) : undefined,
+        totalScore: parseInt(playerData.totalScore) || 0,
+        levelsCompleted: parseInt(playerData.levelsCompleted) || 0,
+        bestLevel: parseInt(playerData.bestLevel) || 1,
+        createdAt: playerData.createdAt || new Date().toISOString(),
+        lastActive: playerData.lastActive || new Date().toISOString()
+      };
+
+      return player;
+    } catch (error) {
+      console.error('Error fetching player data:', error);
       return null;
     }
-
-    const player: PlayerProfile = {
-      id: playerData.id || walletAddress,
-      name: playerData.name || `Player${walletAddress.slice(-4)}`,
-      walletAddress: playerData.walletAddress || walletAddress,
-      avatar: playerData.avatar || this.generateAvatar(),
-      fid: playerData.fid ? parseInt(playerData.fid as string) : undefined,
-      totalScore: parseInt(playerData.totalScore) || 0,
-      levelsCompleted: parseInt(playerData.levelsCompleted) || 0,
-      bestLevel: parseInt(playerData.bestLevel) || 1,
-      createdAt: playerData.createdAt || new Date().toISOString(),
-      lastActive: playerData.lastActive || new Date().toISOString()
-    };
-
-    return player;
   }
 
   async checkNameAvailability(name: string, currentWalletAddress?: string): Promise<boolean> {
@@ -434,33 +439,39 @@ class GameDataService {
   async getLeaderboard(timeframe: 'week' | 'month' | 'all-time', limit: number = 50): Promise<LeaderboardEntry[]> {
     if (!redis) return [];
 
-    const key = timeframe === 'week' 
-      ? `${this.LEADERBOARD_PREFIX}week:${this.getWeekKey(new Date())}`
-      : timeframe === 'month'
-      ? `${this.LEADERBOARD_PREFIX}month:${this.getMonthKey(new Date())}`
-      : `${this.LEADERBOARD_PREFIX}all-time`;
+    try {
+      const key = timeframe === 'week' 
+        ? `${this.LEADERBOARD_PREFIX}week:${this.getWeekKey(new Date())}`
+        : timeframe === 'month'
+        ? `${this.LEADERBOARD_PREFIX}month:${this.getMonthKey(new Date())}`
+        : `${this.LEADERBOARD_PREFIX}all-time`;
 
-    const results = await redis.zrange(key, 0, limit - 1, { withScores: true, rev: true });
-    
-    const leaderboard: LeaderboardEntry[] = [];
-    for (let i = 0; i < results.length; i += 2) {
-      try {
-        // Redis returns the data already parsed as objects, no need to JSON.parse
-        const memberData = typeof results[i] === 'string' 
-          ? JSON.parse(results[i] as string)
-          : results[i] as Omit<LeaderboardEntry, 'rank' | 'rankChange'>;
-          
-        leaderboard.push({
-          ...memberData,
-          rank: Math.floor(i / 2) + 1,
-          rankChange: 0 // TODO: Calculate rank changes
-        });
-      } catch (e) {
-        console.error('Failed to parse leaderboard entry:', results[i], 'Error:', e);
+      const results = await redis.zrange(key, 0, limit - 1, { withScores: true, rev: true });
+      
+      const leaderboard: LeaderboardEntry[] = [];
+      for (let i = 0; i < results.length; i += 2) {
+        try {
+          // Redis returns the data already parsed as objects, no need to JSON.parse
+          const memberData = typeof results[i] === 'string' 
+            ? JSON.parse(results[i] as string)
+            : results[i] as Omit<LeaderboardEntry, 'rank' | 'rankChange'>;
+            
+          leaderboard.push({
+            ...memberData,
+            rank: Math.floor(i / 2) + 1,
+            rankChange: 0 // TODO: Calculate rank changes
+          });
+        } catch (e) {
+          console.error('Failed to parse leaderboard entry:', results[i], 'Error:', e);
+          // Continue processing other entries instead of failing completely
+        }
       }
-    }
 
-    return leaderboard;
+      return leaderboard;
+    } catch (error) {
+      console.error('Error fetching leaderboard:', error);
+      return [];
+    }
   }
 
   async getPlayerRank(walletAddress: string, timeframe: 'week' | 'month' | 'all-time'): Promise<number> {
@@ -498,20 +509,25 @@ class GameDataService {
       return { symbol: 'ETH', amount: '1.000', description: '1.000 ETH reward pool', lastUpdated: new Date().toISOString() };
     }
 
-    const config = await redis.hgetall('reward:config') as Record<string, string>;
-    
-    if (!config || Object.keys(config).length === 0) {
-      // Set default ETH configuration
-      await this.setRewardConfig('ETH', '1.000', '1.000 ETH reward pool');
+    try {
+      const config = await redis.hgetall('reward:config') as Record<string, string>;
+      
+      if (!config || Object.keys(config).length === 0) {
+        // Set default ETH configuration
+        await this.setRewardConfig('ETH', '1.000', '1.000 ETH reward pool');
+        return { symbol: 'ETH', amount: '1.000', description: '1.000 ETH reward pool', lastUpdated: new Date().toISOString() };
+      }
+      
+      return {
+        symbol: config.symbol || 'ETH',
+        amount: config.amount || '1.000',
+        description: config.description || `${config.amount} ${config.symbol} reward pool`,
+        lastUpdated: config.lastUpdated || new Date().toISOString()
+      };
+    } catch (error) {
+      console.error('Error fetching reward config:', error);
       return { symbol: 'ETH', amount: '1.000', description: '1.000 ETH reward pool', lastUpdated: new Date().toISOString() };
     }
-    
-    return {
-      symbol: config.symbol || 'ETH',
-      amount: config.amount || '1.000',
-      description: config.description || `${config.amount} ${config.symbol} reward pool`,
-      lastUpdated: config.lastUpdated || new Date().toISOString()
-    };
   }
 
   // Global Statistics
