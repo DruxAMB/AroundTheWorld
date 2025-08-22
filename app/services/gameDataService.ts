@@ -502,6 +502,9 @@ class GameDataService {
     };
     
     await redis.hset('reward:config', config);
+    
+    // Update global stats to reflect the new reward configuration
+    await this.updateGlobalStats();
   }
 
   async getRewardConfig(): Promise<{ symbol: string; amount: string; description: string; lastUpdated: string }> {
