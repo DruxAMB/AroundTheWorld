@@ -1,4 +1,5 @@
 import { sendFrameNotification } from "@/lib/notification-client";
+import { getUserNotificationDetails } from "@/lib/notification";
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
@@ -21,11 +22,26 @@ export async function POST(request: Request) {
       );
     }
 
+    // Get notification tokens from Redis
+    const storedNotificationDetails = await getUserNotificationDetails(fid);
+    
+    if (!storedNotificationDetails) {
+      console.log(`No notification tokens found for FID ${fid}`);
+      return NextResponse.json(
+        { 
+          error: 'No notification permission found', 
+          message: 'User needs to grant notification permissions first',
+          fid 
+        },
+        { status: 404 }
+      );
+    }
+
     const result = await sendFrameNotification({
       fid,
       title: notification.title,
       body: notification.body,
-      notificationDetails: notification.notificationDetails || {},
+      notificationDetails: storedNotificationDetails,
     });
 
     if (result.state === "error") {
@@ -36,7 +52,23 @@ export async function POST(request: Request) {
       );
     }
 
-    return NextResponse.json({ success: true }, { status: 200 });
+    if (result.state === "no_token") {
+      return NextResponse.json(
+        { error: 'No notification token available for user' },
+        { status: 404 }
+      );
+    }
+
+    if (result.state === "rate_limit") {
+      return NextResponse.json(
+        { error: 'Rate limited - too many notifications sent' },
+        { status: 429 }
+      );
+    }
+
+    console.log(`Notification sent successfully to FID ${fid}`);
+    return NextResponse.json({ success: true, state: result.state }, { status: 200 });
+    
   } catch (error) {
     console.error('Notification API error:', error);
     return NextResponse.json(

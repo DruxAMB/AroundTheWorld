@@ -64,10 +64,10 @@ class SoundManager {
         audio.loop = true;
         audio.preload = 'auto';
         
-        // Add volume change listener to track changes
-        audio.addEventListener('volumechange', () => {
-          console.log(`🎵 Volume changed for ${key}: ${audio.volume}`);
-        });
+        // // Add volume change listener to track changes
+        // audio.addEventListener('volumechange', () => {
+        //   console.log(`🎵 Volume changed for ${key}: ${audio.volume}`);
+        // });
         
         this.music.set(key, audio);
       } catch (error) {
