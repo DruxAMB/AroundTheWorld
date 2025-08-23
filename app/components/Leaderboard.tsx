@@ -159,7 +159,7 @@ export function Leaderboard({ onClose }: LeaderboardProps) {
                       animate={{ scale: 1 }}
                       transition={{ duration: 0.3, delay: 0.3, ease: "easeOut" }}
                     >
-                      {globalStats.totalRewards} {rewardSymbol}
+                      {parseFloat(globalStats.totalRewards).toLocaleString()} {rewardSymbol}
                     </motion.div>
                     <div className="text-xs text-[var(--app-foreground-muted)]">Total Rewards</div>
                   </>
@@ -221,7 +221,7 @@ export function Leaderboard({ onClose }: LeaderboardProps) {
                       animate={{ scale: 1 }}
                       transition={{ duration: 0.3, delay: 0.5, ease: "easeOut" }}
                     >
-                      {playerRewards} {rewardSymbol}
+                      {parseFloat(playerRewards).toLocaleString()} {rewardSymbol}
                     </motion.div>
                     <div className="text-xs text-[var(--app-foreground-muted)]">Your Rewards</div>
                   </>

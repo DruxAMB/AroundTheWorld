@@ -13,6 +13,7 @@ interface SettingsModalProps {
 interface GameSettings {
   soundEnabled: boolean;
   soundVolume: number;
+  musicEnabled: boolean;
   animationsEnabled: boolean;
   vibrationEnabled: boolean;
 }
@@ -24,6 +25,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const defaultSettings: GameSettings = {
     soundEnabled: true,
     soundVolume: 30,
+    musicEnabled: true,
     animationsEnabled: true,
     vibrationEnabled: true,
   };
@@ -35,22 +37,26 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   // Debounce timer ref
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Load settings from Redis via useGameData hook
+  // Load settings from Redis via useGameData hook - ONLY run once when settings first load
   useEffect(() => {
-    if (settings && typeof settings === 'object' && Object.keys(settings).length > 0 && settings.soundEnabled !== undefined) {
-      // Use Redis settings - always update when we get valid settings
+    if (settings && typeof settings === 'object' && Object.keys(settings).length > 0 && settings.soundEnabled !== undefined && !isSettingsLoaded) {
+      // Use Redis settings - only on first load
+      console.log('🔧 Loading settings from Redis:', settings);
       setLocalSettings(settings);
       setIsSettingsLoaded(true);
       // Apply settings to sound manager
       soundManager.setEnabled(settings.soundEnabled);
       soundManager.setVolume(settings.soundVolume / 100);
+      soundManager.setMusicEnabled(settings.musicEnabled ?? true);
     } else if (settings === null && !isSettingsLoaded) {
       // No Redis settings found, use defaults
+      console.log('🔧 Using default settings');
       setLocalSettings(defaultSettings);
       setIsSettingsLoaded(true);
       // Apply default settings to sound manager
       soundManager.setEnabled(defaultSettings.soundEnabled);
       soundManager.setVolume(defaultSettings.soundVolume / 100);
+      soundManager.setMusicEnabled(defaultSettings.musicEnabled);
     }
   }, [settings, defaultSettings, isSettingsLoaded]);
 
@@ -79,6 +85,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     // 2. Apply settings to sound manager immediately
     soundManager.setEnabled(newSettings.soundEnabled);
     soundManager.setVolume(newSettings.soundVolume / 100);
+    soundManager.setMusicEnabled(newSettings.musicEnabled);
     
     // 3. Save to Redis with debounce
     debouncedSaveToRedis(newSettings);
@@ -114,6 +121,34 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       soundManager.play('click');
     }
   };
+
+  const handleMusicToggle = () => {
+    if (!localSettings) return;
+    
+    console.log('🎵 Toggle clicked - current state:', localSettings.musicEnabled);
+    const newSettings = { ...localSettings, musicEnabled: !localSettings.musicEnabled };
+    console.log('🎵 New state will be:', newSettings.musicEnabled);
+    
+    // Update UI immediately
+    setLocalSettings(newSettings);
+    
+    // Apply to sound manager immediately (no delay for toggle)
+    soundManager.setMusicEnabled(newSettings.musicEnabled);
+    
+    // Handle music state based on toggle
+    if (!newSettings.musicEnabled) {
+      // Stop all music when disabled
+      soundManager.stopMusic();
+    } else {
+      // When re-enabling, let current context determine what music to play
+      // Menu music will restart automatically via LevelSelector useEffect
+      // Level music will restart when entering next level
+    }
+    
+    // Save to Redis with debounce
+    debouncedSaveToRedis(newSettings);
+  };
+
 
 
   const handleAnimationsToggle = () => {
@@ -270,6 +305,30 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       />
                     </div>
                   )}
+
+                  {/* Background Music Toggle */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <div className="font-medium text-[var(--app-foreground)]">Background Music</div>
+                      <div className="text-sm text-[var(--app-foreground-muted)]">
+                        Regional atmospheric music
+                      </div>
+                    </div>
+                    <motion.button
+                      onClick={handleMusicToggle}
+                      whileTap={{ scale: 0.95 }}
+                      className={`relative w-12 h-6 rounded-full transition-colors ${
+                        localSettings.musicEnabled ? 'bg-[var(--app-accent)]' : 'bg-gray-400'
+                      }`}
+                    >
+                      <motion.div
+                        animate={{ x: localSettings.musicEnabled ? 24 : 0 }}
+                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                        className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-md"
+                      />
+                    </motion.button>
+                  </div>
+
 
                 </div>
 

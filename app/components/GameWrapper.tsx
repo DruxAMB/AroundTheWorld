@@ -137,8 +137,23 @@ export function GameWrapper({ onGameStateChange }: GameWrapperProps = {}) {
   const handleLevelSelect = useCallback((level: Level) => {
     setCurrentLevel(level);
     setGameState('playing');
-    // Stop any background music
-    soundManager.fadeOutMusic(500);
+    
+    // Play region-specific background music
+    const regionMusicMap: { [key: string]: string } = {
+      'Africa': 'africa',
+      'India': 'india',
+      'Latin America': 'latam',
+      'Southeast Asia': 'southeastAsia',
+      'Europe': 'europe'
+    };
+    
+    const musicKey = regionMusicMap[level.region];
+    if (musicKey && soundManager.isMusicEnabled()) {
+      soundManager.fadeOutMusic(300);
+      setTimeout(() => {
+        soundManager.playMusic(musicKey);
+      }, 400);
+    }
   }, []);
 
   const handleLevelComplete = useCallback(async (success: boolean, score: number) => {

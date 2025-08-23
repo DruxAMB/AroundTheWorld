@@ -3,6 +3,8 @@
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { Level, LEVELS } from "../data/levels";
+import { soundManager } from "../utils/soundManager";
+import { useEffect } from "react";
 
 interface LevelSelectorProps {
   onLevelSelect: (level: Level) => void;
@@ -11,6 +13,42 @@ interface LevelSelectorProps {
 }
 
 export function LevelSelector({ onLevelSelect, unlockedLevels, isWalletConnected }: LevelSelectorProps) {
+  // Play menu music when level selector loads
+  useEffect(() => {
+    // Add a small delay to ensure proper initialization
+    const timer = setTimeout(() => {
+      // Only play if music is enabled
+      if (soundManager.isMusicEnabled()) {
+        soundManager.playMusic('menu');
+      }
+    }, 100);
+    
+    return () => {
+      clearTimeout(timer);
+      // Cleanup: fade out music when component unmounts
+      soundManager.fadeOutMusic(500);
+    };
+  }, []);
+
+  // Listen for music settings changes to restart menu music if re-enabled
+  useEffect(() => {
+    const handleMusicToggle = () => {
+      if (soundManager.isMusicEnabled()) {
+        // Small delay to ensure settings are applied
+        setTimeout(() => {
+          soundManager.playMusic('menu');
+        }, 100);
+      }
+    };
+
+    // Custom event listener for music toggle changes
+    window.addEventListener('musicToggled', handleMusicToggle);
+    
+    return () => {
+      window.removeEventListener('musicToggled', handleMusicToggle);
+    };
+  }, []);
+
   const isLevelUnlocked = (levelId: string) => {
     return unlockedLevels.includes(levelId);
   };

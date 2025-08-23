@@ -3,6 +3,7 @@ class SoundManager {
   private sounds: Map<string, HTMLAudioElement> = new Map();
   private music: Map<string, HTMLAudioElement> = new Map();
   private enabled: boolean = true;
+  private musicEnabled: boolean = true;
   private volume: number = 0.3; // Lower volume for better UX
   private musicVolume: number = 0.15; // Lower volume for background music
   private currentMusic: HTMLAudioElement | null = null;
@@ -53,7 +54,7 @@ class SoundManager {
       india: '/sounds/music/india-music.mp3',
       latam: '/sounds/music/latam-music.mp3',
       southeastAsia: '/sounds/music/southeast-asia-music.mp3',
-      europe: '/sounds/music/menu-music.mp3', // Fallback to menu music
+      europe: '/sounds/music/europe-music.mp3',
     };
 
     Object.entries(musicFiles).forEach(([key, path]) => {
@@ -62,6 +63,12 @@ class SoundManager {
         audio.volume = this.musicVolume;
         audio.loop = true;
         audio.preload = 'auto';
+        
+        // Add volume change listener to track changes
+        audio.addEventListener('volumechange', () => {
+          console.log(`🎵 Volume changed for ${key}: ${audio.volume}`);
+        });
+        
         this.music.set(key, audio);
       } catch (error) {
         console.warn(`Failed to preload music: ${key}`, error);
@@ -83,17 +90,27 @@ class SoundManager {
   }
 
   setVolume(volume: number) {
-    this.volume = Math.max(0, Math.min(1, volume));
+    // Validate input and provide fallback
+    const validVolume = isFinite(volume) ? volume : 0.3;
+    this.volume = Math.max(0, Math.min(1, validVolume));
     this.sounds.forEach(sound => {
       sound.volume = this.volume;
     });
   }
 
   setMusicVolume(volume: number) {
-    this.musicVolume = Math.max(0, Math.min(1, volume));
-    this.music.forEach(music => {
+    // Validate input and provide fallback
+    const validVolume = isFinite(volume) ? volume : 0.15;
+    this.musicVolume = Math.max(0, Math.min(1, validVolume));
+    
+    this.music.forEach((music) => {
       music.volume = this.musicVolume;
     });
+    
+    // Also update currently playing music volume immediately
+    if (this.currentMusic) {
+      this.currentMusic.volume = this.musicVolume;
+    }
   }
 
   setEnabled(enabled: boolean) {
@@ -103,12 +120,28 @@ class SoundManager {
     }
   }
 
-  isEnabled(): boolean {
-    return this.enabled;
+  setMusicEnabled(enabled: boolean) {
+    console.log(`🎵 SoundManager.setMusicEnabled called with: ${enabled}, current state: ${this.musicEnabled}`);
+    this.musicEnabled = enabled;
+    console.log(`🎵 Music ${enabled ? 'enabled' : 'disabled'} - new state: ${this.musicEnabled}`);
+    
+    // Dispatch custom event to notify components of music toggle change
+    window.dispatchEvent(new CustomEvent('musicToggled', { detail: { enabled } }));
+  }
+
+  isMusicEnabled(): boolean {
+    return this.musicEnabled;
   }
 
   playMusic(musicName: string) {
-    if (!this.enabled) return;
+    if (!this.enabled || !this.musicEnabled) {
+      return;
+    }
+
+    // Prevent duplicate calls for the same music
+    if (this.currentMusic && this.currentMusic === this.music.get(musicName)) {
+      return;
+    }
 
     // Stop current music if playing
     this.stopMusic();
@@ -116,10 +149,21 @@ class SoundManager {
     const music = this.music.get(musicName);
     if (music) {
       music.currentTime = 0;
-      music.play().catch(() => {
-        // Ignore errors (e.g., if user hasn't interacted with page yet)
-      });
-      this.currentMusic = music;
+      // Ensure volume is set correctly before playing
+      music.volume = this.musicVolume;
+      
+      // Use a small delay to prevent race conditions
+      setTimeout(() => {
+        if (music === this.music.get(musicName)) { // Ensure it's still the intended music
+          music.play().catch((error) => {
+            // Only log if it's not an abort error from rapid switching
+            if (error.name !== 'AbortError') {
+              console.warn(`🎵 Failed to play music ${musicName}:`, error);
+            }
+          });
+          this.currentMusic = music;
+        }
+      }, 50);
     }
   }
 

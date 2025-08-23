@@ -70,14 +70,14 @@ export class RewardDistributionService {
   }
 
   static formatRewardAmount(amount: number): string {
-    // Format as ETH with appropriate decimals
+    // Format as ETH with appropriate decimals and commas
     const eth = amount / 1e18;
     if (eth >= 1) {
-      return `${eth.toFixed(3)}`;
+      return `${eth.toFixed(3)}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     } else if (eth >= 0.001) {
-      return `${eth.toFixed(4)}`;
+      return `${eth.toFixed(4)}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     } else {
-      return `${eth.toFixed(6)}`;
+      return `${eth.toFixed(6)}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     }
   }
 

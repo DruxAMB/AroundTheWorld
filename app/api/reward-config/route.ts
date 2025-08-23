@@ -13,7 +13,18 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { symbol, amount, description } = await request.json();
+    const body = await request.text();
+    console.log('Raw request body:', body);
+    
+    let parsedBody;
+    try {
+      parsedBody = JSON.parse(body);
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError);
+      return NextResponse.json({ error: 'Invalid JSON format' }, { status: 400 });
+    }
+    
+    const { symbol, amount, description } = parsedBody;
     
     if (!symbol || !amount) {
       return NextResponse.json({ error: 'Symbol and amount are required' }, { status: 400 });
@@ -23,7 +34,8 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({ 
       success: true, 
-      message: 'Reward configuration updated successfully' 
+      message: 'Reward configuration updated successfully',
+      config: { symbol, amount, description }
     });
   } catch (error) {
     console.error('Error updating reward config:', error);
