@@ -248,7 +248,7 @@ export function Leaderboard({ onClose }: LeaderboardProps) {
               </div>
             ) : (
               <div className="no-scrollbar p-4 space-y-2">
-                {players.slice(0, 10).map((player, index) => {
+                {players.map((player, index) => {
                   const isCurrentUser = player.playerId === address;
                   return (
                   <motion.div

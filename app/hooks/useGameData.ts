@@ -304,7 +304,7 @@ export function useLeaderboard(timeframe: 'week' | 'month' | 'all-time' = 'all-t
     try {
       const params = new URLSearchParams({
         timeframe,
-        limit: '50'
+        limit: '30'
       });
       
       if (address) {
