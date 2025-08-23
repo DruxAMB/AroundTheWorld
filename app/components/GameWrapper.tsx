@@ -62,7 +62,6 @@ export function GameWrapper({ onGameStateChange }: GameWrapperProps = {}) {
 
   // Memoized function to calculate unlocked levels - prevents unnecessary recalculations
   const calculateUnlockedLevels = useCallback((progressData: LevelProgress[]): string[] => {
-    console.log('🔍 [GameWrapper] Calculating unlocked levels with progress:', progressData);
     
     // Always start with first level unlocked for connected users
     const unlocked = ['africa-1'];
@@ -72,7 +71,6 @@ export function GameWrapper({ onGameStateChange }: GameWrapperProps = {}) {
       progressData.filter(p => p.completed).map(p => p.levelId)
     );
     
-    console.log('✅ [GameWrapper] Completed levels:', Array.from(completedLevels));
     
     // ROBUST UNLOCKING LOGIC: Handle data inconsistencies
     // If any level is completed, unlock all levels up to and including the highest completed level
@@ -85,7 +83,6 @@ export function GameWrapper({ onGameStateChange }: GameWrapperProps = {}) {
       }
     }
     
-    console.log('🎯 [GameWrapper] Highest completed level index:', highestCompletedIndex);
     
     // Unlock all levels up to the next level after the highest completed
     if (highestCompletedIndex >= 0) {
@@ -99,7 +96,6 @@ export function GameWrapper({ onGameStateChange }: GameWrapperProps = {}) {
       }
     }
     
-    console.log('🔓 [GameWrapper] Final unlocked levels:', unlocked);
     return unlocked;
   }, []);
 
@@ -200,7 +196,6 @@ export function GameWrapper({ onGameStateChange }: GameWrapperProps = {}) {
         // Save progress with error handling
         try {
           await saveGameProgress(newProgress);
-          console.log('✅ Level completion saved successfully');
         } catch (saveError) {
           console.error('Failed to save progress:', saveError);
           setError('Failed to save progress. Please try again.');

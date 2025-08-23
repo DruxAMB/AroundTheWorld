@@ -41,7 +41,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   useEffect(() => {
     if (settings && typeof settings === 'object' && Object.keys(settings).length > 0 && settings.soundEnabled !== undefined && !isSettingsLoaded) {
       // Use Redis settings - only on first load
-      console.log('🔧 Loading settings from Redis:', settings);
       setLocalSettings(settings);
       setIsSettingsLoaded(true);
       // Apply settings to sound manager
@@ -50,7 +49,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       soundManager.setMusicEnabled(settings.musicEnabled ?? true);
     } else if (settings === null && !isSettingsLoaded) {
       // No Redis settings found, use defaults
-      console.log('🔧 Using default settings');
       setLocalSettings(defaultSettings);
       setIsSettingsLoaded(true);
       // Apply default settings to sound manager
@@ -125,9 +123,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const handleMusicToggle = () => {
     if (!localSettings) return;
     
-    console.log('🎵 Toggle clicked - current state:', localSettings.musicEnabled);
     const newSettings = { ...localSettings, musicEnabled: !localSettings.musicEnabled };
-    console.log('🎵 New state will be:', newSettings.musicEnabled);
     
     // Update UI immediately
     setLocalSettings(newSettings);

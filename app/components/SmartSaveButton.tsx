@@ -25,8 +25,8 @@ export default function SmartSaveButton({ isOpen, onClose }: SmartSaveButtonProp
     try {
       const result = await addFrame();
       if (result) {
-        console.log('Frame saved:', result.url);
-        console.log('Notification token:', result.token);
+        // console.log('Frame saved:', result.url);
+        // console.log('Notification token:', result.token);
         
         // Save to your database for future notifications
         await saveNotificationToken(
@@ -127,7 +127,7 @@ async function saveNotificationToken(
       throw new Error('Failed to save notification token');
     }
     
-    console.log('Notification token saved successfully');
+    // console.log('Notification token saved successfully');
   } catch (error) {
     console.error('Error saving notification token:', error);
   }

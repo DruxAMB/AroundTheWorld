@@ -105,7 +105,7 @@ export default function App() {
           const playerName = `Player${address.slice(-4)}`;
           await updatePlayerName(playerName);
           
-          console.log('Player profile created, using Farcaster data for display:', { userFid, username, displayName, pfpUrl });
+          // console.log('Player profile created, using Farcaster data for display:', { userFid, username, displayName, pfpUrl });
         } catch (error) {
           console.error('Failed to set up player profile:', error);
         }

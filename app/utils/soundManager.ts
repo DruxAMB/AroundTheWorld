@@ -121,9 +121,7 @@ class SoundManager {
   }
 
   setMusicEnabled(enabled: boolean) {
-    console.log(`🎵 SoundManager.setMusicEnabled called with: ${enabled}, current state: ${this.musicEnabled}`);
     this.musicEnabled = enabled;
-    console.log(`🎵 Music ${enabled ? 'enabled' : 'disabled'} - new state: ${this.musicEnabled}`);
     
     // Dispatch custom event to notify components of music toggle change
     window.dispatchEvent(new CustomEvent('musicToggled', { detail: { enabled } }));
