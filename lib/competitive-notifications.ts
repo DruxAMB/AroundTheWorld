@@ -347,20 +347,31 @@ export class CompetitiveNotificationService {
         return;
       }
 
-      // Use absolute URL for server-side fetch or handle via internal service
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-      const response = await fetch(`${baseUrl}/api/notify`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => 'Unknown error');
-        throw new Error(`Failed to send notification: ${response.status} - ${errorText}`);
+      // Import and use the notification client directly for better reliability
+      const { sendFrameNotification } = await import('./notification-client');
+      const { getUserNotificationDetails } = await import('./notification');
+      
+      // Get notification tokens for this user
+      const notificationDetails = await getUserNotificationDetails(payload.fid);
+      
+      if (!notificationDetails) {
+        console.log(`No notification tokens found for FID ${payload.fid}, skipping competitive notification`);
+        return;
       }
 
-      console.log('Competitive notification sent successfully');
+      // Send notification directly using the notification client
+      const result = await sendFrameNotification({
+        fid: payload.fid,
+        title: payload.notification.title,
+        body: payload.notification.body,
+        notificationDetails
+      });
+
+      if (result.state === "success") {
+        console.log(`✅ Competitive notification sent successfully to FID ${payload.fid}`);
+      } else {
+        console.warn(`⚠️ Competitive notification failed for FID ${payload.fid}:`, result);
+      }
     } catch (error) {
       console.error('Error sending competitive notification:', error);
     }
