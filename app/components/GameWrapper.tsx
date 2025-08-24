@@ -11,6 +11,8 @@ import { useGameData } from "../hooks/useGameData";
 import { useAccount } from 'wagmi';
 import { LevelProgress } from '../services/gameDataService';
 import { useComposeCast } from '@coinbase/onchainkit/minikit';
+import { useDailyBonus } from '../hooks/useDailyBonus';
+import DailyBonusModal from './DailyBonusModal';
 
 type GameState = 'level-select' | 'playing' | 'level-complete' | 'error';
 
@@ -25,6 +27,7 @@ export function GameWrapper({ onGameStateChange }: GameWrapperProps = {}) {
   const { progress, saveProgress: saveGameProgress, loading: gameDataLoading } = useGameData();
   const { address, isConnected } = useAccount();
   const { composeCast } = useComposeCast();
+  const { showModal, setShowModal, checkEligibility } = useDailyBonus();
 
   // Share score functionality
   const handleShareScore = useCallback((level: Level, score: number, stars: number) => {
@@ -129,6 +132,13 @@ export function GameWrapper({ onGameStateChange }: GameWrapperProps = {}) {
       setGameState('error');
     }
   }, [progress, isConnected, address, gameDataLoading, calculateUnlockedLevels]);
+
+  // Check daily bonus eligibility when wallet connects
+  useEffect(() => {
+    if (isConnected && address && !gameDataLoading) {
+      checkEligibility(address);
+    }
+  }, [isConnected, address, gameDataLoading, checkEligibility]);
 
   const handleLevelSelect = useCallback((level: Level) => {
     setCurrentLevel(level);
@@ -354,6 +364,20 @@ export function GameWrapper({ onGameStateChange }: GameWrapperProps = {}) {
             const currentScore = progress?.find(p => p.levelId === currentLevel.id)?.score || 0;
             const stars = Math.min(Math.floor(currentScore / 1000), 3); // Calculate stars based on score
             handleShareScore(currentLevel, currentScore, stars);
+          }}
+        />
+      )}
+
+      {/* Daily Bonus Modal */}
+      {address && (
+        <DailyBonusModal
+          isOpen={showModal}
+          onClose={() => setShowModal(false)}
+          walletAddress={address}
+          onBonusClaimed={(bonusAmount) => {
+            console.log(`Daily bonus claimed: ${bonusAmount} points`);
+            // The API already handles updating the player's score
+            // Just close the modal after successful claim
           }}
         />
       )}

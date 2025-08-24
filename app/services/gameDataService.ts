@@ -1,5 +1,6 @@
 import { redis } from "../../lib/redis";
 import { CompetitiveNotificationService } from "../../lib/competitive-notifications";
+import { dailyBonusService } from "../../lib/daily-bonus";
 
 export interface PlayerProfile {
   id: string;
@@ -643,6 +644,39 @@ class GameDataService {
     return avatars[Math.floor(Math.random() * avatars.length)];
   }
 
+  // Daily Bonus Integration
+  async checkDailyBonusEligibility(walletAddress: string): Promise<boolean> {
+    try {
+      return !(await dailyBonusService.hasClaimedToday(walletAddress));
+    } catch (error) {
+      console.error('Error checking daily bonus eligibility:', error);
+      return false;
+    }
+  }
+
+  async addBonusPoints(walletAddress: string, bonusAmount: number): Promise<PlayerProfile | null> {
+    try {
+      const player = await this.getPlayer(walletAddress);
+      if (!player) return null;
+
+      const updatedPlayer = await this.createOrUpdatePlayer(walletAddress, {
+        totalScore: player.totalScore + bonusAmount
+      });
+
+      // Update leaderboards with complete player stats
+      await this.updateLeaderboards(
+        walletAddress, 
+        updatedPlayer.totalScore, 
+        updatedPlayer.levelsCompleted, 
+        updatedPlayer.bestLevel
+      );
+
+      return updatedPlayer;
+    } catch (error) {
+      console.error('Error adding bonus points:', error);
+      return null;
+    }
+  }
 
 }
 
