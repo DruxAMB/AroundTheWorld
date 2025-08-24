@@ -124,7 +124,9 @@ export class DailyBonusService {
 
       // Process results
       results?.forEach((result: unknown) => {
-        // Redis pipeline results are arrays: [error, data]
+        // Redis pipeline results are arrays: [error, data] or null
+        if (!result || !Array.isArray(result)) return;
+        
         const resultArray = result as [Error | null, unknown];
         if (resultArray[1]) { // resultArray[0] is error, resultArray[1] is data
           try {

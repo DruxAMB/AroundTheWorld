@@ -15,7 +15,8 @@ const nextConfig = {
     domains: [
       'imagedelivery.net', // Farcaster profile images
       'i.imgur.com',       // Common image hosting
-      'res.cloudinary.com' // Another common CDN
+      'res.cloudinary.com', // Another common CDN
+      'tba-mobile.mypinata.cloud' // Pinata IPFS gateway
     ],
   },
 };
