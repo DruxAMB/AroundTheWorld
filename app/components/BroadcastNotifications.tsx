@@ -24,6 +24,12 @@ export default function BroadcastNotifications() {
     message: 'The game is now easier than ever, more moves has been added, less special candies required!'
   });
 
+  const [targetedData, setTargetedData] = useState({
+    fid: '',
+    title: '👋 Personal Message',
+    message: 'Hey! We noticed you haven\'t played in a while. Come back and check out the new updates!'
+  });
+
   const sendRewardPoolUpdate = async () => {
     setIsLoading(true);
     setResult(null);
@@ -73,6 +79,50 @@ export default function BroadcastNotifications() {
 
       const data = await response.json();
       setResult(data);
+    } catch (error) {
+      setResult({
+        success: false,
+        message: error instanceof Error ? error.message : 'Unknown error occurred'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const sendTargetedNotification = async () => {
+    setIsLoading(true);
+    setResult(null);
+
+    try {
+      const response = await fetch('/api/notify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fid: parseInt(targetedData.fid),
+          notification: {
+            title: targetedData.title,
+            body: targetedData.message,
+          },
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setResult({
+          success: true,
+          message: `Notification sent successfully to FID ${targetedData.fid}`,
+          totalPlayers: 1,
+          successCount: 1,
+          failureCount: 0
+        });
+      } else {
+        setResult({
+          success: false,
+          message: data.error || 'Failed to send notification'
+        });
+      }
     } catch (error) {
       setResult({
         success: false,
@@ -164,9 +214,57 @@ export default function BroadcastNotifications() {
         </button>
       </div>
 
+      {/* Targeted Notification Section */}
+      <div className="mb-6 p-4 border border-gray-200 rounded-lg">
+        <h3 className="text-lg font-semibold mb-4 text-gray-700">🎯 Send to Specific User</h3>
+        
+        <div className="space-y-4 mb-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-1">Farcaster ID (FID)</label>
+            <input
+              type="number"
+              value={targetedData.fid}
+              onChange={(e) => setTargetedData({ ...targetedData, fid: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 text-black"
+              placeholder="743531"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-1">Title</label>
+            <input
+              type="text"
+              value={targetedData.title}
+              onChange={(e) => setTargetedData({ ...targetedData, title: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 text-black"
+              placeholder="👋 Personal Message"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-1">Message</label>
+            <textarea
+              value={targetedData.message}
+              onChange={(e) => setTargetedData({ ...targetedData, message: e.target.value })}
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 text-black resize-none"
+              placeholder="Hey! We noticed you haven't played in a while. Come back and check out the new updates!"
+            />
+          </div>
+        </div>
+        
+        <button
+          onClick={sendTargetedNotification}
+          disabled={isLoading || !targetedData.fid.trim() || !targetedData.title.trim() || !targetedData.message.trim()}
+          className="w-full bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200"
+        >
+          {isLoading ? '📤 Sending...' : '🎯 Send to User'}
+        </button>
+      </div>
+
       {/* Custom Text Notification Section */}
       <div className="mb-6 p-4 border border-gray-200 rounded-lg">
-        <h3 className="text-lg font-semibold mb-4 text-gray-700">📝 Custom Text Notification</h3>
+        <h3 className="text-lg font-semibold mb-4 text-gray-700">📝 Broadcast to All Players</h3>
         
         <div className="space-y-4 mb-4">
           <div>
@@ -197,7 +295,7 @@ export default function BroadcastNotifications() {
           disabled={isLoading || !customData.title.trim() || !customData.message.trim()}
           className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200"
         >
-          {isLoading ? '📤 Sending...' : '📝 Send Custom Notification'}
+          {isLoading ? '📤 Sending...' : '📝 Broadcast Custom Message'}
         </button>
       </div>
 
