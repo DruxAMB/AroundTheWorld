@@ -1,4 +1,3 @@
-import { redis } from './redis';
 import { gameDataService } from '@/app/services/gameDataService';
 
 export class BroadcastNotificationService {

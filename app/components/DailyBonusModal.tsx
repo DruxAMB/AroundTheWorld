@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Gift, Star, Flame } from 'lucide-react';
+import { Gift, Star, Flame } from 'lucide-react';
 
 interface DailyBonusStatus {
   alreadyClaimed: boolean;
@@ -37,7 +37,7 @@ export default function DailyBonusModal({
     if (isOpen && walletAddress) {
       fetchBonusStatus();
     }
-  }, [isOpen, walletAddress]);
+  }, [isOpen, walletAddress, fetchBonusStatus]);
 
   const fetchBonusStatus = async () => {
     if (!walletAddress) return;
