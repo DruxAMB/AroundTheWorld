@@ -32,13 +32,7 @@ export default function DailyBonusModal({
   const [loading, setLoading] = useState(false);
   const [claiming, setClaiming] = useState(false);
   const [claimSuccess, setClaimSuccess] = useState(false);
-
-  useEffect(() => {
-    if (isOpen && walletAddress) {
-      fetchBonusStatus();
-    }
-  }, [isOpen, walletAddress, fetchBonusStatus]);
-
+  
   const fetchBonusStatus = async () => {
     if (!walletAddress) return;
 
@@ -55,6 +49,12 @@ export default function DailyBonusModal({
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (isOpen && walletAddress) {
+      fetchBonusStatus();
+    }
+  }, [isOpen, walletAddress, fetchBonusStatus]);
 
   const claimBonus = async () => {
     if (!walletAddress || claiming) return;
