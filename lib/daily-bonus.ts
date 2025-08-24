@@ -123,10 +123,12 @@ export class DailyBonusService {
       const results = await pipeline.exec();
 
       // Process results
-      results?.forEach((result: any) => {
-        if (result[1]) { // result[0] is error, result[1] is data
+      results?.forEach((result: unknown) => {
+        // Redis pipeline results are arrays: [error, data]
+        const resultArray = result as [Error | null, unknown];
+        if (resultArray[1]) { // resultArray[0] is error, resultArray[1] is data
           try {
-            const bonusData: DailyBonusData = typeof result[1] === 'string' ? JSON.parse(result[1] as string) : result[1] as DailyBonusData;
+            const bonusData: DailyBonusData = typeof resultArray[1] === 'string' ? JSON.parse(resultArray[1] as string) : resultArray[1] as DailyBonusData;
             history.push(bonusData);
           } catch (parseError) {
             console.warn('Failed to parse bonus data:', parseError);
