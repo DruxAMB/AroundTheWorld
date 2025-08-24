@@ -32,29 +32,44 @@ export default function DailyBonusModal({
   const [loading, setLoading] = useState(false);
   const [claiming, setClaiming] = useState(false);
   const [claimSuccess, setClaimSuccess] = useState(false);
+  const [hasInitialLoad, setHasInitialLoad] = useState(false);
   
-  const fetchBonusStatus = async () => {
-    if (!walletAddress) return;
-
-    setLoading(true);
-    try {
-      const response = await fetch(`/api/daily-bonus?walletAddress=${walletAddress}`);
-      if (response.ok) {
-        const data = await response.json();
-        setStatus(data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch bonus status:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    if (isOpen && walletAddress) {
+    const fetchBonusStatus = async () => {
+      if (!walletAddress) return;
+
+      // Only show loading if we don't have any data yet
+      if (!hasInitialLoad) {
+        setLoading(true);
+      }
+      
+      try {
+        const response = await fetch(`/api/daily-bonus?walletAddress=${walletAddress}`);
+        if (response.ok) {
+          const data = await response.json();
+          setStatus(data);
+          setHasInitialLoad(true);
+        }
+      } catch (error) {
+        console.error('Failed to fetch bonus status:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (isOpen && walletAddress && !hasInitialLoad) {
       fetchBonusStatus();
     }
-  }, [isOpen, walletAddress, fetchBonusStatus]);
+  }, [isOpen, walletAddress, hasInitialLoad]);
+
+  // Reset state when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setClaimSuccess(false);
+      setHasInitialLoad(false);
+      setStatus(null);
+    }
+  }, [isOpen]);
 
   const claimBonus = async () => {
     if (!walletAddress || claiming) return;
@@ -210,7 +225,7 @@ export default function DailyBonusModal({
             <div className="text-center py-8">
               <p className="text-[var(--app-foreground-muted)]">Failed to load bonus status</p>
               <button
-                onClick={fetchBonusStatus}
+                onClick={() => window.location.reload()}
                 className="mt-4 text-[var(--app-accent)] hover:opacity-80 font-medium"
               >
                 Try Again

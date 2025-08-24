@@ -54,7 +54,7 @@ export class DailyBonusService {
       
       if (!data) return null;
       
-      return typeof data === 'string' ? JSON.parse(data) : data;
+      return typeof data === 'string' ? JSON.parse(data) as DailyBonusData : data as DailyBonusData;
     } catch (error) {
       console.error('Error fetching daily bonus data:', error);
       return null;
@@ -99,7 +99,7 @@ export class DailyBonusService {
   }
 
   /**
-   * Get player's claim history for the last N days
+   * Get player's claim history for the last N days (optimized with batch operations)
    */
   async getClaimHistory(walletAddress: string, days: number = 7): Promise<DailyBonusData[]> {
     if (!redis) return [];
@@ -107,20 +107,32 @@ export class DailyBonusService {
     try {
       const history: DailyBonusData[] = [];
       const today = new Date();
+      const keys: string[] = [];
 
+      // Generate all keys first
       for (let i = 0; i < days; i++) {
         const date = new Date(today);
         date.setDate(date.getDate() - i);
         const dateStr = date.toISOString().split('T')[0];
-        
-        const key = this.getDailyBonusKey(walletAddress, dateStr);
-        const data = await redis.get(key);
-        
-        if (data) {
-          const bonusData = typeof data === 'string' ? JSON.parse(data) : data;
-          history.push(bonusData);
-        }
+        keys.push(this.getDailyBonusKey(walletAddress, dateStr));
       }
+
+      // Batch fetch all keys at once (1 Redis call instead of N)
+      const pipeline = redis.pipeline();
+      keys.forEach(key => pipeline.get(key));
+      const results = await pipeline.exec();
+
+      // Process results
+      results?.forEach((result: any) => {
+        if (result[1]) { // result[0] is error, result[1] is data
+          try {
+            const bonusData: DailyBonusData = typeof result[1] === 'string' ? JSON.parse(result[1] as string) : result[1] as DailyBonusData;
+            history.push(bonusData);
+          } catch (parseError) {
+            console.warn('Failed to parse bonus data:', parseError);
+          }
+        }
+      });
 
       return history.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     } catch (error) {
@@ -143,17 +155,19 @@ export class DailyBonusService {
   }
 
   /**
-   * Get streak count (consecutive days claimed)
+   * Get streak count (consecutive days claimed) - optimized
    */
   async getCurrentStreak(walletAddress: string): Promise<number> {
     try {
-      const history = await this.getClaimHistory(walletAddress, 30);
+      // Only fetch last 7 days for streak calculation to reduce Redis usage
+      const history = await this.getClaimHistory(walletAddress, 7);
       if (history.length === 0) return 0;
 
       let streak = 0;
       const today = new Date();
       
-      for (let i = 0; i < 30; i++) {
+      // Check consecutive days starting from today
+      for (let i = 0; i < 7; i++) {
         const checkDate = new Date(today);
         checkDate.setDate(checkDate.getDate() - i);
         const dateStr = checkDate.toISOString().split('T')[0];
@@ -162,7 +176,7 @@ export class DailyBonusService {
         if (claimed) {
           streak++;
         } else {
-          break;
+          break; // Break on first non-claimed day
         }
       }
 
