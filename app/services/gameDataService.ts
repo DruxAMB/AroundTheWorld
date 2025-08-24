@@ -551,10 +551,8 @@ class GameDataService {
     const rewardConfig = await this.getRewardConfig();
     const baseRewardAmount = parseFloat(rewardConfig.amount);
     
-    // Calculate total rewards based on player count and activity
-    // Simple formula: base reward pool + bonus per player
-    const rewardPerPlayer = baseRewardAmount * 0.01; // 1% of base per player
-    const totalRewards = (baseRewardAmount + (totalPlayers * rewardPerPlayer)).toFixed(3);
+    // Instead of calculating based on players, use the configured amount directly
+    const totalRewards = baseRewardAmount.toFixed(3);
     
     const stats = {
       totalPlayers,
