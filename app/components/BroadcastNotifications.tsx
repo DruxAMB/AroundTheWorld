@@ -19,6 +19,11 @@ export default function BroadcastNotifications() {
     contributor: 'ENB'
   });
 
+  const [customData, setCustomData] = useState({
+    title: '🎮 Game Update!',
+    message: 'The game is now easier than ever, more moves has been added, less special candies required!'
+  });
+
   const sendRewardPoolUpdate = async () => {
     setIsLoading(true);
     setResult(null);
@@ -34,6 +39,35 @@ export default function BroadcastNotifications() {
           amount: formData.amount,
           symbol: formData.symbol,
           contributor: formData.contributor,
+        }),
+      });
+
+      const data = await response.json();
+      setResult(data);
+    } catch (error) {
+      setResult({
+        success: false,
+        message: error instanceof Error ? error.message : 'Unknown error occurred'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const sendCustomNotification = async () => {
+    setIsLoading(true);
+    setResult(null);
+
+    try {
+      const response = await fetch('/api/broadcast', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: 'general',
+          title: customData.title,
+          body: customData.message,
         }),
       });
 
@@ -130,16 +164,53 @@ export default function BroadcastNotifications() {
         </button>
       </div>
 
+      {/* Custom Text Notification Section */}
+      <div className="mb-6 p-4 border border-gray-200 rounded-lg">
+        <h3 className="text-lg font-semibold mb-4 text-gray-700">📝 Custom Text Notification</h3>
+        
+        <div className="space-y-4 mb-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-1">Title</label>
+            <input
+              type="text"
+              value={customData.title}
+              onChange={(e) => setCustomData({ ...customData, title: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+              placeholder="🎮 Game Update!"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-1">Message</label>
+            <textarea
+              value={customData.message}
+              onChange={(e) => setCustomData({ ...customData, message: e.target.value })}
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black resize-none"
+              placeholder="The game is now easier than ever, more moves has been added, less special candies required!"
+            />
+          </div>
+        </div>
+        
+        <button
+          onClick={sendCustomNotification}
+          disabled={isLoading || !customData.title.trim() || !customData.message.trim()}
+          className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200"
+        >
+          {isLoading ? '📤 Sending...' : '📝 Send Custom Notification'}
+        </button>
+      </div>
+
       {/* General Announcement Section */}
       <div className="mb-6 p-4 border border-gray-200 rounded-lg">
-        <h3 className="text-lg font-semibold mb-4 text-gray-700">🎮 General Announcement</h3>
+        <h3 className="text-lg font-semibold mb-4 text-gray-700">🎮 Quick Game Update</h3>
         
         <button
           onClick={sendGeneralAnnouncement}
           disabled={isLoading}
           className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200"
         >
-          {isLoading ? '📤 Sending...' : '🎮 Send Game Update'}
+          {isLoading ? '📤 Sending...' : '🎮 Send Default Game Update'}
         </button>
       </div>
 

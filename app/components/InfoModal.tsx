@@ -174,7 +174,7 @@ export function InfoModal({ isOpen, onClose }: InfoModalProps) {
                   <span className="text-white text-xs font-bold">🚀</span>
                 </div>
                 <div className="flex-1">
-                  <div className="font-medium text-[var(--app-foreground)]">Farcaster Integration</div>
+                  <div className="font-medium text-[var(--app-foreground)]">Baseapp Integration</div>
                   <div className="text-xs text-[var(--app-foreground-muted)]">Share scores and achievements with friends</div>
                 </div>
               </div>
@@ -328,9 +328,9 @@ export function InfoModal({ isOpen, onClose }: InfoModalProps) {
               </div>
               <button
                 onClick={handleClose}
-                className="w-8 h-8 rounded-full bg-[var(--app-gray)] hover:bg-[var(--app-gray-dark)] flex items-center justify-center transition-colors"
+                className="w-8 h-8 rounded-lg bg-[var(--app-gray)] hover:bg-[var(--app-gray-dark)] flex items-center justify-center transition-colors"
               >
-                <span className="text-[var(--app-foreground)] text-lg">×</span>
+                <span className="text-[var(--app-foreground)] text-lg">✖️</span>
               </button>
             </div>
 

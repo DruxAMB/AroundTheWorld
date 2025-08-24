@@ -127,11 +127,11 @@ export const LEVELS: Level[] = [
       },
       {
         type: 'moves',
-        target: 20,
-        description: 'Complete in 20 moves or less'
+        target: 22,
+        description: 'Complete in 22 moves or less'
       }
     ],
-    moves: 22,
+    moves: 25,
     difficulty: 'medium',
     unlocked: false,
   },
@@ -156,7 +156,7 @@ export const LEVELS: Level[] = [
         description: 'Create 4 special candies'
       }
     ],
-    moves: 25,
+    moves: 30,
     difficulty: 'hard',
     unlocked: false,
   },
@@ -177,8 +177,8 @@ export const LEVELS: Level[] = [
       },
       {
         type: 'moves',
-        target: 26,
-        description: 'Complete in 26 moves or less'
+        target: 30,
+        description: 'Complete in 30 moves or less'
       },
       {
         type: 'clear_special',
@@ -186,7 +186,7 @@ export const LEVELS: Level[] = [
         description: 'Create 5 special candies'
       }
     ],
-    moves: 30,
+    moves: 35,
     difficulty: 'hard',
     unlocked: false,
   },
