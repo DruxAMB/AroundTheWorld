@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import BroadcastNotifications from '@/app/components/BroadcastNotifications';
 import RewardCalculator from '@/app/components/RewardCalculator';
+import LeaderboardReset from '@/app/components/LeaderboardReset';
 
 export default function AdminPage() {
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
@@ -26,6 +27,11 @@ export default function AdminPage() {
               🧮 Reward Calculator
             </button>
           </div>
+        </div>
+        
+        {/* Leaderboard Reset Tool */}
+        <div className="mb-8">
+          <LeaderboardReset />
         </div>
         
         <BroadcastNotifications />

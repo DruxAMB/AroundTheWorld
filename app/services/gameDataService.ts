@@ -636,6 +636,38 @@ class GameDataService {
       console.error('Error triggering competitive notifications:', error);
     }
   }
+  
+  /**
+   * Reset a specific leaderboard timeframe
+   * This allows admins to manually reset leaderboards on demand
+   */
+  async resetLeaderboard(timeframe: 'week' | 'month' | 'all-time'): Promise<{ success: boolean; key: string }> {
+    if (!redis) return { success: false, key: '' };
+    
+    try {
+      const now = new Date();
+      let key: string;
+      
+      // Determine the key based on timeframe
+      if (timeframe === 'week') {
+        key = `${this.LEADERBOARD_PREFIX}week:${this.getWeekKey(now)}`;
+      } else if (timeframe === 'month') {
+        key = `${this.LEADERBOARD_PREFIX}month:${this.getMonthKey(now)}`;
+      } else {
+        key = `${this.LEADERBOARD_PREFIX}all-time`;
+      }
+      
+      // Reset the leaderboard by deleting the key
+      await redis.del(key);
+      
+      console.log(`🔄 [GameDataService] Reset ${timeframe} leaderboard (${key})`);
+      
+      return { success: true, key };
+    } catch (error) {
+      console.error(`Error resetting ${timeframe} leaderboard:`, error);
+      return { success: false, key: '' };
+    }
+  }
 
   private generateAvatar(): string {
     const avatars = ['🎮', '🏆', '⭐', '🎯', '🚀', '💎', '🎪', '🎨', '🎭', '🎲'];
