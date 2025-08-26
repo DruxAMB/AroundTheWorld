@@ -21,8 +21,8 @@ interface LevelCompleteModalProps {
 
 type ModalState = 'complete' | 'nft-preview' | 'minting' | 'mint-success' | 'mint-error';
 
-const CONTRACT_ADDRESS = "0xccc312aee3a136faacc535a2f3050c75db6c921d";
-const MINT_PRICE = "0.0001"; // 0.0001 ETH
+const CONTRACT_ADDRESS = "0x8bb8ba7e4dc947107c6fa88ad13da4eccff49651";
+const MINT_PRICE = "0.0002"; // Updated to match new contract
 
 const CONTRACT_ABI = [
   {
@@ -39,9 +39,9 @@ const CONTRACT_ABI = [
       { "internalType": "address", "name": "", "type": "address" },
       { "internalType": "uint256", "name": "", "type": "uint256" }
     ],
-    "name": "hasMinted",
+    "name": "mintsPerLevel",
     "outputs": [
-      { "internalType": "bool", "name": "", "type": "bool" }
+      { "internalType": "uint256", "name": "", "type": "uint256" }
     ],
     "stateMutability": "view",
     "type": "function"
@@ -53,6 +53,18 @@ const CONTRACT_ABI = [
       { "internalType": "uint256", "name": "", "type": "uint256" }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "levelId", "type": "uint256" },
+      { "internalType": "string", "name": "name", "type": "string" },
+      { "internalType": "string", "name": "ipfsHash", "type": "string" },
+      { "internalType": "uint256", "name": "maxSupply", "type": "uint256" }
+    ],
+    "name": "addLevel",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   }
 ] as const;
@@ -151,7 +163,7 @@ export default function LevelCompleteModal({
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
-            className="backdrop-blur-lg p-8 w-full h-full mx-0 my-0 text-center flex flex-col justify-center"
+            className="backdrop-blur-lg p-8 h-full w-full max-w-lg mx-0 my-0 text-center flex flex-col justify-center"
           >
             {modalState === 'complete' && success && (
               <>

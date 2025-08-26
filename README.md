@@ -29,7 +29,7 @@ Traditional mobile games trap your progress on a single device or centralized se
 - **Cultural Authenticity**: Respectful representation of diverse global cultures
 
 ### 🏆 Rewards & Social Features
-- **NFT Collectibles**: Mint unique winner badges for each completed level (0.0001 ETH)
+- **NFT Collectibles**: Mint unique winner badges for each completed level (0.0002 ETH)
 - **Farcaster Integration**: Share achievements and scores directly to social feeds
 - **Global Leaderboards**: Real-time rankings with weekly competitions
 - **Player Profiles**: Comprehensive stats tracking and achievement systems
@@ -62,20 +62,20 @@ Our PlayerRegistry smart contract creates permanent, verifiable records of all g
 - `players(uint256)`: Access the list of registered player addresses
 
 ### NFT Rewards Contract
-**Contract Address**: `0xccc312aee3a136faacc535a2f3050c75db6c921d` (Base Mainnet)
-**[View on BaseScan](https://basescan.org/address/0xccc312aee3a136faacc535a2f3050c75db6c921d)**
+**Contract Address**: `0x8bb8ba7e4dc947107c6fa88ad13da4eccff49651` (Base Mainnet)
+**[View on BaseScan](https://basescan.org/address/0x8bb8ba7e4dc947107c6fa88ad13da4eccff49651)**
 
 The NFT contract enables players to mint collectible winner badges for completed levels:
 
 #### Features
 - **Level-Based Minting**: Unique NFTs for each of the 5 regional levels
-- **Affordable Pricing**: 0.0001 ETH per NFT mint
-- **Duplicate Prevention**: Players can only mint one NFT per level
+- **Affordable Pricing**: 0.0002 ETH per NFT mint
+- **Multiple Mints**: Players can mint multiple NFTs per completed level
 - **Regional Artwork**: Each level features distinct cultural artwork
 
 #### Contract Functions
 - `mint(uint256 levelId)`: Mint an NFT for a completed level
-- `hasMinted(address, uint256)`: Check if player has minted specific level NFT
+- `mintsPerLevel(address, uint256)`: Check how many NFTs a player has minted for a specific level
 - `mintPrice()`: Get current minting price
 
 ### Web3 Integration

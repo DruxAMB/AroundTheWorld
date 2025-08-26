@@ -5,7 +5,7 @@
 // import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.9.0/contracts/access/Ownable.sol";
 // import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.9.0/contracts/security/ReentrancyGuard.sol";
 
-// contract BaseAppWorldExplorer is ERC721A, Ownable, ReentrancyGuard {
+// contract BaseappWorldExplorer is ERC721A, Ownable, ReentrancyGuard {
 //     struct Level {
 //         string name;
 //         string ipfsHash;
@@ -16,14 +16,15 @@
 
 //     // Level ID => Level Details
 //     mapping(uint256 => Level) public levels;
-//     // User => Level ID => Has Minted
-//     mapping(address => mapping(uint256 => bool)) public hasMinted;
+//     // User => Level ID => Number of mints
+//     mapping(address => mapping(uint256 => uint256)) public mintsPerLevel;
 //     // Token ID => Level ID
 //     mapping(uint256 => uint256) public tokenToLevel;
     
 //     string public baseURI = "ipfs://";
 //     uint256 public currentTokenId = 1;
 //     uint256 public mintPrice = 0.0002 ether; // $0.2 in ETH (approximate)
+//     uint256 public maxMintsPerLevelPerWallet = 0; // 0 means unlimited
 
 //     event LevelAdded(uint256 indexed levelId, string name, string ipfsHash, uint256 maxSupply);
 //     event LevelMinted(address indexed to, uint256 indexed levelId, uint256 tokenId);
@@ -49,15 +50,19 @@
 //     function mint(uint256 levelId) external payable nonReentrant {
 //         Level storage level = levels[levelId];
 //         require(level.isActive, "Level not active");
-//         require(!hasMinted[msg.sender][levelId], "Already minted");
 //         require(level.totalMinted < level.maxSupply, "Max supply reached");
 //         require(msg.value >= mintPrice, "Insufficient payment");
+        
+//         // Check if there's a limit per wallet and enforce it
+//         if (maxMintsPerLevelPerWallet > 0) {
+//             require(mintsPerLevel[msg.sender][levelId] < maxMintsPerLevelPerWallet, "Mint limit reached for this level");
+//         }
 
 //         uint256 tokenId = currentTokenId++;
 //         _safeMint(msg.sender, 1);
         
 //         tokenToLevel[tokenId] = levelId;
-//         hasMinted[msg.sender][levelId] = true;
+//         mintsPerLevel[msg.sender][levelId]++;
 //         level.totalMinted++;
 
 //         emit LevelMinted(msg.sender, levelId, tokenId);
@@ -87,6 +92,14 @@
 
 //     function setMintPrice(uint256 newPrice) external onlyOwner {
 //         mintPrice = newPrice;
+//     }
+    
+//     function setMaxMintsPerLevelPerWallet(uint256 newLimit) external onlyOwner {
+//         maxMintsPerLevelPerWallet = newLimit;
+//     }
+    
+//     function getMintsForLevel(address wallet, uint256 levelId) public view returns (uint256) {
+//         return mintsPerLevel[wallet][levelId];
 //     }
 
 //     // Emergency withdrawal in case someone sends ETH by mistake
