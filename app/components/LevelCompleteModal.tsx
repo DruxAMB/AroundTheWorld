@@ -151,7 +151,7 @@ export default function LevelCompleteModal({
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
-            className="backdrop-blur-lg border border-[var(--app-gray)] rounded-xl p-8 w-full h-full mx-0 my-0 text-center flex flex-col justify-center"
+            className="backdrop-blur-lg p-8 w-full h-full mx-0 my-0 text-center flex flex-col justify-center"
           >
             {modalState === 'complete' && success && (
               <>

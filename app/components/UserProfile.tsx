@@ -48,7 +48,7 @@ export function UserProfile({ isOpen, onClose }: UserProfileProps) {
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
-        className="rounded-2xl p-6 w-full max-w-md max-h-[70vh] overflow-y-auto no-scrollbar scroll-smooth border border-gray-700 shadow-2xl"
+        className="rounded-2xl p-6 w-full max-w-md h-screen overflow-y-auto no-scrollbar scroll-smooth"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -91,7 +91,7 @@ export function UserProfile({ isOpen, onClose }: UserProfileProps) {
             </button>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-white transition-colors"
+              className="text-gray-400 hover:text-white text-lg transition-colors"
               title="Close profile"
             >
               ✖️
@@ -114,7 +114,7 @@ export function UserProfile({ isOpen, onClose }: UserProfileProps) {
 
             {/* Game Statistics */}
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-gradient-to-br from-blue-900/30 to-blue-800/30 rounded-lg p-4 border border-blue-700/30 col-span-2">
+              <div className="bg-gradient-to-br from-blue-900/30 to-blue-800/30 rounded-lg p-4 border border-blue-700/30">
                 <h3 className="text-sm font-medium text-blue-300 mb-1">Total Score</h3>
                 <p className="text-2xl font-bold text-white">{player.totalScore.toLocaleString()}</p>
                 <p className="text-xs text-blue-300">Resets weekly</p>
@@ -130,7 +130,7 @@ export function UserProfile({ isOpen, onClose }: UserProfileProps) {
                 <p className="text-2xl font-bold text-white">{player.bestLevel}</p>
               </div>
               
-              <div className="bg-gradient-to-br from-orange-900/30 to-orange-800/30 rounded-lg p-4 border border-orange-700/30 col-span-2">
+              <div className="bg-gradient-to-br from-orange-900/30 to-orange-800/30 rounded-lg p-4 border border-orange-700/30">
                 <h3 className="text-sm font-medium text-orange-300 mb-1">Progress</h3>
                 <p className="text-2xl font-bold text-white">{progress.length}</p>
                 <p className="text-xs text-orange-300">Saved Levels</p>
@@ -205,14 +205,14 @@ export function UserProfile({ isOpen, onClose }: UserProfileProps) {
         )}
 
         {/* Close Button */}
-        <div className="mt-6 pt-4 border-t border-gray-700">
+        {/* <div className="mt-6 pt-4 border-t border-gray-700">
           <button
             onClick={onClose}
             className="w-full bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 transform hover:scale-[1.02]"
           >
             Close Profile
           </button>
-        </div>
+        </div> */}
       </motion.div>
     </motion.div>
   );
