@@ -28,14 +28,22 @@ export async function GET(request: NextRequest) {
       farcasterProfile: player.fid ? farcasterProfiles[player.fid] : null
     }));
     
-    // Get global stats with dynamic reward symbol
+    // Get global stats which now includes all reward data
     const globalStats = await gameDataService.getGlobalStats();
-    const rewardConfig = await gameDataService.getRewardConfig();
     
-    // Calculate reward pool using dynamic reward configuration
-    const baseRewardAmount = parseFloat(rewardConfig.amount);
+    // Calculate reward pool using reward amount from globalStats
+    // Use rewardAmount or totalRewards (for backward compatibility)
+    const baseRewardAmount = parseFloat(globalStats.rewardAmount || globalStats.totalRewards);
+    
+    // For very large numbers, use BigInt to avoid precision loss
     const totalRewardPool = baseRewardAmount * 1e18; // Convert to wei equivalent
     const rewardDistribution = RewardDistributionService.calculateRewardDistribution(totalRewardPool);
+    
+    // Log for debugging
+    console.log(`Reward from globalStats: ${globalStats.rewardSymbol} ${globalStats.rewardAmount || globalStats.totalRewards}`);
+    console.log(`Total reward pool: ${totalRewardPool}`);
+    console.log(`4th place should get: ${(totalRewardPool * 0.067).toLocaleString()}`);
+    console.log(`Distribution:`, rewardDistribution);
     
     // Get player rank if wallet address provided
     let playerRank = null;
@@ -57,19 +65,16 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       leaderboard: enhancedLeaderboard,
-      globalStats: {
-        ...globalStats,
-        rewardSymbol: rewardConfig.symbol
-      },
+      globalStats,
       playerRank,
       playerRewards,
       rewardTier,
       motivationMessage,
       rewardDistribution,
       rewardConfig: {
-        symbol: rewardConfig.symbol,
-        amount: rewardConfig.amount,
-        description: rewardConfig.description
+        symbol: globalStats.rewardSymbol,
+        amount: globalStats.rewardAmount || globalStats.totalRewards,
+        description: globalStats.rewardDescription || `${globalStats.totalRewards} ${globalStats.rewardSymbol} reward pool`
       },
       timeframe
     });

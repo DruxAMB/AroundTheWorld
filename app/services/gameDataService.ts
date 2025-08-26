@@ -504,21 +504,34 @@ class GameDataService {
     return playerEntry.rank ?? 0;
   }
 
-  // Reward Configuration Management
+  // Reward Configuration Management - Directly updates global:stats
   async setRewardConfig(symbol: string, amount: string, description?: string): Promise<void> {
     if (!redis) return;
     
+    // Get current global stats
+    const currentStats = await this.getGlobalStats();
+    
+    // Create new stats with updated reward information
+    const stats = {
+      ...currentStats,
+      rewardSymbol: symbol,
+      rewardAmount: amount,
+      rewardDescription: description || `${amount} ${symbol} reward pool`,
+      totalRewards: amount,
+      lastUpdated: new Date().toISOString()
+    };
+    
+    // Update global stats directly
+    await redis.hset('global:stats', stats);
+    
+    // For backward compatibility, also update reward:config (can be removed later)
     const config = {
       symbol,
       amount,
       description: description || `${amount} ${symbol} reward pool`,
       lastUpdated: new Date().toISOString()
     };
-    
     await redis.hset('reward:config', config);
-    
-    // Update global stats to reflect the new reward configuration
-    await this.updateGlobalStats();
   }
 
   async getRewardConfig(): Promise<{ symbol: string; amount: string; description: string; lastUpdated: string }> {
@@ -527,6 +540,20 @@ class GameDataService {
     }
 
     try {
+      // Get reward data from global:stats (preferred source)
+      const globalStats = await this.getGlobalStats();
+      
+      // Check if global:stats has reward data
+      if (globalStats.rewardSymbol && globalStats.rewardAmount) {
+        return {
+          symbol: globalStats.rewardSymbol,
+          amount: globalStats.rewardAmount || globalStats.totalRewards,
+          description: globalStats.rewardDescription || `${globalStats.totalRewards} ${globalStats.rewardSymbol} reward pool`,
+          lastUpdated: globalStats.lastUpdated
+        };
+      }
+      
+      // Fallback to reward:config (legacy support)
       const config = await redis.hgetall('reward:config') as Record<string, string>;
       
       if (!config || Object.keys(config).length === 0) {
@@ -558,33 +585,58 @@ class GameDataService {
     const topScoreResult = await redis.zrange(`${this.LEADERBOARD_PREFIX}all-time`, -1, -1, { withScores: true });
     const topScore = topScoreResult.length >= 2 ? topScoreResult[1] as number : 0;
     
-    // Get current reward configuration
-    const rewardConfig = await this.getRewardConfig();
-    const baseRewardAmount = parseFloat(rewardConfig.amount);
+    // Get current stats first to preserve existing reward data
+    const currentStats = await redis.hgetall('global:stats') as Record<string, string>;
     
-    // Instead of calculating based on players, use the configured amount directly
-    const totalRewards = baseRewardAmount.toFixed(3);
-    
+    // Build stats object with existing reward data or defaults
     const stats = {
       totalPlayers,
       topScore,
-      totalRewards,
-      rewardSymbol: rewardConfig.symbol,
+      // Preserve existing reward data if available
+      rewardSymbol: currentStats.rewardSymbol || 'ETH',
+      rewardAmount: currentStats.rewardAmount || currentStats.totalRewards || '1.000',
+      rewardDescription: currentStats.rewardDescription || `${currentStats.totalRewards || '1.000'} ${currentStats.rewardSymbol || 'ETH'} reward pool`,
+      // For backward compatibility
+      totalRewards: currentStats.rewardAmount || currentStats.totalRewards || '1.000',
       lastUpdated: new Date().toISOString()
     };
     
     await redis.hset('global:stats', stats);
   }
 
-  async getGlobalStats(): Promise<{ totalPlayers: number; topScore: number; totalRewards: string; rewardSymbol: string; lastUpdated: string }> {
+  async getGlobalStats(): Promise<{ 
+    totalPlayers: number; 
+    topScore: number; 
+    totalRewards: string; 
+    rewardSymbol: string;
+    rewardAmount?: string;
+    rewardDescription?: string;
+    lastUpdated: string 
+  }> {
     if (!redis) {
-      return { totalPlayers: 0, topScore: 0, totalRewards: "0.000", rewardSymbol: "ETH", lastUpdated: new Date().toISOString() };
+      return { 
+        totalPlayers: 0, 
+        topScore: 0, 
+        totalRewards: "0.000", 
+        rewardSymbol: "ETH",
+        rewardAmount: "1.000",
+        rewardDescription: "1.000 ETH reward pool", 
+        lastUpdated: new Date().toISOString() 
+      };
     }
 
     const stats = await redis.hgetall('global:stats') as Record<string, string>;
     
     if (!stats || Object.keys(stats).length === 0) {
-      return { totalPlayers: 0, topScore: 0, totalRewards: "0.000", rewardSymbol: "ETH", lastUpdated: new Date().toISOString() };
+      return { 
+        totalPlayers: 0, 
+        topScore: 0, 
+        totalRewards: "0.000", 
+        rewardSymbol: "ETH",
+        rewardAmount: "1.000",
+        rewardDescription: "1.000 ETH reward pool", 
+        lastUpdated: new Date().toISOString() 
+      };
     }
     
     return {
@@ -592,6 +644,8 @@ class GameDataService {
       topScore: parseInt(stats.topScore) || 0,
       totalRewards: stats.totalRewards || "0.000",
       rewardSymbol: stats.rewardSymbol || "ETH",
+      rewardAmount: stats.rewardAmount || stats.totalRewards || "1.000",
+      rewardDescription: stats.rewardDescription || `${stats.totalRewards || "1.000"} ${stats.rewardSymbol || "ETH"} reward pool`,
       lastUpdated: stats.lastUpdated || new Date().toISOString()
     };
   }

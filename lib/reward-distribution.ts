@@ -30,12 +30,19 @@ export class RewardDistributionService {
   ];
 
   static calculateRewardDistribution(totalPoolAmount: number): RewardDistribution {
-    const distributions = this.REWARD_TIERS.map(tier => ({
-      rank: tier.rank,
-      amount: Math.floor((totalPoolAmount * tier.percentage) / 100),
-      percentage: tier.percentage,
-      tier: tier.tier
-    }));
+    const distributions = this.REWARD_TIERS.map(tier => {
+      // Use the same BigInt calculation as getRewardForRank for consistency
+      const amount = Number(
+        (BigInt(Math.round(totalPoolAmount)) * BigInt(tier.percentage * 100)) / BigInt(10000)
+      );
+      
+      return {
+        rank: tier.rank,
+        amount,
+        percentage: tier.percentage,
+        tier: tier.tier
+      };
+    });
 
     return {
       totalPool: totalPoolAmount,
@@ -47,7 +54,9 @@ export class RewardDistributionService {
     const tier = this.REWARD_TIERS.find(t => t.rank === rank);
     if (!tier) return 0;
     
-    return Math.floor((totalPoolAmount * tier.percentage) / 100);
+    // More precise calculation for large numbers
+    // Use exact percentage division to avoid floating point errors
+    return Number((BigInt(Math.round(totalPoolAmount)) * BigInt(tier.percentage * 100)) / BigInt(10000));
   }
 
   static isRewardEligible(rank: number): boolean {
@@ -70,14 +79,19 @@ export class RewardDistributionService {
   }
 
   static formatRewardAmount(amount: number): string {
-    // Format as ETH with appropriate decimals and commas
-    const eth = amount / 1e18;
-    if (eth >= 1) {
-      return `${eth.toFixed(3)}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-    } else if (eth >= 0.001) {
-      return `${eth.toFixed(4)}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    // Format as token with appropriate decimals and commas
+    const tokenAmount = amount / 1e18;
+    
+    // For very large numbers, use a more precise approach
+    if (tokenAmount >= 1000) {
+      // For large amounts, show fewer decimal places
+      return `${Math.round(tokenAmount).toLocaleString()}`;
+    } else if (tokenAmount >= 1) {
+      return `${tokenAmount.toFixed(3)}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    } else if (tokenAmount >= 0.001) {
+      return `${tokenAmount.toFixed(4)}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     } else {
-      return `${eth.toFixed(6)}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      return `${tokenAmount.toFixed(6)}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     }
   }
 
