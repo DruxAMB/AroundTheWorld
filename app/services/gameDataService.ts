@@ -666,7 +666,7 @@ class GameDataService {
       
       // Only perform full reset for weekly leaderboard
       let playersReset = 0;
-      let playersToRestore = [];
+      const playersToRestore = [];
       
       if (timeframe === 'week') {
         // Get all entries from the existing leaderboard before deleting it
@@ -696,6 +696,7 @@ class GameDataService {
               
               // COMPLETELY RESET the player profile for weekly leaderboard
               // Only preserve identity info and createdAt timestamp
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               const resetPlayerData: Record<string, any> = {
                 id: playerData.id,
                 name: playerData.name,
@@ -722,6 +723,7 @@ class GameDataService {
               await redis.hset(playerKey, resetPlayerData);
               
               // Create leaderboard entry with reset stats
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               const resetLeaderboardData: Record<string, any> = {
                 playerId: playerId,
                 name: playerData.name,
