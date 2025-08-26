@@ -40,10 +40,10 @@ export async function GET(request: NextRequest) {
     const rewardDistribution = RewardDistributionService.calculateRewardDistribution(totalRewardPool);
     
     // Log for debugging
-    console.log(`Reward from globalStats: ${globalStats.rewardSymbol} ${globalStats.rewardAmount || globalStats.totalRewards}`);
-    console.log(`Total reward pool: ${totalRewardPool}`);
-    console.log(`4th place should get: ${(totalRewardPool * 0.067).toLocaleString()}`);
-    console.log(`Distribution:`, rewardDistribution);
+    // console.log(`Reward from globalStats: ${globalStats.rewardSymbol} ${globalStats.rewardAmount || globalStats.totalRewards}`);
+    // console.log(`Total reward pool: ${totalRewardPool}`);
+    // console.log(`4th place should get: ${(totalRewardPool * 0.067).toLocaleString()}`);
+    // console.log(`Distribution:`, rewardDistribution);
     
     // Get player rank if wallet address provided
     let playerRank = null;
