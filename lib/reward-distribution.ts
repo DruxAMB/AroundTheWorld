@@ -1,7 +1,7 @@
 export interface RewardTier {
   rank: number;
   percentage: number;
-  tier: 'champion' | 'elite' | 'competitive' | 'participant';
+  tier: 'champion' | 'elite' | 'competitive' | 'participant' | 'contender';
 }
 
 export interface RewardDistribution {
@@ -15,18 +15,23 @@ export interface RewardDistribution {
 }
 
 export class RewardDistributionService {
-  // Top 10 reward distribution percentages
+  // Top 15 reward distribution percentages
   private static readonly REWARD_TIERS: RewardTier[] = [
-    { rank: 1, percentage: 40, tier: 'champion' },      // 1st place: 40%
-    { rank: 2, percentage: 12.5, tier: 'elite' },       // 2nd place: 12.5%
-    { rank: 3, percentage: 12.5, tier: 'elite' },       // 3rd place: 12.5%
-    { rank: 4, percentage: 6.7, tier: 'competitive' },  // 4th place: 6.7%
-    { rank: 5, percentage: 6.7, tier: 'competitive' },  // 5th place: 6.7%
-    { rank: 6, percentage: 6.6, tier: 'competitive' },  // 6th place: 6.6%
-    { rank: 7, percentage: 3.75, tier: 'participant' }, // 7th place: 3.75%
-    { rank: 8, percentage: 3.75, tier: 'participant' }, // 8th place: 3.75%
-    { rank: 9, percentage: 3.75, tier: 'participant' }, // 9th place: 3.75%
-    { rank: 10, percentage: 3.75, tier: 'participant' } // 10th place: 3.75%
+    { rank: 1, percentage: 20, tier: 'champion' },      // 1st place: 20%
+    { rank: 2, percentage: 15, tier: 'elite' },         // 2nd place: 15%
+    { rank: 3, percentage: 10, tier: 'elite' },         // 3rd place: 10%
+    { rank: 4, percentage: 8, tier: 'competitive' },    // 4th place: 8%
+    { rank: 5, percentage: 8, tier: 'competitive' },    // 5th place: 8%
+    { rank: 6, percentage: 8, tier: 'competitive' },    // 6th place: 8%
+    { rank: 7, percentage: 6, tier: 'participant' },    // 7th place: 6%
+    { rank: 8, percentage: 6, tier: 'participant' },    // 8th place: 6%
+    { rank: 9, percentage: 4, tier: 'participant' },    // 9th place: 4%
+    { rank: 10, percentage: 4, tier: 'participant' },   // 10th place: 4%
+    { rank: 11, percentage: 2.2, tier: 'contender' },   // 11th place: 2.2%
+    { rank: 12, percentage: 2.2, tier: 'contender' },   // 12th place: 2.2%
+    { rank: 13, percentage: 2.2, tier: 'contender' },   // 13th place: 2.2%
+    { rank: 14, percentage: 2.2, tier: 'contender' },   // 14th place: 2.2%
+    { rank: 15, percentage: 2.2, tier: 'contender' }    // 15th place: 2.2%
   ];
 
   static calculateRewardDistribution(totalPoolAmount: number): RewardDistribution {
@@ -60,7 +65,7 @@ export class RewardDistributionService {
   }
 
   static isRewardEligible(rank: number): boolean {
-    return rank >= 1 && rank <= 10;
+    return rank >= 1 && rank <= 15;
   }
 
   static getRewardTier(rank: number): string {
@@ -74,6 +79,7 @@ export class RewardDistributionService {
       case 'elite': return '🥈';
       case 'competitive': return '🥉';
       case 'participant': return '🏆';
+      case 'contender': return '🎯';
       default: return '';
     }
   }

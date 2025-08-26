@@ -63,7 +63,7 @@ export function Leaderboard({ onClose }: LeaderboardProps) {
         transition={{ type: "spring", duration: 0.3 }}
         className="fixed inset-0 z-50 flex items-center justify-center p-4"
       >
-        <div className="no-scrollbar bg-[var(--app-card-bg)] shadow-2xl max-w-md w-full h-screen overflow-y-scroll">
+        <div className="no-scrollbar bg-[var(--app-card-bg)] shadow-2xl max-w-lg w-full h-screen overflow-y-scroll">
           {/* Header */}
           <div className="p-4 border-b border-[var(--app-card-border)] flex items-center justify-between">
             <div className="flex items-center space-x-2">
@@ -123,7 +123,7 @@ export function Leaderboard({ onClose }: LeaderboardProps) {
                 ) : (
                   <>
                     <motion.div 
-                      className="text-lg font-bold text-[var(--app-foreground)]"
+                      className="text-md font-bold text-[var(--app-foreground)]"
                       initial={{ scale: 0.8 }}
                       animate={{ scale: 1 }}
                       transition={{ duration: 0.3, delay: 0.2, ease: "easeOut" }}
@@ -154,7 +154,7 @@ export function Leaderboard({ onClose }: LeaderboardProps) {
                 ) : (
                   <>
                     <motion.div 
-                      className="text-lg font-bold text-[var(--app-foreground)]"
+                      className="text-md font-bold text-[var(--app-foreground)]"
                       initial={{ scale: 0.8 }}
                       animate={{ scale: 1 }}
                       transition={{ duration: 0.3, delay: 0.3, ease: "easeOut" }}
@@ -185,7 +185,7 @@ export function Leaderboard({ onClose }: LeaderboardProps) {
                 ) : (
                   <>
                     <motion.div 
-                      className="text-lg font-bold text-[var(--app-foreground)]"
+                      className="text-md font-bold text-[var(--app-foreground)]"
                       initial={{ scale: 0.8 }}
                       animate={{ scale: 1 }}
                       transition={{ duration: 0.3, delay: 0.4, ease: "easeOut" }}
@@ -216,7 +216,7 @@ export function Leaderboard({ onClose }: LeaderboardProps) {
                 ) : (
                   <>
                     <motion.div 
-                      className="text-lg font-bold text-[var(--app-foreground)]"
+                      className="text-md font-bold text-[var(--app-foreground)]"
                       initial={{ scale: 0.8 }}
                       animate={{ scale: 1 }}
                       transition={{ duration: 0.3, delay: 0.5, ease: "easeOut" }}
