@@ -17,6 +17,7 @@ interface LevelCompleteModalProps {
   onRetry?: () => void;
   onNextLevel?: () => void;
   onShare?: () => void;
+  onScoreUpdate?: (newScore: number) => void;
 }
 
 type ModalState = 'complete' | 'nft-preview' | 'minting' | 'mint-success' | 'mint-error';
@@ -79,10 +80,15 @@ export default function LevelCompleteModal({
   onRetry,
   onNextLevel,
   onShare,
+  onScoreUpdate,
 }: LevelCompleteModalProps) {
   const levelData = levels.find(level => level.region === levelName || level.name === levelName);
   const [modalState, setModalState] = useState<ModalState>('complete');
   const [errorMessage, setErrorMessage] = useState('');
+  const [currentScore, setCurrentScore] = useState(score);
+  const NFT_MINT_POINTS = 70; // Points earned for minting an NFT
+  const SHARE_POINTS = 30; // Points earned for sharing score
+  const [hasShared, setHasShared] = useState(false); // Track if user has already shared
 
   const { address, isConnected } = useAccount();
   const { writeContract, data: hash, error } = useWriteContract();
@@ -128,18 +134,44 @@ export default function LevelCompleteModal({
     }
   };
 
+  const handleShare = () => {
+    if (onShare && !hasShared) {
+      // Call the original onShare function
+      onShare();
+      
+      // Add points for sharing
+      const newScore = currentScore + SHARE_POINTS;
+      setCurrentScore(newScore);
+      setHasShared(true);
+      
+      if (onScoreUpdate) {
+        onScoreUpdate(newScore);
+      }
+      
+      // Show visual feedback
+      // This could be enhanced with a toast notification or animation
+    }
+  };
+
   const handleClose = () => {
     setModalState('complete');
     setErrorMessage('');
+    setHasShared(false); // Reset share state
     onClose();
   };
 
   // Handle transaction confirmation
   React.useEffect(() => {
     if (isSuccess && modalState === 'minting') {
+      // Add points for successful NFT mint
+      const newScore = currentScore + NFT_MINT_POINTS;
+      setCurrentScore(newScore);
+      if (onScoreUpdate) {
+        onScoreUpdate(newScore);
+      }
       setModalState('mint-success');
     }
-  }, [isSuccess, modalState]);
+  }, [isSuccess, modalState, currentScore, onScoreUpdate]);
 
   React.useEffect(() => {
     if (error && modalState === 'minting') {
@@ -178,7 +210,7 @@ export default function LevelCompleteModal({
                 
                 <div className="bg-[var(--app-gray)] rounded-lg p-4 mb-6">
                   <div className="text-3xl font-bold text-green-600 mb-1">
-                    {score.toLocaleString()}
+                    {currentScore.toLocaleString()}
                   </div>
                   <div className="text-sm text-[var(--app-foreground-muted)]">Final Score</div>
                 </div>
@@ -207,7 +239,7 @@ export default function LevelCompleteModal({
                       onClick={handleMintClick}
                       className="w-full py-3 bg-[var(--app-accent)] text-white rounded-lg hover:opacity-90 font-semibold transition-opacity"
                     >
-                      Mint NFT
+                      Mint NFT || +{NFT_MINT_POINTS} points
                     </button>
                   </div>
                 )}
@@ -215,12 +247,20 @@ export default function LevelCompleteModal({
                 {/* Action Buttons */}
                 <div className="flex gap-3 mb-4">
                   {onShare && (
-                    <button
-                      onClick={onShare}
-                      className="flex-1 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold"
-                    >
-                      Share Score 🚀
-                    </button>
+                    <div className="flex-1 flex flex-col">
+                      <button
+                        onClick={handleShare}
+                        className="py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold"
+                        disabled={hasShared}
+                      >
+                        {hasShared ? 'Shared!' : 'Share Score || +30 points'}
+                      </button>
+                      {hasShared && (
+                        <p className="text-green-500 text-sm font-semibold mt-1">
+                          +{SHARE_POINTS} points added!
+                        </p>
+                      )}
+                    </div>
                   )}
                 </div>
                 <div className="flex gap-3">
@@ -255,7 +295,7 @@ export default function LevelCompleteModal({
                 
                 <div className="bg-[var(--app-gray)] rounded-lg p-4 mb-6">
                   <div className="text-3xl font-bold text-red-600 mb-1">
-                    {score.toLocaleString()}
+                    {currentScore.toLocaleString()}
                   </div>
                   <div className="text-sm text-[var(--app-foreground-muted)]">Final Score</div>
                 </div>
@@ -354,8 +394,11 @@ export default function LevelCompleteModal({
                 <h3 className="text-xl font-bold mb-2 text-green-600">
                   Mint Successful!
                 </h3>
-                <p className="text-[var(--app-foreground-muted)] mb-4">
+                <p className="text-[var(--app-foreground-muted)] mb-1">
                   Your {levelName} Winner NFT has been minted successfully!
+                </p>
+                <p className="text-green-500 font-semibold mb-4">
+                  +{NFT_MINT_POINTS} points added to your score!
                 </p>
                 
                 {hash && (
