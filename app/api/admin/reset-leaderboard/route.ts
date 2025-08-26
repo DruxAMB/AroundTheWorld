@@ -15,9 +15,15 @@ export async function POST(request: NextRequest) {
     // Reset the specified leaderboard
     const result = await gameDataService.resetLeaderboard(timeframe);
     
+    // Create a descriptive message
+    let message = `Successfully reset ${timeframe} leaderboard`;
+    if (result.playersReset && result.playersReset > 0) {
+      message += ` and reset ${result.playersReset} player scores to 0`;
+    }
+    
     return NextResponse.json({ 
       success: true, 
-      message: `Successfully reset ${timeframe} leaderboard`,
+      message,
       timestamp: new Date().toISOString(),
       result
     });

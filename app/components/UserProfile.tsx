@@ -114,9 +114,10 @@ export function UserProfile({ isOpen, onClose }: UserProfileProps) {
 
             {/* Game Statistics */}
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-gradient-to-br from-blue-900/30 to-blue-800/30 rounded-lg p-4 border border-blue-700/30">
+              <div className="bg-gradient-to-br from-blue-900/30 to-blue-800/30 rounded-lg p-4 border border-blue-700/30 col-span-2">
                 <h3 className="text-sm font-medium text-blue-300 mb-1">Total Score</h3>
                 <p className="text-2xl font-bold text-white">{player.totalScore.toLocaleString()}</p>
+                <p className="text-xs text-blue-300">Resets weekly</p>
               </div>
               
               <div className="bg-gradient-to-br from-green-900/30 to-green-800/30 rounded-lg p-4 border border-green-700/30">
@@ -129,7 +130,7 @@ export function UserProfile({ isOpen, onClose }: UserProfileProps) {
                 <p className="text-2xl font-bold text-white">{player.bestLevel}</p>
               </div>
               
-              <div className="bg-gradient-to-br from-orange-900/30 to-orange-800/30 rounded-lg p-4 border border-orange-700/30">
+              <div className="bg-gradient-to-br from-orange-900/30 to-orange-800/30 rounded-lg p-4 border border-orange-700/30 col-span-2">
                 <h3 className="text-sm font-medium text-orange-300 mb-1">Progress</h3>
                 <p className="text-2xl font-bold text-white">{progress.length}</p>
                 <p className="text-xs text-orange-300">Saved Levels</p>

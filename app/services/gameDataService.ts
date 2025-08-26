@@ -6,13 +6,14 @@ export interface PlayerProfile {
   id: string;
   name: string;
   walletAddress: string;
-  avatar: string;
+  avatar?: string;
   fid?: number; // Farcaster ID - used to fetch profile data via API
   totalScore: number;
   levelsCompleted: number;
   bestLevel: number;
   createdAt: string;
   lastActive: string;
+  lastWeeklyReset?: string; // When player was last reset for weekly leaderboard
   [key: string]: string | number | undefined; // Index signature for Redis compatibility
 }
 
@@ -91,6 +92,7 @@ class GameDataService {
       bestLevel: playerData.bestLevel || existingPlayer?.bestLevel || 0,
       createdAt: existingPlayer?.createdAt || now,
       lastActive: now,
+      lastWeeklyReset: existingPlayer?.lastWeeklyReset,
     };
 
     // Convert player object to Redis-compatible format
@@ -98,14 +100,22 @@ class GameDataService {
       id: player.id,
       name: player.name,
       walletAddress: player.walletAddress,
-      avatar: player.avatar,
-      ...(player.fid && { fid: player.fid }),
+      avatar: player.avatar || this.generateAvatar(), // Provide default if undefined
       totalScore: player.totalScore,
       levelsCompleted: player.levelsCompleted,
       bestLevel: player.bestLevel,
       createdAt: player.createdAt,
       lastActive: player.lastActive,
     };
+    
+    // Add optional fields only if they exist and are not undefined
+    if (player.fid) {
+      redisPlayerData.fid = player.fid;
+    }
+    
+    if (player.lastWeeklyReset) {
+      redisPlayerData.lastWeeklyReset = player.lastWeeklyReset;
+    }
 
     await redis.hset(playerId, redisPlayerData);
     await this.updateGlobalStats();
@@ -134,7 +144,8 @@ class GameDataService {
         levelsCompleted: parseInt(playerData.levelsCompleted) || 0,
         bestLevel: parseInt(playerData.bestLevel) || 1,
         createdAt: playerData.createdAt || new Date().toISOString(),
-        lastActive: playerData.lastActive || new Date().toISOString()
+        lastActive: playerData.lastActive || new Date().toISOString(),
+        lastWeeklyReset: playerData.lastWeeklyReset
       };
 
       return player;
@@ -251,7 +262,7 @@ class GameDataService {
     const playerId = this.getPlayerKey(walletAddress);
     const progressKey = `${playerId}:progress`;
     
-    // Get previous total score for comparison
+    // Get previous scores for comparison
     const previousPlayer = await redis.hgetall(playerId) as PlayerProfile | null;
     const previousScore = previousPlayer?.totalScore || 0;
     
@@ -275,7 +286,7 @@ class GameDataService {
     // Save progress
     await redis.set(progressKey, JSON.stringify(progress));
     
-    // Update player stats
+    // Update player stats (no weekly score - reset handles this)
     await redis.hset(playerId, {
       totalScore,
       levelsCompleted,
@@ -637,11 +648,7 @@ class GameDataService {
     }
   }
   
-  /**
-   * Reset a specific leaderboard timeframe
-   * This allows admins to manually reset leaderboards on demand
-   */
-  async resetLeaderboard(timeframe: 'week' | 'month' | 'all-time'): Promise<{ success: boolean; key: string }> {
+  async resetLeaderboard(timeframe: 'week' | 'month' | 'all-time'): Promise<{ success: boolean; key: string; playersReset?: number }> {
     if (!redis) return { success: false, key: '' };
     
     try {
@@ -657,12 +664,106 @@ class GameDataService {
         key = `${this.LEADERBOARD_PREFIX}all-time`;
       }
       
-      // Reset the leaderboard by deleting the key
+      // Only perform full reset for weekly leaderboard
+      let playersReset = 0;
+      let playersToRestore = [];
+      
+      if (timeframe === 'week') {
+        // Get all entries from the existing leaderboard before deleting it
+        const entries = await redis.zrange(key, 0, -1);
+        console.log(`🔄 [GameDataService] Resetting ${timeframe} leaderboard with ${entries.length} entries`);
+        
+        // For each player in the leaderboard, perform complete reset
+        for (const entry of entries) {
+          try {
+            const memberData = typeof entry === 'string' 
+              ? JSON.parse(entry as string)
+              : entry;
+            
+            // Skip entries that don't have a playerId
+            if (!memberData.playerId) continue;
+            
+            const playerId = memberData.playerId;
+            const playerKey = this.getPlayerKey(playerId);
+            
+            // Get player data to preserve identity info
+            const playerData = await redis.hgetall(playerKey) as PlayerProfile;
+            
+            if (playerData && Object.keys(playerData).length > 0) {
+              // Create backup of current data
+              const backupKey = `${playerKey}:backup`;
+              await redis.set(backupKey, JSON.stringify(playerData), { ex: 60 * 60 * 24 * 7 }); // 1 week expiry
+              
+              // COMPLETELY RESET the player profile for weekly leaderboard
+              // Only preserve identity info and createdAt timestamp
+              const resetPlayerData: Record<string, any> = {
+                id: playerData.id,
+                name: playerData.name,
+                walletAddress: playerData.walletAddress,
+                avatar: playerData.avatar,
+                totalScore: 0,              // Reset to 0
+                levelsCompleted: 0,          // Reset to 0
+                bestLevel: 1,                // Reset to 1 (starting level)
+                createdAt: playerData.createdAt,
+                lastActive: new Date().toISOString(),
+                lastWeeklyReset: new Date().toISOString() // Mark when reset happened
+              };
+              
+              // Only add fid if it's not null or undefined
+              if (playerData.fid) {
+                resetPlayerData.fid = playerData.fid;
+              }
+              
+              // Remove all player data including progress
+              await redis.del(playerKey);
+              await redis.del(`${playerKey}:progress`);
+              
+              // Set the reset player data
+              await redis.hset(playerKey, resetPlayerData);
+              
+              // Create leaderboard entry with reset stats
+              const resetLeaderboardData: Record<string, any> = {
+                playerId: playerId,
+                name: playerData.name,
+                avatar: playerData.avatar,
+                score: 0,                    // Reset score to 0
+                levelsCompleted: 0,          // Reset levels completed to 0
+                bestLevel: 1                 // Reset best level to 1
+              };
+              
+              // Only add fid if it exists and is not null
+              if (playerData.fid) {
+                resetLeaderboardData.fid = playerData.fid;
+              }
+              
+              playersToRestore.push(resetLeaderboardData);
+              playersReset++;
+            }
+          } catch (parseError) {
+            console.warn(`Failed to parse leaderboard entry:`, parseError);
+          }
+        }
+      }
+      // First delete the existing leaderboard
       await redis.del(key);
       
-      console.log(`🔄 [GameDataService] Reset ${timeframe} leaderboard (${key})`);
+      // If we're resetting a weekly leaderboard, add the players back with completely reset stats
+      if (timeframe === 'week' && playersToRestore.length > 0) {
+        // Add each player back to the leaderboard with fully reset stats
+        for (const playerData of playersToRestore) {
+          await redis.zadd(key, {
+            score: 0, // Reset score to 0
+            member: JSON.stringify(playerData)
+          });
+        }
+      }
       
-      return { success: true, key };
+      console.log(`🔄 [GameDataService] Reset ${timeframe} leaderboard (${key}) and restored ${playersReset} players with completely fresh stats`);
+      return { 
+        success: true, 
+        key,
+        ...(playersReset > 0 ? { playersReset } : {})
+      };
     } catch (error) {
       console.error(`Error resetting ${timeframe} leaderboard:`, error);
       return { success: false, key: '' };
@@ -674,6 +775,7 @@ class GameDataService {
     return avatars[Math.floor(Math.random() * avatars.length)];
   }
 
+// ...
   // Daily Bonus Integration
   async checkDailyBonusEligibility(walletAddress: string): Promise<boolean> {
     try {
