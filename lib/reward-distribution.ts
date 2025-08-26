@@ -79,10 +79,49 @@ export class RewardDistributionService {
   }
 
   static formatRewardAmount(amount: number): string {
-    // Format as token with appropriate decimals and commas
-    const tokenAmount = amount / 1e18;
-    
-    // For very large numbers, use a more precise approach
+    try {
+      // Ensure we're working with a valid number
+      if (isNaN(amount) || !isFinite(amount)) {
+        return "0";
+      }
+      
+      // Convert scientific notation to a proper string for very large numbers
+      const numberStr = amount.toString();
+      
+      // Handle scientific notation directly
+      if (numberStr.includes('e+')) {
+        const parts = numberStr.split('e+');
+        const base = parts[0];
+        const exponent = parseInt(parts[1], 10);
+        
+        // Convert from wei to token units (divide by 1e18)
+        const adjustedExponent = Math.max(0, exponent - 18);
+        
+        if (adjustedExponent > 0) {
+          // Format as whole number with commas for very large numbers
+          let baseDigits = base.replace('.', '');
+          // Pad with zeros as needed
+          baseDigits = baseDigits.padEnd(adjustedExponent + 1, '0');
+          // Insert commas for readability
+          return baseDigits.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        } else {
+          // Regular number that fits in JavaScript's precision
+          const tokenAmount = amount / 1e18;
+          return this.formatNormalNumber(tokenAmount);
+        }
+      } else {
+        // For normal numbers (not in scientific notation)
+        const tokenAmount = amount / 1e18;
+        return this.formatNormalNumber(tokenAmount);
+      }
+    } catch (error) {
+      console.error("Error formatting reward amount:", error);
+      return "0";
+    }
+  }
+  
+  // Helper method to format normal-sized numbers
+  private static formatNormalNumber(tokenAmount: number): string {
     if (tokenAmount >= 1000) {
       // For large amounts, show fewer decimal places
       return `${Math.round(tokenAmount).toLocaleString()}`;
