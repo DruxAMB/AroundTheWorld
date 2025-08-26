@@ -69,6 +69,23 @@ export function Leaderboard({ onClose }: LeaderboardProps) {
             <div className="flex items-center space-x-2">
               <span className="text-2xl">🏆</span>
               <h2 className="text-lg font-bold text-[var(--app-foreground)]">Leaderboard</h2>
+              <div className="group relative">
+                <span className="text-sm cursor-help text-[var(--app-foreground-muted)] hover:text-[var(--app-foreground)] transition-colors">
+                  ❔
+                </span>
+                <div className="absolute left-0 top-full mt-2 w-64 p-3 bg-[var(--app-background)] rounded-lg shadow-lg border border-[var(--app-card-border)] z-10 transform scale-0 group-hover:scale-100 opacity-0 group-hover:opacity-100 transition-all origin-top-left duration-200">
+                  <h4 className="font-bold text-sm mb-1">Reward Distribution</h4>
+                  <div className="text-xs space-y-1">
+                    <div><span className="font-medium">🥇 1st place:</span> 20%</div>
+                    <div><span className="font-medium">🥈 2nd place:</span> 15%</div>
+                    <div><span className="font-medium">🥈 3rd place:</span> 10%</div>
+                    <div><span className="font-medium">🥉 4-6th place:</span> 8% each</div>
+                    <div><span className="font-medium">🏆 7-8th place:</span> 6% each</div>
+                    <div><span className="font-medium">🏆 9-10th place:</span> 4% each</div>
+                    <div><span className="font-medium">🎯 11-15th place:</span> 2.2% each</div>
+                  </div>
+                </div>
+              </div>
             </div>
             <motion.button
               onClick={handleClose}
