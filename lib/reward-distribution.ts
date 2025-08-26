@@ -37,8 +37,10 @@ export class RewardDistributionService {
   static calculateRewardDistribution(totalPoolAmount: number): RewardDistribution {
     const distributions = this.REWARD_TIERS.map(tier => {
       // Use the same BigInt calculation as getRewardForRank for consistency
+      // Round the percentage calculation to avoid floating point errors
+      const percentagePoints = Math.round(tier.percentage * 100);
       const amount = Number(
-        (BigInt(Math.round(totalPoolAmount)) * BigInt(tier.percentage * 100)) / BigInt(10000)
+        (BigInt(Math.round(totalPoolAmount)) * BigInt(percentagePoints)) / BigInt(10000)
       );
       
       return {
@@ -61,7 +63,8 @@ export class RewardDistributionService {
     
     // More precise calculation for large numbers
     // Use exact percentage division to avoid floating point errors
-    return Number((BigInt(Math.round(totalPoolAmount)) * BigInt(tier.percentage * 100)) / BigInt(10000));
+    const percentagePoints = Math.round(tier.percentage * 100);
+    return Number((BigInt(Math.round(totalPoolAmount)) * BigInt(percentagePoints)) / BigInt(10000));
   }
 
   static isRewardEligible(rank: number): boolean {
