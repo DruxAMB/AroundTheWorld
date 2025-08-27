@@ -265,7 +265,6 @@ export class DailyBonusService {
       
       // Calculate streak by checking consecutive days from today
       let streak = 0;
-      const today = this.getTodayUTC();
       
       // Start from today and count consecutive days
       for (let i = 0; i < history.length; i++) {

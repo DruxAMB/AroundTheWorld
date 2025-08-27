@@ -24,19 +24,19 @@ interface GameWrapperProps {
 }
 
 export function GameWrapper({ onGameStateChange }: GameWrapperProps = {}) {
-  const { progress, saveProgress: saveGameProgress, loading: gameDataLoading, player, createOrUpdatePlayer, refreshPlayerData } = useGameData();
+  const { progress, saveProgress: saveGameProgress, loading: gameDataLoading, player, refreshPlayerData } = useGameData();
   
   // Import gameDataService for bonus points
-  const gameDataServiceRef = useRef<any>(null);
+  const gameDataServiceRef = useRef<typeof import('../services/gameDataService').gameDataService | null>(null);
   
   // Initialize gameDataServiceRef
   useEffect(() => {
     async function loadGameDataService() {
       try {
-        const module = await import('../services/gameDataService');
-        gameDataServiceRef.current = module.gameDataService;
+        const gameDataServiceModule = await import('../services/gameDataService');
+        gameDataServiceRef.current = gameDataServiceModule.gameDataService;
         console.log('🔄 [GameWrapper] gameDataService loaded successfully');
-      } catch (error) {
+      } catch (error: unknown) {
         console.error('❌ [GameWrapper] Error loading gameDataService:', error);
       }
     }
@@ -49,10 +49,10 @@ export function GameWrapper({ onGameStateChange }: GameWrapperProps = {}) {
 
   // Helper function to handle score updates with bonus points
   const handleScoreUpdate = async (
-    playerData: any,
+    playerData: import('../services/gameDataService').PlayerProfile,
     playerAddress: string,
     level: Level,
-    gameDataService: any,
+    gameDataService: typeof import('../services/gameDataService').gameDataService,
     newScore: number
   ) => {
     try {
@@ -113,7 +113,7 @@ export function GameWrapper({ onGameStateChange }: GameWrapperProps = {}) {
           console.error('Error refreshing player data:', refreshError);
         }
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('❌ [GameWrapper] Error in handleScoreUpdate:', error);
     }
   };
@@ -295,7 +295,7 @@ export function GameWrapper({ onGameStateChange }: GameWrapperProps = {}) {
         // Save progress with error handling
         try {
           await saveGameProgress(newProgress);
-        } catch (saveError) {
+        } catch (saveError: unknown) {
           console.error('Failed to save progress:', saveError);
           setError('Failed to save progress. Please try again.');
           return;
@@ -310,7 +310,7 @@ export function GameWrapper({ onGameStateChange }: GameWrapperProps = {}) {
           setTimeout(() => {
             soundManager.play('win');
           }, 600);
-        } catch (audioError) {
+        } catch (audioError: unknown) {
           console.warn('Audio playback failed:', audioError);
         }
         
@@ -323,7 +323,7 @@ export function GameWrapper({ onGameStateChange }: GameWrapperProps = {}) {
           setGameState('level-select');
         }, 2000);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error in level completion:', error);
       setError('An error occurred during level completion');
       setGameState('error');
@@ -346,19 +346,22 @@ export function GameWrapper({ onGameStateChange }: GameWrapperProps = {}) {
   }, []);
 
   // Helper function to handle next level navigation
-  const handleNextLevel = useCallback(() => {
+  const handleNextLevel = useCallback(async () => {
     if (!currentLevel) return;
     
     const nextLevelId = getNextLevel(currentLevel.id);
     const isNextLevelUnlocked = nextLevelId && unlockedLevels.includes(nextLevelId);
     
     if (isNextLevelUnlocked) {
-      import('../data/levels').then(({ LEVELS }) => {
-        const nextLevel = LEVELS.find(l => l.id === nextLevelId);
+      try {
+        const levelsModule = await import('../data/levels');
+        const nextLevel = levelsModule.LEVELS.find(l => l.id === nextLevelId);
         if (nextLevel) {
           handleLevelSelect(nextLevel);
         }
-      });
+      } catch (error: unknown) {
+        console.error('Error loading next level:', error);
+      }
     }
   }, [currentLevel, getNextLevel, unlockedLevels, handleLevelSelect]);
 
@@ -454,7 +457,7 @@ export function GameWrapper({ onGameStateChange }: GameWrapperProps = {}) {
             const stars = Math.min(Math.floor(currentScore / 1000), 3); // Calculate stars based on score
             handleShareScore(currentLevel, currentScore, stars);
           }}
-          onScoreUpdate={async (newScore) => {
+          onScoreUpdate={async (newScore: number) => {
             // Immediate log to confirm the function is being called
             console.log(`🚨 [GameWrapper] onScoreUpdate CALLED with new score: ${newScore}`);
             
@@ -469,10 +472,10 @@ export function GameWrapper({ onGameStateChange }: GameWrapperProps = {}) {
               
               // Attempt to reload the gameDataService module immediately
               try {
-                const module = await import('../services/gameDataService');
-                gameDataServiceRef.current = module.gameDataService;
+                const gameDataServiceModule = await import('../services/gameDataService');
+                gameDataServiceRef.current = gameDataServiceModule.gameDataService;
                 console.log('🔄 [GameWrapper] gameDataService reloaded successfully');
-              } catch (error) {
+              } catch (error: unknown) {
                 console.error('❌ [GameWrapper] Failed to reload gameDataService:', error);
               }
             }
