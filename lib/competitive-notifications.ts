@@ -394,7 +394,7 @@ export class CompetitiveNotificationService {
       const key = `notification_sent:${fid}:${type}`;
       const lastSent = await redis.get(key) as string | null;
       
-      // Don't send same type of notification more than once per hour
+      // Don't send same type of notification more than once per 5 hours
       if (lastSent) {
         const lastSentTime = parseInt(lastSent);
         if (isNaN(lastSentTime)) {
@@ -402,8 +402,9 @@ export class CompetitiveNotificationService {
           await redis.del(key); // Clean up invalid data
         } else {
           const timeSince = Date.now() - lastSentTime;
-          if (timeSince < 60 * 60 * 1000) { // 1 hour
-            console.log(`Rate limited: ${type} notification for FID ${fid}, ${Math.round((60 * 60 * 1000 - timeSince) / 1000 / 60)} minutes remaining`);
+          const fiveHoursInMs = 5 * 60 * 60 * 1000; // 5 hours
+          if (timeSince < fiveHoursInMs) {
+            console.log(`Rate limited: ${type} notification for FID ${fid}, ${Math.round((fiveHoursInMs - timeSince) / 1000 / 60)} minutes remaining`);
             return false;
           }
         }
@@ -411,7 +412,7 @@ export class CompetitiveNotificationService {
 
       // Mark as sent with error handling
       try {
-        await redis.setex(key, 60 * 60, Date.now().toString()); // 1 hour expiry
+        await redis.setex(key, 5 * 60 * 60, Date.now().toString()); // 5 hour expiry
       } catch (setError) {
         console.error('Failed to set rate limit key, but allowing notification:', setError);
       }

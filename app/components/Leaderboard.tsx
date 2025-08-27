@@ -61,7 +61,7 @@ export function Leaderboard({ onClose }: LeaderboardProps) {
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.9, y: 20 }}
         transition={{ type: "spring", duration: 0.3 }}
-        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        className="fixed inset-0 z-50 flex items-center justify-center"
       >
         <div className="no-scrollbar bg-[var(--app-card-bg)] shadow-2xl max-w-lg w-full h-screen overflow-y-scroll">
           {/* Header */}

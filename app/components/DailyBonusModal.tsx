@@ -125,7 +125,7 @@ export default function DailyBonusModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-lg flex items-center justify-center z-50 p-2">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-lg flex items-center justify-center z-50 p-1">
       <div className="bg-[var(--app-card-bg)] rounded-2xl border border-[var(--app-card-border)] shadow-2xl max-w-md w-full mx-2 overflow-hidden">
         {/* Header */}
         <div className="p-6 border-b border-[var(--app-card-border)] relative">
