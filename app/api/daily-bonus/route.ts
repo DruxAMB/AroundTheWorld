@@ -61,12 +61,11 @@ async function handleClaimBonus(walletAddress: string) {
 
     // Add bonus points to player's total score and update leaderboards
     await gameDataService.addBonusPoints(walletAddress, claimResult.bonusAmount);
-
-    // Get updated status
-    const [streak, totalBonus] = await Promise.all([
-      dailyBonusService.getCurrentStreak(walletAddress),
-      dailyBonusService.getTotalBonusPoints(walletAddress)
-    ]);
+    
+    // Use streak and totalBonusPoints directly from claimResult if available
+    // This avoids additional Redis calls
+    const streak = claimResult.streak || 1; // Default to 1 for new streaks
+    const totalBonus = claimResult.totalBonusPoints || claimResult.bonusAmount;
 
     return NextResponse.json({
       success: true,
@@ -87,12 +86,18 @@ async function handleClaimBonus(walletAddress: string) {
 
 async function handleGetStatus(walletAddress: string) {
   try {
-    const [alreadyClaimed, bonusData, streak, totalBonus] = await Promise.all([
+    // Get player stats first to potentially avoid other Redis calls
+    const playerStats = await dailyBonusService.getPlayerBonusStats(walletAddress);
+    
+    // Use Promise.all only for the remaining necessary operations
+    const [alreadyClaimed, bonusData] = await Promise.all([
       dailyBonusService.hasClaimedToday(walletAddress),
       dailyBonusService.getTodaysBonusData(walletAddress),
-      dailyBonusService.getCurrentStreak(walletAddress),
-      dailyBonusService.getTotalBonusPoints(walletAddress)
     ]);
+    
+    // Use cached streak and bonus points if available
+    const streak = playerStats?.streak ?? await dailyBonusService.getCurrentStreak(walletAddress);
+    const totalBonus = playerStats?.totalBonusPoints ?? await dailyBonusService.getTotalBonusPoints(walletAddress);
 
     return NextResponse.json({
       alreadyClaimed,

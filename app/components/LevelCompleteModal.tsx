@@ -155,23 +155,18 @@ export default function LevelCompleteModal({
       if (onScoreUpdate) {
         console.log(`🔍 [LevelCompleteModal] SHARE: Calling onScoreUpdate with new score: ${newScore}`);
         
-        // Add visible alert for debugging
-        alert(`DEBUG: About to call onScoreUpdate with score ${newScore}`);
-        
         try {
           // Direct call without Promise handling because onScoreUpdate is typed as returning void
           onScoreUpdate(newScore);
           console.log('🔍 [LevelCompleteModal] SHARE: onScoreUpdate called successfully');
-          alert('DEBUG: onScoreUpdate called successfully');
         } catch (error) {
           console.error('⚠️ [LevelCompleteModal] SHARE: Error calling onScoreUpdate:', error);
           // TypeScript safety: Check if error is Error object before accessing message
           const errorMessage = error instanceof Error ? error.message : 'Unknown error calling onScoreUpdate';
-          alert(`DEBUG CRITICAL ERROR: ${errorMessage}`);
+          console.error(`⚠️ [LevelCompleteModal] SHARE: ${errorMessage}`);
         }
       } else {
         console.warn('⚠️ [LevelCompleteModal] SHARE: onScoreUpdate function is not available');
-        alert('DEBUG: onScoreUpdate function is NOT AVAILABLE');
       }
       
       // Show visual feedback

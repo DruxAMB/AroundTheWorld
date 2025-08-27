@@ -33,6 +33,7 @@ export default function DailyBonusModal({
   const [claiming, setClaiming] = useState(false);
   const [claimSuccess, setClaimSuccess] = useState(false);
   const [hasInitialLoad, setHasInitialLoad] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
   useEffect(() => {
     const fetchBonusStatus = async () => {
@@ -68,6 +69,7 @@ export default function DailyBonusModal({
       setClaimSuccess(false);
       setHasInitialLoad(false);
       setStatus(null);
+      setErrorMessage(null);
     }
   }, [isOpen]);
 
@@ -75,6 +77,7 @@ export default function DailyBonusModal({
     if (!walletAddress || claiming) return;
 
     setClaiming(true);
+    setErrorMessage(null);
     try {
       const response = await fetch('/api/daily-bonus', {
         method: 'POST',
@@ -108,11 +111,12 @@ export default function DailyBonusModal({
           setClaimSuccess(false);
         }, 2000);
       } else {
-        alert(result.message || 'Failed to claim bonus');
+        console.error('Failed to claim bonus:', result.message || 'Unknown error');
+        setErrorMessage(result.message || 'Failed to claim bonus');
       }
     } catch (error) {
       console.error('Failed to claim bonus:', error);
-      alert('Failed to claim daily bonus');
+      setErrorMessage('Failed to claim daily bonus. Please try again.');
     } finally {
       setClaiming(false);
     }
@@ -121,13 +125,13 @@ export default function DailyBonusModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-lg flex items-center justify-center z-50 p-4">
-      <div className="bg-[var(--app-card-bg)] rounded-2xl border border-[var(--app-card-border)] shadow-2xl max-w-md w-full mx-4 overflow-hidden">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-lg flex items-center justify-center z-50 p-2">
+      <div className="bg-[var(--app-card-bg)] rounded-2xl border border-[var(--app-card-border)] shadow-2xl max-w-md w-full mx-2 overflow-hidden">
         {/* Header */}
         <div className="p-6 border-b border-[var(--app-card-border)] relative">
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 text-lg text-[var(--app-foreground-muted)] hover:text-[var(--app-foreground)] transition-colors"
+            className="absolute top-4 right-4 text-lg text-[var(--app-foreground-muted)] hover:text-[var(--app-foreground)] transition-colors hover:animate-spin"
           >
             ✖️
           </button>
@@ -143,7 +147,7 @@ export default function DailyBonusModal({
         </div>
 
         {/* Content */}
-        <div className="p-6">
+        <div className="p-2">
           {loading ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--app-accent)] mx-auto"></div>
@@ -179,6 +183,18 @@ export default function DailyBonusModal({
                   <div className="text-sm text-[var(--app-foreground-muted)]">Total Earned</div>
                 </div>
               </div>
+
+              {/* Error Message */}
+              {errorMessage && (
+                <div className="text-center py-2">
+                  <div className="bg-red-900/20 border border-red-700/30 text-red-400 rounded-lg p-3">
+                    <div className="font-semibold">❌ Error</div>
+                    <div className="text-sm mt-1 text-red-300">
+                      {errorMessage}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Claim Button or Status */}
               {status.alreadyClaimed ? (

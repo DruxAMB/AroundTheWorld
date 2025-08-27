@@ -310,7 +310,7 @@ export function Leaderboard({ onClose }: LeaderboardProps) {
                             }
                             width={32}
                             height={32}
-                            className="w-8 h-8 rounded-full object-cover"
+                            className="w-auto h-auto rounded-full object-cover"
                             onError={(e) => {
                               const target = e.target as HTMLImageElement;
                               target.style.display = 'none';
