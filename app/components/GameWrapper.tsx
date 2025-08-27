@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import { LevelSelector } from "./LevelSelector";
 import { Match3Game } from "./Match3Game";
@@ -24,11 +24,100 @@ interface GameWrapperProps {
 }
 
 export function GameWrapper({ onGameStateChange }: GameWrapperProps = {}) {
-  const { progress, saveProgress: saveGameProgress, loading: gameDataLoading } = useGameData();
+  const { progress, saveProgress: saveGameProgress, loading: gameDataLoading, player, createOrUpdatePlayer, refreshPlayerData } = useGameData();
+  
+  // Import gameDataService for bonus points
+  const gameDataServiceRef = useRef<any>(null);
+  
+  // Initialize gameDataServiceRef
+  useEffect(() => {
+    async function loadGameDataService() {
+      try {
+        const module = await import('../services/gameDataService');
+        gameDataServiceRef.current = module.gameDataService;
+        console.log('🔄 [GameWrapper] gameDataService loaded successfully');
+      } catch (error) {
+        console.error('❌ [GameWrapper] Error loading gameDataService:', error);
+      }
+    }
+    
+    loadGameDataService();
+  }, []);
   const { address, isConnected } = useAccount();
   const { composeCast } = useComposeCast();
   const { showModal, setShowModal, checkEligibility } = useDailyBonus();
 
+  // Helper function to handle score updates with bonus points
+  const handleScoreUpdate = async (
+    playerData: any,
+    playerAddress: string,
+    level: Level,
+    gameDataService: any,
+    newScore: number
+  ) => {
+    try {
+      const currentProgress = progress?.find(p => p.levelId === level.id);
+                
+      if (currentProgress) {
+        // Calculate bonus points
+        const bonusPoints = newScore - currentProgress.score;
+        console.log(`🔄 [GameWrapper] BONUS POINTS: ${bonusPoints} points being added`);
+        console.log(`🔄 [GameWrapper] LEVEL SCORES: Original=${currentProgress.score}, Original Best=${currentProgress.bestScore || 0}, New Final=${newScore}`);
+        
+        // CRITICAL FIX: Update both the level score and bestScore with the final score
+        // This ensures the profile shows the correct score including all bonuses
+        const updatedProgress = progress.map(p => {
+          if (p.levelId === level.id) {
+            const updatedLevel = { 
+              ...p, 
+              score: newScore,
+              // Always update bestScore with the new final score (including bonus points)
+              bestScore: newScore
+            };
+            console.log(`🔄 [GameWrapper] UPDATED LEVEL: ID=${p.levelId}, Score=${updatedLevel.score}, BestScore=${updatedLevel.bestScore}`);
+            return updatedLevel;
+          }
+          return p;
+        });
+        
+        // Calculate what the new total score should be from all best scores
+        const expectedTotalScore = updatedProgress.reduce((sum, p) => sum + (p.bestScore || p.score || 0), 0);
+        console.log(`🔄 [GameWrapper] EXPECTED TOTAL SCORE: ${expectedTotalScore} (calculated from all best scores)`);
+        
+        // Save the updated progress first to ensure the level score is updated
+        // The saveGameProgress function will recalculate totalScore from all bestScores
+        console.log(`🔄 [GameWrapper] SAVING PROGRESS: Level ${level.id} with final score ${newScore} (including bonuses)`);
+        await saveGameProgress(updatedProgress);
+        
+        // Also add the bonus points directly to the player's total score as a backup approach
+        // This provides redundancy in case the progress-based calculation has issues
+        const updatedPlayer = await gameDataService.addBonusPoints(playerAddress, bonusPoints);
+        console.log(`🔄 [GameWrapper] DIRECT UPDATE: Player total score updated to ${updatedPlayer?.totalScore}`);
+        
+        // Force a complete refresh of player data with error handling
+        try {
+          console.log('🔄 [GameWrapper] REFRESHING: Forcing player data refresh to update UI...');
+          // Add a slight delay to ensure Redis has time to process the updates
+          await new Promise(resolve => setTimeout(resolve, 500)); // Increased delay for reliability
+          await refreshPlayerData();
+          
+          // After refresh, verify the updated scores
+          const refreshedProgress = await gameDataService.getGameProgress(playerAddress);
+          const refreshedLevel = refreshedProgress.find((p: { levelId: string; }) => p.levelId === level.id);
+          const refreshedPlayer = await gameDataService.getPlayer(playerAddress);
+          
+          console.log(`🔄 [GameWrapper] VERIFICATION: After refresh - Level Score=${refreshedLevel?.score}, BestScore=${refreshedLevel?.bestScore}`);
+          console.log(`🔄 [GameWrapper] VERIFICATION: After refresh - Total Score=${refreshedPlayer?.totalScore}`);
+          console.log('🔄 [GameWrapper] Player data refreshed successfully');
+        } catch (refreshError) {
+          console.error('Error refreshing player data:', refreshError);
+        }
+      }
+    } catch (error) {
+      console.error('❌ [GameWrapper] Error in handleScoreUpdate:', error);
+    }
+  };
+  
   // Share score functionality
   const handleShareScore = useCallback((level: Level, score: number, stars: number) => {
     const starEmojis = '⭐'.repeat(stars);
@@ -364,6 +453,38 @@ export function GameWrapper({ onGameStateChange }: GameWrapperProps = {}) {
             const currentScore = progress?.find(p => p.levelId === currentLevel.id)?.score || 0;
             const stars = Math.min(Math.floor(currentScore / 1000), 3); // Calculate stars based on score
             handleShareScore(currentLevel, currentScore, stars);
+          }}
+          onScoreUpdate={async (newScore) => {
+            // Immediate log to confirm the function is being called
+            console.log(`🚨 [GameWrapper] onScoreUpdate CALLED with new score: ${newScore}`);
+            
+            // Check for required values and log detailed information
+            if (!player) console.log('❌ [GameWrapper] player is missing');
+            if (!address) console.log('❌ [GameWrapper] address is missing');
+            if (!currentLevel) console.log('❌ [GameWrapper] currentLevel is missing');
+            
+            // More detailed check for gameDataServiceRef
+            if (!gameDataServiceRef.current) {
+              console.log('❌ [GameWrapper] gameDataService is missing - attempting to reload...');
+              
+              // Attempt to reload the gameDataService module immediately
+              try {
+                const module = await import('../services/gameDataService');
+                gameDataServiceRef.current = module.gameDataService;
+                console.log('🔄 [GameWrapper] gameDataService reloaded successfully');
+              } catch (error) {
+                console.error('❌ [GameWrapper] Failed to reload gameDataService:', error);
+              }
+            }
+            
+            // Now check if we have all the requirements to update the score
+            if (player && address && currentLevel && gameDataServiceRef.current) {
+              console.log('🔄 [GameWrapper] All requirements met, processing score update');
+              // Use our new helper function to handle the score update
+              await handleScoreUpdate(player, address, currentLevel, gameDataServiceRef.current, newScore);
+            } else {
+              console.log('🚨 [GameWrapper] onScoreUpdate called but some required values are missing');
+            }
           }}
         />
       )}

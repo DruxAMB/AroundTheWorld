@@ -82,6 +82,12 @@ export default function LevelCompleteModal({
   onShare,
   onScoreUpdate,
 }: LevelCompleteModalProps) {
+  // Log initial score when modal opens
+  React.useEffect(() => {
+    if (isOpen) {
+      console.log(`🔍 [LevelCompleteModal] OPENED with initial score: ${score}`);
+    }
+  }, [isOpen, score]);
   const levelData = levels.find(level => level.region === levelName || level.name === levelName);
   const [modalState, setModalState] = useState<ModalState>('complete');
   const [errorMessage, setErrorMessage] = useState('');
@@ -141,11 +147,31 @@ export default function LevelCompleteModal({
       
       // Add points for sharing
       const newScore = currentScore + SHARE_POINTS;
+      console.log(`🔍 [LevelCompleteModal] SHARE: Adding ${SHARE_POINTS} points`);
+      console.log(`🔍 [LevelCompleteModal] SHARE: Original score: ${currentScore} → New score: ${newScore}`);
       setCurrentScore(newScore);
       setHasShared(true);
       
       if (onScoreUpdate) {
-        onScoreUpdate(newScore);
+        console.log(`🔍 [LevelCompleteModal] SHARE: Calling onScoreUpdate with new score: ${newScore}`);
+        
+        // Add visible alert for debugging
+        alert(`DEBUG: About to call onScoreUpdate with score ${newScore}`);
+        
+        try {
+          // Direct call without Promise handling because onScoreUpdate is typed as returning void
+          onScoreUpdate(newScore);
+          console.log('🔍 [LevelCompleteModal] SHARE: onScoreUpdate called successfully');
+          alert('DEBUG: onScoreUpdate called successfully');
+        } catch (error) {
+          console.error('⚠️ [LevelCompleteModal] SHARE: Error calling onScoreUpdate:', error);
+          // TypeScript safety: Check if error is Error object before accessing message
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error calling onScoreUpdate';
+          alert(`DEBUG CRITICAL ERROR: ${errorMessage}`);
+        }
+      } else {
+        console.warn('⚠️ [LevelCompleteModal] SHARE: onScoreUpdate function is not available');
+        alert('DEBUG: onScoreUpdate function is NOT AVAILABLE');
       }
       
       // Show visual feedback
@@ -165,8 +191,11 @@ export default function LevelCompleteModal({
     if (isSuccess && modalState === 'minting') {
       // Add points for successful NFT mint
       const newScore = currentScore + NFT_MINT_POINTS;
+      console.log(`🔍 [LevelCompleteModal] NFT MINT: Adding ${NFT_MINT_POINTS} points`);
+      console.log(`🔍 [LevelCompleteModal] NFT MINT: Original score: ${currentScore} → New score: ${newScore}`);
       setCurrentScore(newScore);
       if (onScoreUpdate) {
+        console.log(`🔍 [LevelCompleteModal] NFT MINT: Calling onScoreUpdate with new score: ${newScore}`);
         onScoreUpdate(newScore);
       }
       setModalState('mint-success');

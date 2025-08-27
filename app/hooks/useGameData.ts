@@ -78,26 +78,28 @@ export function useGameData(): GameDataHook {
     
     setLoading(true);
     try {
-      const response = await fetch(`/api/player?address=${address}`);
+      // Add a timestamp to prevent browser caching
+      const timestamp = Date.now();
+      const response = await fetch(`/api/player?address=${address}&_t=${timestamp}`);
       if (response.ok) {
         const data = await response.json();
         
-        console.log('📊 Player data loaded:', {
-          hasPlayer: !!data.player,
-          hasFid: !!data.player?.fid,
-          farcasterData: {
-            fid: data.player?.fid,
-            username: data.player?.farcasterUsername,
-            displayName: data.player?.farcasterDisplayName,
-            pfpUrl: data.player?.farcasterPfpUrl
-          },
-          contextData: {
-            fid: context?.user?.fid,
-            username: context?.user?.username,
-            displayName: context?.user?.displayName,
-            pfpUrl: context?.user?.pfpUrl
-          }
-        });
+        // console.log('📊 Player data loaded:', {
+        //   hasPlayer: !!data.player,
+        //   hasFid: !!data.player?.fid,
+        //   farcasterData: {
+        //     fid: data.player?.fid,
+        //     username: data.player?.farcasterUsername,
+        //     displayName: data.player?.farcasterDisplayName,
+        //     pfpUrl: data.player?.farcasterPfpUrl
+        //   },
+        //   contextData: {
+        //     fid: context?.user?.fid,
+        //     username: context?.user?.username,
+        //     displayName: context?.user?.displayName,
+        //     pfpUrl: context?.user?.pfpUrl
+        //   }
+        // });
         
         setPlayer(data.player);
         setProgress(data.progress || []);
