@@ -23,7 +23,7 @@ interface LevelCompleteModalProps {
 type ModalState = 'complete' | 'nft-preview' | 'minting' | 'mint-success' | 'mint-error';
 
 const CONTRACT_ADDRESS = "0x8bb8ba7e4dc947107c6fa88ad13da4eccff49651";
-const MINT_PRICE = "0.0002"; // Updated to match new contract
+const MINT_PRICE = "0.00005"; // Updated to match new contract price of 0.00005 ETH
 
 const CONTRACT_ABI = [
   {

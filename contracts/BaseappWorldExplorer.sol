@@ -23,7 +23,7 @@
     
 //     string public baseURI = "ipfs://";
 //     uint256 public currentTokenId = 1;
-//     uint256 public mintPrice = 0.0002 ether; // $0.2 in ETH (approximate)
+//     uint256 public mintPrice = 0.00005 ether; // $0.05 in ETH (approximate)
 //     uint256 public maxMintsPerLevelPerWallet = 0; // 0 means unlimited
 
 //     event LevelAdded(uint256 indexed levelId, string name, string ipfsHash, uint256 maxSupply);
