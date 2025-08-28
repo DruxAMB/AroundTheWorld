@@ -95,6 +95,7 @@ export default function LevelCompleteModal({
   const NFT_MINT_POINTS = 70; // Points earned for minting an NFT
   const SHARE_POINTS = 30; // Points earned for sharing score
   const [hasShared, setHasShared] = useState(false); // Track if user has already shared
+  const [sharingState, setSharingState] = useState<'idle' | 'sharing' | 'completed'>('idle'); // Track sharing process state
 
   const { address, isConnected } = useAccount();
   const { writeContract, data: hash, error } = useWriteContract();
@@ -142,35 +143,39 @@ export default function LevelCompleteModal({
 
   const handleShare = () => {
     if (onShare && !hasShared) {
+      // Update sharing state to show loading
+      setSharingState('sharing');
+      
       // Call the original onShare function
       onShare();
       
-      // Add points for sharing
-      const newScore = currentScore + SHARE_POINTS;
-      console.log(`🔍 [LevelCompleteModal] SHARE: Adding ${SHARE_POINTS} points`);
-      console.log(`🔍 [LevelCompleteModal] SHARE: Original score: ${currentScore} → New score: ${newScore}`);
-      setCurrentScore(newScore);
-      setHasShared(true);
-      
-      if (onScoreUpdate) {
-        console.log(`🔍 [LevelCompleteModal] SHARE: Calling onScoreUpdate with new score: ${newScore}`);
+      // Simulate sharing process with a delay
+      setTimeout(() => {
+        // Add points for sharing
+        const newScore = currentScore + SHARE_POINTS;
+        console.log(`🔍 [LevelCompleteModal] SHARE: Adding ${SHARE_POINTS} points`);
+        console.log(`🔍 [LevelCompleteModal] SHARE: Original score: ${currentScore} → New score: ${newScore}`);
+        setCurrentScore(newScore);
+        setHasShared(true);
+        setSharingState('completed');
         
-        try {
-          // Direct call without Promise handling because onScoreUpdate is typed as returning void
-          onScoreUpdate(newScore);
-          console.log('🔍 [LevelCompleteModal] SHARE: onScoreUpdate called successfully');
-        } catch (error) {
-          console.error('⚠️ [LevelCompleteModal] SHARE: Error calling onScoreUpdate:', error);
-          // TypeScript safety: Check if error is Error object before accessing message
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error calling onScoreUpdate';
-          console.error(`⚠️ [LevelCompleteModal] SHARE: ${errorMessage}`);
+        if (onScoreUpdate) {
+          console.log(`🔍 [LevelCompleteModal] SHARE: Calling onScoreUpdate with new score: ${newScore}`);
+          
+          try {
+            // Direct call without Promise handling because onScoreUpdate is typed as returning void
+            onScoreUpdate(newScore);
+            console.log('🔍 [LevelCompleteModal] SHARE: onScoreUpdate called successfully');
+          } catch (error) {
+            console.error('⚠️ [LevelCompleteModal] SHARE: Error calling onScoreUpdate:', error);
+            // TypeScript safety: Check if error is Error object before accessing message
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error calling onScoreUpdate';
+            console.error(`⚠️ [LevelCompleteModal] SHARE: ${errorMessage}`);
+          }
+        } else {
+          console.warn('⚠️ [LevelCompleteModal] SHARE: onScoreUpdate function is not available');
         }
-      } else {
-        console.warn('⚠️ [LevelCompleteModal] SHARE: onScoreUpdate function is not available');
-      }
-      
-      // Show visual feedback
-      // This could be enhanced with a toast notification or animation
+      }, 3000); // 3-second delay
     }
   };
 
@@ -178,6 +183,7 @@ export default function LevelCompleteModal({
     setModalState('complete');
     setErrorMessage('');
     setHasShared(false); // Reset share state
+    setSharingState('idle'); // Reset sharing state
     onClose();
   };
 
@@ -232,16 +238,21 @@ export default function LevelCompleteModal({
                   Congratulations! You&apos;ve conquered {levelName}!
                 </p>
                 
-                <div className="bg-[var(--app-gray)] rounded-lg p-4 mb-6">
-                  <div className="text-3xl font-bold text-green-600 mb-1">
-                    {currentScore.toLocaleString()}
+                <div className="relative p-4 mb-6 overflow-hidden">
+                  <div className="absolute inset-0 bg-[var(--app-gray)] opacity-60"></div>
+                  <div className="relative z-10">
+                    <div className="text-3xl font-bold text-green-600 mb-1">
+                      {currentScore.toLocaleString()}
+                    </div>
+                    <div className="text-sm text-[var(--app-foreground-muted)]">Final Score</div>
                   </div>
-                  <div className="text-sm text-[var(--app-foreground-muted)]">Final Score</div>
                 </div>
 
                 {/* NFT Mint Section */}
                 {levelData && (
-                  <div className="bg-[var(--app-gray)] rounded-lg p-4 mb-6">
+                  <div className="relative p-4 mb-6 overflow-hidden">
+                    <div className="absolute inset-0 bg-[var(--app-gray)] opacity-60"></div>
+                    <div className="relative z-10">
                     <div className="flex items-center justify-center mb-3">
                       <Image
                         src={levelData.backgroundImage} 
@@ -265,6 +276,7 @@ export default function LevelCompleteModal({
                     >
                       Mint NFT || +{NFT_MINT_POINTS} points
                     </button>
+                    </div>
                   </div>
                 )}
 
@@ -275,11 +287,18 @@ export default function LevelCompleteModal({
                       <button
                         onClick={handleShare}
                         className="py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold"
-                        disabled={hasShared}
+                        disabled={hasShared || sharingState === 'sharing'}
                       >
-                        {hasShared ? 'Shared!' : 'Share Score || +30 points'}
+                        {hasShared ? 'Shared!' : 
+                         sharingState === 'sharing' ? 'Sharing...' : 'Share Score || +30 points'}
                       </button>
-                      {hasShared && (
+                      {sharingState === 'sharing' && (
+                        <div className="flex items-center justify-center mt-1">
+                          <div className="animate-spin h-4 w-4 border-2 border-blue-500 rounded-full border-t-transparent mr-2"></div>
+                          <p className="text-blue-500 text-sm">Processing...</p>
+                        </div>
+                      )}
+                      {hasShared && sharingState === 'completed' && (
                         <p className="text-green-500 text-sm font-semibold mt-1">
                           +{SHARE_POINTS} points added!
                         </p>

@@ -70,7 +70,7 @@ export function Leaderboard({ onClose }: LeaderboardProps) {
               <span className="text-2xl">🏆</span>
               <h2 className="text-lg font-bold text-[var(--app-foreground)]">Leaderboard</h2>
               <div className="group relative">
-                <span className="text-sm cursor-help text-[var(--app-foreground-muted)] hover:text-[var(--app-foreground)] transition-colors">
+                <span className="text-sm cursor-help text-[var(--app-foreground-muted)] hover:text-[var(--app-foreground)] transition-colors border rounded-full">
                   ❔
                 </span>
                 <div className="absolute left-0 top-full mt-2 w-64 p-3 bg-[var(--app-background)] rounded-lg shadow-lg border border-[var(--app-card-border)] z-10 transform scale-0 group-hover:scale-100 opacity-0 group-hover:opacity-100 transition-all origin-top-left duration-200">
