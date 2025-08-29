@@ -1,4 +1,4 @@
-# 🌍# Around the World 🌍
+# Nextjs Build
 
 **Match your way around the world.**
 
@@ -104,54 +104,6 @@ The NFT contract enables players to mint collectible winner badges for completed
 - **Upstash Redis**: Real-time game state and leaderboards
 - **Smart Contracts**: On-chain player registry and future features
 - **Hybrid Architecture**: Critical data on-chain, game state optimized for speed
-
-## Getting Started
-
-### Prerequisites
-- Node.js 18+ and npm
-- A Base-compatible wallet (Coinbase Wallet recommended)
-- Redis database (Upstash recommended for production)
-
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/DruxAMB/AroundTheWorld.git
-   cd AroundTheWorld
-   ```
-
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Environment Setup**
-   Create a `.env.local` file:
-   ```env
-   # Redis Configuration
-   UPSTASH_REDIS_REST_URL=your_redis_url
-   UPSTASH_REDIS_REST_TOKEN=your_redis_token
-   
-   # OnchainKit Configuration
-   NEXT_PUBLIC_ONCHAINKIT_API_KEY=your_api_key
-   
-   # App Metadata
-   NEXT_PUBLIC_APP_NAME="Around the World"
-   NEXT_PUBLIC_APP_DESCRIPTION="Match-3 puzzle adventure across global cultures"
-   NEXT_PUBLIC_APP_URL="https://your-app-url.com"
-   NEXT_PUBLIC_APP_ICON="https://your-app-url.com/icon.png"
-   ```
-
-4. **Start Development Server**
-   ```bash
-   npm run dev
-   ```
-
-5. **Build for Production**
-   ```bash
-   npm run build
-   npm start
-   ```
 
 ## Game Instructions
 
