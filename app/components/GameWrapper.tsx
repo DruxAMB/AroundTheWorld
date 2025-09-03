@@ -25,7 +25,7 @@ interface GameWrapperProps {
 }
 
 export function GameWrapper({ onGameStateChange }: GameWrapperProps = {}) {
-  const { progress, saveProgress: saveGameProgress, loading: gameDataLoading, player, refreshPlayerData } = useGameData();
+  const { progress, saveProgress: saveGameProgress, settings, saveSettings, loading: gameDataLoading, player, refreshPlayerData } = useGameData();
   const [showTutorial, setShowTutorial] = useState(false);
   
   // Import gameDataService for bonus points
@@ -131,7 +131,7 @@ export function GameWrapper({ onGameStateChange }: GameWrapperProps = {}) {
       'Europe': '🇪🇺'
     }[level.region] || '🌍';
 
-    const shareText = `Just completed ${level.name} in Around the World! ${regionEmoji}\n\n${starEmojis} Score: ${score.toLocaleString()} points\n\nPlay the match-3 adventure across the globe, climb the leaderboad and earn rewards! 🎮`;
+    const shareText = `Just completed ${level.name} in @aroundtheworld! ${regionEmoji}\n\n${starEmojis} Score: ${score.toLocaleString()} points\n\nI'm sure you can't surpass me on the leaderboard and earn make money while having fun!😉🎮`;
 
     try {
       composeCast({ 
@@ -231,25 +231,45 @@ export function GameWrapper({ onGameStateChange }: GameWrapperProps = {}) {
     }
   }, [isConnected, address, gameDataLoading, checkEligibility]);
 
-  // Show tutorial for new users
+  // Show tutorial for new users after login
   useEffect(() => {
-    // Check if tutorial has been shown before
-    const tutorialShown = localStorage.getItem('aroundTheWorld_tutorialShown');
-    
-    // Show tutorial for new players or when no record exists
-    const isNewUser = !player || (player && !player.totalScore);
-    
-    if (isNewUser && !tutorialShown) {
-      // Slight delay to ensure UI is ready
-      const timer = setTimeout(() => setShowTutorial(true), 500);
-      return () => clearTimeout(timer);
+    // Only attempt to show tutorial if player data is loaded and player is logged in
+    if (!gameDataLoading && isConnected && player) {
+      // Show tutorial for new players (zero score) who haven't seen it
+      const isNewUser = player.totalScore === 0;
+      const tutorialShown = settings?.tutorialShown;
+      
+      if (isNewUser && !tutorialShown) {
+        // Slight delay to ensure UI is ready
+        const timer = setTimeout(() => setShowTutorial(true), 500);
+        return () => clearTimeout(timer);
+      }
     }
-  }, [player]);
+  }, [player, settings, isConnected, gameDataLoading]);
   
-  // Handle tutorial close
+  // Handle tutorial close and save setting to user profile
   const handleTutorialClose = () => {
     setShowTutorial(false);
-    localStorage.setItem('aroundTheWorld_tutorialShown', 'true');
+    
+    // Save to server-side user settings
+    if (settings) {
+      const updatedSettings = {
+        ...settings,
+        tutorialShown: true
+      };
+      saveSettings(updatedSettings);
+    } else {
+      // Create new settings object if none exists
+      const newSettings = {
+        soundEnabled: true,
+        soundVolume: 0.5,
+        musicEnabled: true,
+        animationsEnabled: true,
+        vibrationEnabled: true,
+        tutorialShown: true
+      };
+      saveSettings(newSettings);
+    }
   };
 
   const handleLevelSelect = useCallback((level: Level) => {

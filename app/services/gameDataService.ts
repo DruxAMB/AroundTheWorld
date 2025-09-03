@@ -32,6 +32,7 @@ export interface PlayerSettings {
   musicEnabled: boolean;
   animationsEnabled: boolean;
   vibrationEnabled: boolean;
+  tutorialShown?: boolean;
 }
 
 export interface PlayerGameData {
