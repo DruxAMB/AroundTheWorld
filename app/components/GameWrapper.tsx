@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { LevelSelector } from "./LevelSelector";
 import { Match3Game } from "./Match3Game";
 import LevelCompleteModal from "./LevelCompleteModal";
+import { InfoModal } from "./InfoModal";
 import { Level } from "../data/levels";
 import { soundManager } from "../utils/soundManager";
 import { useGameData } from "../hooks/useGameData";
@@ -25,6 +26,7 @@ interface GameWrapperProps {
 
 export function GameWrapper({ onGameStateChange }: GameWrapperProps = {}) {
   const { progress, saveProgress: saveGameProgress, loading: gameDataLoading, player, refreshPlayerData } = useGameData();
+  const [showTutorial, setShowTutorial] = useState(false);
   
   // Import gameDataService for bonus points
   const gameDataServiceRef = useRef<typeof import('../services/gameDataService').gameDataService | null>(null);
@@ -228,6 +230,27 @@ export function GameWrapper({ onGameStateChange }: GameWrapperProps = {}) {
       checkEligibility(address);
     }
   }, [isConnected, address, gameDataLoading, checkEligibility]);
+
+  // Show tutorial for new users
+  useEffect(() => {
+    // Check if tutorial has been shown before
+    const tutorialShown = localStorage.getItem('aroundTheWorld_tutorialShown');
+    
+    // Show tutorial for new players or when no record exists
+    const isNewUser = !player || (player && !player.totalScore);
+    
+    if (isNewUser && !tutorialShown) {
+      // Slight delay to ensure UI is ready
+      const timer = setTimeout(() => setShowTutorial(true), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [player]);
+  
+  // Handle tutorial close
+  const handleTutorialClose = () => {
+    setShowTutorial(false);
+    localStorage.setItem('aroundTheWorld_tutorialShown', 'true');
+  };
 
   const handleLevelSelect = useCallback((level: Level) => {
     setCurrentLevel(level);
@@ -436,6 +459,12 @@ export function GameWrapper({ onGameStateChange }: GameWrapperProps = {}) {
         onLevelSelect={handleLevelSelect}
         unlockedLevels={unlockedLevels}
         isWalletConnected={isConnected}
+      />
+      
+      {/* Tutorial Modal for new users */}
+      <InfoModal 
+        isOpen={showTutorial} 
+        onClose={handleTutorialClose} 
       />
       
       {/* Level Complete Modal with NFT Minting */}
