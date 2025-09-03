@@ -131,7 +131,7 @@ export function GameWrapper({ onGameStateChange }: GameWrapperProps = {}) {
       'Europe': '🇪🇺'
     }[level.region] || '🌍';
 
-    const shareText = `Just completed ${level.name} in @aroundtheworld! ${regionEmoji}\n\n${starEmojis} Score: ${score.toLocaleString()} points\n\nI'm sure you can't surpass me on the leaderboard and earn make money while having fun!😉🎮`;
+    const shareText = `Just completed ${level.name} in @aroundtheworld! ${regionEmoji}\n\n${starEmojis} Score: ${score.toLocaleString()} points\n\nI'm sure you can't surpass me on the leaderboard and make money while having fun!😉🎮`;
 
     try {
       composeCast({ 
