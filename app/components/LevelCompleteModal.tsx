@@ -92,7 +92,7 @@ export default function LevelCompleteModal({
   const [modalState, setModalState] = useState<ModalState>('complete');
   const [errorMessage, setErrorMessage] = useState('');
   const [currentScore, setCurrentScore] = useState(score);
-  const NFT_MINT_POINTS = 70; // Points earned for minting an NFT
+  const NFT_MINT_POINTS = 140; // Points earned for minting an NFT
   const [hasShared, setHasShared] = useState(false); // Track if user has already shared
   const [sharingState, setSharingState] = useState<'idle' | 'sharing' | 'completed'>('idle'); // Track sharing process state
 
