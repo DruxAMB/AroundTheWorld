@@ -93,7 +93,6 @@ export default function LevelCompleteModal({
   const [errorMessage, setErrorMessage] = useState('');
   const [currentScore, setCurrentScore] = useState(score);
   const NFT_MINT_POINTS = 70; // Points earned for minting an NFT
-  const SHARE_POINTS = 30; // Points earned for sharing score
   const [hasShared, setHasShared] = useState(false); // Track if user has already shared
   const [sharingState, setSharingState] = useState<'idle' | 'sharing' | 'completed'>('idle'); // Track sharing process state
 
@@ -151,30 +150,10 @@ export default function LevelCompleteModal({
       
       // Simulate sharing process with a delay
       setTimeout(() => {
-        // Add points for sharing
-        const newScore = currentScore + SHARE_POINTS;
-        console.log(`🔍 [LevelCompleteModal] SHARE: Adding ${SHARE_POINTS} points`);
-        console.log(`🔍 [LevelCompleteModal] SHARE: Original score: ${currentScore} → New score: ${newScore}`);
-        setCurrentScore(newScore);
+        // Simply mark as shared without adding points
+        console.log(`🔍 [LevelCompleteModal] SHARE: Sharing completed`); 
         setHasShared(true);
         setSharingState('completed');
-        
-        if (onScoreUpdate) {
-          console.log(`🔍 [LevelCompleteModal] SHARE: Calling onScoreUpdate with new score: ${newScore}`);
-          
-          try {
-            // Direct call without Promise handling because onScoreUpdate is typed as returning void
-            onScoreUpdate(newScore);
-            console.log('🔍 [LevelCompleteModal] SHARE: onScoreUpdate called successfully');
-          } catch (error) {
-            console.error('⚠️ [LevelCompleteModal] SHARE: Error calling onScoreUpdate:', error);
-            // TypeScript safety: Check if error is Error object before accessing message
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error calling onScoreUpdate';
-            console.error(`⚠️ [LevelCompleteModal] SHARE: ${errorMessage}`);
-          }
-        } else {
-          console.warn('⚠️ [LevelCompleteModal] SHARE: onScoreUpdate function is not available');
-        }
       }, 3000); // 3-second delay
     }
   };
@@ -290,7 +269,7 @@ export default function LevelCompleteModal({
                         disabled={hasShared || sharingState === 'sharing'}
                       >
                         {hasShared ? 'Shared!' : 
-                         sharingState === 'sharing' ? 'Sharing...' : 'Share Score || +30 points'}
+                         sharingState === 'sharing' ? 'Sharing...' : 'Share Score'}
                       </button>
                       {sharingState === 'sharing' && (
                         <div className="flex items-center justify-center mt-1">
@@ -300,7 +279,7 @@ export default function LevelCompleteModal({
                       )}
                       {hasShared && sharingState === 'completed' && (
                         <p className="text-green-500 text-sm font-semibold mt-1">
-                          +{SHARE_POINTS} points added!
+                          Shared successfully!
                         </p>
                       )}
                     </div>
