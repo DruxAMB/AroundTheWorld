@@ -745,9 +745,9 @@ class GameDataService {
             const playerData = await redis.hgetall(playerKey) as PlayerProfile;
             
             if (playerData && Object.keys(playerData).length > 0) {
-              // Create backup of current data
-              const backupKey = `${playerKey}:backup`;
-              await redis.set(backupKey, JSON.stringify(playerData), { ex: 60 * 60 * 24 * 7 }); // 1 week expiry
+              // // Create backup of current data
+              // const backupKey = `${playerKey}:backup`;
+              // await redis.set(backupKey, JSON.stringify(playerData), { ex: 60 * 60 * 24 * 7 }); // 1 week expiry
               
               // COMPLETELY RESET the player profile for weekly leaderboard
               // Only preserve identity info and createdAt timestamp
