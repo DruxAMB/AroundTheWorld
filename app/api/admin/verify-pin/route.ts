@@ -32,7 +32,9 @@ export async function POST(request: NextRequest) {
     }
     
     // Compare the provided PIN with the stored PIN
-    const isValid = pin === storedPin;
+    // Convert both to strings to ensure type matching
+    const isValid = String(pin) === String(storedPin);
+    console.log(`Debug - PIN comparison: provided=${typeof pin}:${pin}, stored=${typeof storedPin}:${storedPin}, isValid=${isValid}`);
     
     if (isValid) {
       return NextResponse.json({ success: true });
@@ -68,7 +70,8 @@ export async function PUT(request: NextRequest) {
     // Check if the current PIN matches
     const storedPin = await redis.get(ADMIN_PIN_KEY);
     
-    if (currentPin !== storedPin) {
+    // Convert both to strings to ensure type matching
+    if (String(currentPin) !== String(storedPin)) {
       return NextResponse.json({ success: false, error: 'Current PIN is incorrect' }, { status: 401 });
     }
     
