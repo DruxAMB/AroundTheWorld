@@ -81,7 +81,7 @@ export default function PinAuth({ onAuthenticated }: PinAuthProps) {
           setError(data.error || 'Invalid PIN. Please try again.');
         }
       }
-    } catch (err) {
+    } catch {
       setError('Failed to verify PIN. Please try again.');
     } finally {
       setIsLoading(false);
