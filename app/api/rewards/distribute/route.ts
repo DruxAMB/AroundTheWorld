@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { gameDataService } from '@/app/services/gameDataService';
 import { RewardDistributionService } from '@/lib/reward-distribution';
-import { distributeReward, batchDistributeRewards, getWalletBalance } from '@/lib/cdp-wallet';
+import { distributeReward, batchDistributeRewards, getWalletBalance, getRewardDistributorWallet } from '@/lib/cdp-wallet';
 import { redis } from '@/lib/redis';
 
 // Security: Only allow requests from authenticated admin or automated triggers
@@ -221,8 +221,9 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Get current wallet balance
+    // Get current wallet balance and server wallet address
     const walletBalance = await getWalletBalance();
+    const serverWallet = await getRewardDistributorWallet();
     
     // Get current leaderboard for preview
     const leaderboard = await gameDataService.getLeaderboard(timeframe, 10);
@@ -230,6 +231,7 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json({
       walletBalance: walletBalance.eth,
+      serverWalletAddress: serverWallet.address,
       recentDistributions: recentDistributions.sort((a, b) => 
         new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
       ),

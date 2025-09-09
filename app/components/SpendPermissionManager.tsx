@@ -1,46 +1,42 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
-import { parseEther, formatEther } from 'viem';
+import { useAccount } from 'wagmi';
+import { formatEther } from 'viem';
 import { motion } from 'framer-motion';
+import { 
+  requestUserSpendPermission, 
+  getUserSpendPermissions, 
+  revokeSpendPermission,
+  checkSpendPermissionStatus 
+} from '@/lib/spend-permissions';
 
-// Spend Permission contract ABI (simplified for Base Account SDK)
-const SPEND_PERMISSION_ABI = [
-  {
-    "inputs": [
-      { "name": "spender", "type": "address" },
-      { "name": "token", "type": "address" },
-      { "name": "allowance", "type": "uint256" },
-      { "name": "period", "type": "uint48" },
-      { "name": "start", "type": "uint48" },
-      { "name": "end", "type": "uint48" }
-    ],
-    "name": "approve",
-    "outputs": [{ "name": "", "type": "bytes32" }],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [{ "name": "id", "type": "bytes32" }],
-    "name": "revoke",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
+// Get reward distributor address from server wallet
+let REWARD_DISTRIBUTOR_ADDRESS = "0x0000000000000000000000000000000000000000";
+
+// Fetch the actual server wallet address on component mount
+const fetchServerWalletAddress = async () => {
+  try {
+    const response = await fetch('/api/rewards/distribute');
+    if (response.ok) {
+      const data = await response.json();
+      // The server will return the wallet address in the response
+      return data.serverWalletAddress;
+    }
+  } catch (error) {
+    console.error('Failed to fetch server wallet address:', error);
   }
-] as const;
+  return null;
+};
 
-// Reward distribution wallet address (will be set from CDP server wallet)
-const REWARD_DISTRIBUTOR_ADDRESS = process.env.NEXT_PUBLIC_REWARD_DISTRIBUTOR_ADDRESS || "0x0000000000000000000000000000000000000000";
-const ETH_ADDRESS = "0x0000000000000000000000000000000000000000"; // ETH as token
-
-interface SpendPermission {
+interface SpendPermissionUI {
   id: string;
   allowance: string;
   period: number;
   start: number;
   end: number;
   isActive: boolean;
+  remainingSpend?: string;
 }
 
 interface SpendPermissionManagerProps {
@@ -53,87 +49,115 @@ export default function SpendPermissionManager({
   onPermissionRevoked 
 }: SpendPermissionManagerProps) {
   const { address, isConnected } = useAccount();
-  const { writeContract, data: hash, error } = useWriteContract();
-  const { isSuccess, isLoading: isConfirming } = useWaitForTransactionReceipt({ hash });
 
   const [allowanceAmount, setAllowanceAmount] = useState('0.01');
   const [duration, setDuration] = useState(30); // days
   const [isLoading, setIsLoading] = useState(false);
-  const [permissions, setPermissions] = useState<SpendPermission[]>([]);
+  const [permissions, setPermissions] = useState<SpendPermissionUI[]>([]);
+  const [serverWalletAddress, setServerWalletAddress] = useState<string>('');
   const [showGrantForm, setShowGrantForm] = useState(false);
 
-  // Load existing permissions
+  // Load server wallet address and permissions
   useEffect(() => {
-    if (address) {
-      loadPermissions();
-    }
+    const initializeComponent = async () => {
+      const walletAddr = await fetchServerWalletAddress();
+      if (walletAddr) {
+        setServerWalletAddress(walletAddr);
+        REWARD_DISTRIBUTOR_ADDRESS = walletAddr;
+      }
+      
+      if (address && walletAddr) {
+        loadPermissions();
+      }
+    };
+    
+    initializeComponent();
   }, [address]);
 
   const loadPermissions = async () => {
+    if (!address || !serverWalletAddress) return;
+    
     try {
-      const response = await fetch(`/api/spend-permissions?address=${address}`);
-      if (response.ok) {
-        const data = await response.json();
-        setPermissions(data.permissions || []);
+      const rawPermissions = await getUserSpendPermissions(address, serverWalletAddress);
+      
+      const formattedPermissions: SpendPermissionUI[] = [];
+      
+      for (const rawPerm of rawPermissions) {
+        try {
+          const status = await checkSpendPermissionStatus(rawPerm);
+          
+          formattedPermissions.push({
+            id: `${rawPerm.permission?.account}-${rawPerm.permission?.spender}` || 'unknown',
+            allowance: formatEther(BigInt(rawPerm.permission?.allowance || '0')),
+            period: rawPerm.permission?.period || 1,
+            start: 0, // Will be set by the permission system
+            end: 0,   // Will be set by the permission system
+            isActive: status.isActive,
+            remainingSpend: formatEther(status.remainingSpend || BigInt(0))
+          });
+        } catch (statusError) {
+          console.error('Failed to get status for permission:', statusError);
+        }
       }
+      
+      setPermissions(formattedPermissions);
     } catch (error) {
       console.error('Failed to load permissions:', error);
     }
   };
 
   const handleGrantPermission = async () => {
-    if (!address || !isConnected) return;
+    if (!address || !isConnected || !serverWalletAddress) return;
 
     setIsLoading(true);
     try {
-      const now = Math.floor(Date.now() / 1000);
-      const endTime = now + (duration * 24 * 60 * 60); // Convert days to seconds
+      await requestUserSpendPermission(
+        address,
+        serverWalletAddress,
+        parseFloat(allowanceAmount)
+      );
       
-      await writeContract({
-        address: address, // User's smart account
-        abi: SPEND_PERMISSION_ABI,
-        functionName: 'approve',
-        args: [
-          REWARD_DISTRIBUTOR_ADDRESS,
-          ETH_ADDRESS,
-          parseEther(allowanceAmount),
-          BigInt(24 * 60 * 60), // 24 hour period
-          BigInt(now),
-          BigInt(endTime)
-        ]
-      });
+      // Reload permissions after successful grant
+      setTimeout(() => {
+        loadPermissions();
+        setIsLoading(false);
+        setShowGrantForm(false);
+      }, 2000); // Give time for transaction to be processed
     } catch (err) {
       console.error('Failed to grant permission:', err);
       setIsLoading(false);
     }
   };
 
-  const handleRevokePermission = async (permissionId: string) => {
+  const handleRevokePermission = async (permission: SpendPermissionUI) => {
     if (!address || !isConnected) return;
 
     try {
-      await writeContract({
-        address: address,
-        abi: SPEND_PERMISSION_ABI,
-        functionName: 'revoke',
-        args: [permissionId as `0x${string}`]
-      });
+      // Find the original permission object
+      const rawPermissions = await getUserSpendPermissions(address, serverWalletAddress);
+      const targetPermission = rawPermissions.find(p => 
+        `${p.permission?.account}-${p.permission?.spender}` === permission.id
+      );
+      
+      if (targetPermission) {
+        await revokeSpendPermission(targetPermission.permission);
+        
+        // Reload permissions after successful revoke
+        setTimeout(() => {
+          loadPermissions();
+        }, 2000);
+      }
     } catch (err) {
       console.error('Failed to revoke permission:', err);
     }
   };
 
-  // Handle transaction confirmation
-  useEffect(() => {
-    if (isSuccess) {
-      setIsLoading(false);
-      setShowGrantForm(false);
-      loadPermissions();
-      if (onPermissionGranted && hash) {
-        onPermissionGranted(hash);
-      }
+  // Handle permission granted callback
+  const handlePermissionGranted = (permissionId: string) => {
+    if (onPermissionGranted) {
+      onPermissionGranted(permissionId);
     }
-  }, [isSuccess, hash, onPermissionGranted]);
+  };
 
   if (!isConnected) {
     return (
@@ -210,14 +234,14 @@ export default function SpendPermissionManager({
 
           <button
             onClick={handleGrantPermission}
-            disabled={isLoading || isConfirming}
+            disabled={isLoading}
             className={`w-full py-2 px-4 rounded-md font-medium text-white ${
-              isLoading || isConfirming
+              isLoading
                 ? 'bg-gray-400 cursor-not-allowed'
                 : 'bg-green-600 hover:bg-green-700'
             }`}
           >
-            {isLoading || isConfirming ? (
+            {isLoading ? (
               <span className="flex items-center justify-center">
                 <motion.span
                   animate={{ rotate: 360 }}
@@ -226,7 +250,7 @@ export default function SpendPermissionManager({
                 >
                   🔄
                 </motion.span>
-                {isConfirming ? 'Confirming...' : 'Granting Permission...'}
+                'Granting Permission...'
               </span>
             ) : (
               'Grant Permission'
@@ -245,13 +269,18 @@ export default function SpendPermissionManager({
             {permissions.map((permission) => (
               <div key={permission.id} className="flex items-center justify-between p-3 border rounded-lg">
                 <div>
-                  <p className="font-medium">{formatEther(BigInt(permission.allowance))} ETH/day</p>
+                  <p className="font-medium">{permission.allowance} ETH/day</p>
                   <p className="text-sm text-gray-500">
-                    Expires: {new Date(permission.end * 1000).toLocaleDateString()}
+                    Status: {permission.isActive ? 'Active' : 'Inactive'}
                   </p>
+                  {permission.remainingSpend && (
+                    <p className="text-sm text-blue-600">
+                      Remaining: {permission.remainingSpend} ETH
+                    </p>
+                  )}
                 </div>
                 <button
-                  onClick={() => handleRevokePermission(permission.id)}
+                  onClick={() => handleRevokePermission(permission)}
                   className="px-3 py-1 text-sm text-red-600 border border-red-600 rounded hover:bg-red-50"
                 >
                   Revoke
@@ -262,13 +291,6 @@ export default function SpendPermissionManager({
         )}
       </div>
 
-      {error && (
-        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
-          <p className="text-sm text-red-800">
-            Error: {error.message}
-          </p>
-        </div>
-      )}
     </div>
   );
 }

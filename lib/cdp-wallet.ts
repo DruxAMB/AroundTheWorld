@@ -1,7 +1,8 @@
 import { CdpClient } from '@coinbase/cdp-sdk';
-import { createWalletClient, http } from 'viem';
+import { createWalletClient, http, Address, parseEther } from 'viem';
 import { toAccount } from 'viem/accounts';
 import { base } from 'viem/chains';
+import { serializeTransaction } from 'viem';
 
 let cdpClient: CdpClient | null = null;
 
@@ -82,9 +83,9 @@ export const getWalletBalance = async (): Promise<{ eth: string; usd?: string }>
     const cdp = getCdpClient();
     
     // Get balance using CDP client
-    const balance = await cdp.evm.getBalance({
-      address: wallet.address,
-      chainId: base.id
+    const balance = await cdp.evm.listTokenBalances({
+      address: wallet.address as Address,
+      network: "base-sepolia"
     });
     
     return {
@@ -109,22 +110,23 @@ export const distributeReward = async (
     
     console.log(`💸 Distributing ${amount} ETH to ${recipientAddress}`);
     
-    // Create transfer using CDP client with smart account (gas sponsored)
-    const transfer = await cdp.evm.transfer({
-      from: wallet.smartAccount,
-      to: recipientAddress,
-      amount: parseFloat(amount),
-      asset: 'eth'
+    // Create transaction using CDP client with smart account (gas sponsored)
+    const { transactionHash } = await cdp.evm.sendTransaction({
+      address: wallet.smartAccount.address,
+      transaction: serializeTransaction({
+        to: recipientAddress as Address,
+        value: parseEther(amount),
+        chainId: 8453, // Base mainnet
+      }),
+      network: "base-sepolia"
     });
 
-    // Wait for transaction confirmation
-    const receipt = await transfer.wait();
+    console.log(`✅ Reward distributed successfully: ${transactionHash}`);
     
-    console.log(`✅ Reward distributed successfully: ${receipt.transactionHash}`);
     
     return {
       success: true,
-      transactionHash: receipt.transactionHash
+      transactionHash: transactionHash
     };
   } catch (error) {
     console.error('❌ Failed to distribute reward:', error);
