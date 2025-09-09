@@ -707,6 +707,16 @@ class GameDataService {
     if (!redis) return { success: false, key: '' };
     
     try {
+      // Import AI agent for automated reward distribution
+      const { rewardAgent } = await import('@/lib/reward-agent');
+      
+      // Trigger AI agent evaluation before reset
+      if (timeframe === 'week') {
+        console.log('🤖 Triggering AI agent for pre-reset reward evaluation');
+        setTimeout(() => {
+          rewardAgent.onWeeklyLeaderboardReset();
+        }, 1000); // Small delay to ensure reset completes first
+      }
       const now = new Date();
       let key: string;
       

@@ -5,6 +5,8 @@ import BroadcastNotifications from '@/app/components/BroadcastNotifications';
 import RewardCalculator from '@/app/components/RewardCalculator';
 import LeaderboardReset from '@/app/components/LeaderboardReset';
 import PinAuth from '@/app/components/PinAuth';
+import RewardDistributionPanel from '@/app/components/RewardDistributionPanel';
+import SpendPermissionManager from '@/app/components/SpendPermissionManager';
 
 export default function AdminPage() {
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
@@ -69,6 +71,16 @@ export default function AdminPage() {
               </div>
             </div>
             
+            {/* Reward Distribution Panel */}
+            <div className="mb-8">
+              <RewardDistributionPanel />
+            </div>
+
+            {/* Spend Permission Manager */}
+            <div className="mb-8">
+              <SpendPermissionManager />
+            </div>
+
             {/* Leaderboard Reset Tool */}
             <div className="mb-8">
               <LeaderboardReset />
