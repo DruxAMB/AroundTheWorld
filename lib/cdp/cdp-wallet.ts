@@ -1,8 +1,8 @@
 import { createWalletClient, http, Address, parseEther } from 'viem';
 import { toAccount } from 'viem/accounts';
-import { base } from 'viem/chains';
+import { baseSepolia } from 'viem/chains';
 import { serializeTransaction } from 'viem';
-import { cdp } from './client.js';
+import { cdp } from './client';
 
 interface ServerWallet {
   address: string;
@@ -39,7 +39,7 @@ export async function getRewardDistributorWallet(): Promise<ServerWallet> {
     // Create viem wallet client
     const walletClient = createWalletClient({
       account: toAccount(account),
-      chain: base,
+      chain: baseSepolia,
       transport: http(),
     });
 
@@ -59,7 +59,7 @@ export async function getRewardDistributorWallet(): Promise<ServerWallet> {
 
     // Store wallet globally
     globalThis.__rewardDistributorWallet = serverWallet;
-    console.log('Reward distributor wallet created for Base mainnet with gas sponsorship');
+    console.log('Reward distributor wallet created for Base Sepolia with gas sponsorship');
     console.log(`🏦 Reward distributor address: ${account.address}`);
 
     return serverWallet;
@@ -73,16 +73,26 @@ export async function getRewardDistributorWallet(): Promise<ServerWallet> {
 export const getWalletBalance = async (): Promise<{ eth: string; usd?: string }> => {
   try {
     const wallet = await getRewardDistributorWallet();
-    // Using centralized CDP client
     
-    // Get balance using CDP client
-    const balance = await cdp.evm.listTokenBalances({
-      address: wallet.address as Address,
+    // Get ETH balance of the smart account (where funds are actually held)
+    const result = await cdp.evm.listTokenBalances({
+      address: wallet.smartAccount.address as Address,
       network: "base-sepolia"
     });
     
+    // Find ETH balance in the response (ETH contract address is 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE)
+    const ethBalance = result.balances.find(balance => 
+      balance.token.contractAddress.toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' ||
+      balance.token.symbol?.toLowerCase() === 'eth'
+    );
+    
+    // Convert from wei to ETH (divide by 10^18)
+    const ethAmount = ethBalance 
+      ? (Number(ethBalance.amount.amount) / Math.pow(10, ethBalance.amount.decimals)).toString()
+      : '0';
+    
     return {
-      eth: balance.toString(),
+      eth: ethAmount,
       usd: undefined // USD conversion can be added later
     };
   } catch (error) {
@@ -109,7 +119,7 @@ export const distributeReward = async (
       transaction: serializeTransaction({
         to: recipientAddress as Address,
         value: parseEther(amount),
-        chainId: 8453, // Base mainnet
+        chainId: 84532, // Base Sepolia
       }),
       network: "base-sepolia"
     });

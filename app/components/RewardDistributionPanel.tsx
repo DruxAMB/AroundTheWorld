@@ -114,7 +114,7 @@ export default function RewardDistributionPanel({ onDistribute }: RewardDistribu
             <select
               value={selectedTimeframe}
               onChange={(e) => setSelectedTimeframe(e.target.value as 'week' | 'month' | 'all-time')}
-              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-3 py-2 text-black border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="week">Weekly</option>
               <option value="month">Monthly</option>
