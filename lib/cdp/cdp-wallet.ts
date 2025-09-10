@@ -1,7 +1,6 @@
 import { createWalletClient, http, Address, parseEther, parseUnits } from 'viem';
 import { toAccount } from 'viem/accounts';
 import { baseSepolia } from 'viem/chains';
-import { serializeTransaction } from 'viem';
 import { cdp } from './client';
 
 interface ServerWallet {
@@ -74,9 +73,9 @@ export const getWalletBalance = async (): Promise<{ eth: string; usd?: string }>
   try {
     const wallet = await getRewardDistributorWallet();
     
-    // Get ETH balance of the CDP account (where funds are actually held)
+    // Get ETH balance of the smart account (where funds are held for user operations)
     const result = await cdp.evm.listTokenBalances({
-      address: wallet.address as Address,
+      address: wallet.smartAccount.address as Address,
       network: "base-sepolia"
     });
     
@@ -101,7 +100,7 @@ export const getWalletBalance = async (): Promise<{ eth: string; usd?: string }>
   }
 };
 
-// Execute reward distribution transaction
+// Execute reward distribution transaction using smart account with gas sponsorship
 export const distributeReward = async (
   recipientAddress: string, 
   amount: string, // Amount in ETH
@@ -109,32 +108,44 @@ export const distributeReward = async (
 ): Promise<{ success: boolean; transactionHash?: string; error?: string }> => {
   try {
     const wallet = await getRewardDistributorWallet();
-    // Using centralized CDP client
     
     console.log(`💸 Distributing ${amount} ETH to ${recipientAddress}`);
-    console.log(`🏦 Using CDP account address: ${wallet.address}`);
+    console.log(`🏦 Using smart account address: ${wallet.smartAccount.address}`);
     
-    // Create transaction using CDP client with smart account (gas sponsored)
-    const { transactionHash } = await cdp.evm.sendTransaction({
-      address: wallet.address as Address, // Use the original CDP account address (delegates to smart account)
-      transaction: serializeTransaction({
-        to: recipientAddress as Address,
-        value: parseEther(amount),
-        chainId: 84532, // Base Sepolia
-        type: 'eip1559',
-        maxFeePerGas: parseUnits('20', 9), // 20 gwei max fee
-        maxPriorityFeePerGas: parseUnits('1', 9), // 1 gwei priority fee
-      }),
-      network: "base-sepolia"
+    // Use sendUserOperation with smart account for gas sponsorship
+    const userOp = await cdp.evm.sendUserOperation({
+      smartAccount: wallet.smartAccount,
+      network: "base-sepolia",
+      calls: [
+        {
+          to: recipientAddress as Address,
+          value: parseEther(amount),
+          data: "0x", // No additional data for simple ETH transfer
+        },
+      ],
     });
 
-    console.log(`✅ Reward distributed successfully: ${transactionHash}`);
+    console.log(`✅ User operation sent successfully: ${userOp.userOpHash}`);
     
-    
-    return {
-      success: true,
-      transactionHash: transactionHash
-    };
+    // Wait for the user operation to be confirmed
+    const result = await cdp.evm.waitForUserOperation({
+      userOpHash: userOp.userOpHash,
+      smartAccountAddress: wallet.smartAccount.address as Address,
+    });
+
+    if (result.status === 'complete') {
+      console.log(`✅ Reward distributed successfully. Transaction hash: ${result.transactionHash}`);
+      return {
+        success: true,
+        transactionHash: result.transactionHash
+      };
+    } else {
+      console.error(`❌ User operation failed with status: ${result.status}`);
+      return {
+        success: false,
+        error: `User operation failed with status: ${result.status}`
+      };
+    }
   } catch (error) {
     console.error('❌ Failed to distribute reward:', error);
     return {
