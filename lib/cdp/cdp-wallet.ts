@@ -54,9 +54,10 @@ export async function createServerWalletForUser(userAddress: string): Promise<Se
       transport: http(),
     });
 
-    // Create smart account for gas sponsorship
+    // Create smart account for gas sponsorship with spend permissions enabled
     const smartAccount = await cdp.evm.createSmartAccount({
       owner: account,
+      enableSpendPermissions: true, // NOTE: Smart Accounts must have spend permissions enabled at the time of creation
     });
 
     console.log('Smart account:', smartAccount);
@@ -123,9 +124,10 @@ export async function getRewardDistributorWallet(): Promise<ServerWallet> {
       transport: http(),
     });
 
-    // Create smart account for gas sponsorship
+    // Create smart account for gas sponsorship with spend permissions enabled
     const smartAccount = await cdp.evm.createSmartAccount({
       owner: account,
+      enableSpendPermissions: true, // NOTE: Smart Accounts must have spend permissions enabled at the time of creation
     });
 
     console.log('Smart account created:', smartAccount.address);
