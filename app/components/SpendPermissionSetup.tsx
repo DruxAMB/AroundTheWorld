@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { requestSpendPermission } from "@base-org/account/spend-permission";
+import { getRewardDistributorAddressesClient } from "@/lib/utils/wallet-storage";
 import { createBaseAccountSDK } from "@base-org/account";
 
 interface SpendPermissionSetupProps {
@@ -16,30 +17,35 @@ export function SpendPermissionSetup({
   const [dailyLimit, setDailyLimit] = useState(0.000046); // 0.000046 ETH = ~$0.20
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [walletAddresses, setWalletAddresses] = useState<{address: string, smartAccountAddress: string} | null>(null);
+
+  useEffect(() => {
+    const loadWalletAddresses = async () => {
+      try {
+        const addresses = await getRewardDistributorAddressesClient();
+        setWalletAddresses(addresses);
+      } catch (error) {
+        console.error('Failed to load wallet addresses:', error);
+        setError('Failed to load wallet addresses');
+      }
+    };
+    loadWalletAddresses();
+  }, []);
 
   const handleSetupPermission = async () => {
     setIsLoading(true);
     setError("");
 
     try {
-      // First create server wallet to get the spender address
-      const walletResponse = await fetch("/api/wallet/create", {
-        method: "POST",
-      });
-
-      if (!walletResponse.ok) {
-        throw new Error("Failed to create server wallet");
+      if (!walletAddresses) {
+        throw new Error('Wallet addresses not loaded');
       }
 
-      const walletData = await walletResponse.json();
-      const spenderAddress = walletData.smartAccountAddress;
+      const spenderAddress = walletAddresses.smartAccountAddress;
+      const serverWalletAddress = walletAddresses.address;
 
-      if (!spenderAddress) {
-        throw new Error("Smart account address not found");
-      }
-
-      console.log("Smart account address (spender):", spenderAddress);
-      console.log("Server wallet address:", walletData.serverWalletAddress);
+      console.log("Using smart account address (spender):", spenderAddress);
+      console.log("Using server wallet address:", serverWalletAddress);
 
       // ETH address (native ETH)
       const ETH_ADDRESS = "0x0000000000000000000000000000000000000000";
@@ -53,7 +59,7 @@ export function SpendPermissionSetup({
         account: userAddress as `0x${string}`,
         spender: spenderAddress as `0x${string}`,
         token: ETH_ADDRESS as `0x${string}`,
-        chainId: 8453, // Base mainnet
+        chainId: 84532, // Base sepolia
         allowance: allowanceWei,
         periodInDays: 1, // Daily limit
         provider: createBaseAccountSDK({

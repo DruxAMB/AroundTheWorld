@@ -1,8 +1,9 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { SignInWithBaseButton } from '../components/SignInWithBase'
-import { SpendPermissionSetup } from '../components/SpendPermissionSetup'
+import { SignInWithBaseButton } from '@/app/components/SignInWithBase'
+import { SpendPermissionSetup } from '@/app/components/SpendPermissionSetup'
+import { getRewardDistributorAddressesClient } from '@/lib/utils/wallet-storage'
 import { fetchPermissions } from '@base-org/account/spend-permission'
 import { createBaseAccountSDK } from '@base-org/account'
 import { ETH_ADDRESS, LEVEL_COST_ETH, DAILY_ALLOWANCE_ETH } from '../../lib/cdp/spend-permissions'
@@ -21,16 +22,10 @@ export default function SpendPermissionTest() {
 
   const checkAuthStatus = async () => {
     try {
-      // Check if user has an active session
-      const response = await fetch('/api/wallet/create', { method: 'GET' })
-      if (response.ok) {
-        const data = await response.json()
-        if (data.exists) {
-          setIsAuthenticated(true)
-          setServerWallet(data)
-          // We'd need to get user address from session or wallet
-        }
-      }
+      // Load wallet addresses from storage file
+      const addresses = await getRewardDistributorAddressesClient()
+      setServerWallet(addresses)
+      console.log('Loaded server wallet addresses from storage:', addresses)
     } catch (error) {
       console.error('Auth check error:', error)
     } finally {
@@ -43,14 +38,13 @@ export default function SpendPermissionTest() {
     setIsAuthenticated(true)
     setUserAddress(address)
     
-    // Get server wallet info
+    // Load wallet addresses from storage file
     try {
-      const response = await fetch('/api/wallet/create', { method: 'POST' })
-      const data = await response.json()
-      setServerWallet(data)
-      console.log('Server wallet created:', data)
+      const addresses = await getRewardDistributorAddressesClient()
+      setServerWallet(addresses)
+      console.log('Loaded server wallet addresses from storage:', addresses)
     } catch (error) {
-      console.error('Failed to create server wallet:', error)
+      console.error('Failed to load wallet addresses:', error)
     }
   }
 

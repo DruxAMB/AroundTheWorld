@@ -1,8 +1,8 @@
 import { CdpClient } from '@coinbase/cdp-sdk';
-import { createWalletClient, http, Address, parseEther, parseUnits } from 'viem';
-import { toAccount } from 'viem/accounts';
-import { base, baseSepolia } from 'viem/chains';
+import { Address, parseEther } from 'viem';
 import { cdp } from './client';
+import fs from 'fs';
+import path from 'path';
 
 let cdpClient: CdpClient | null = null;
 
@@ -20,72 +20,37 @@ interface ServerWallet {
   smartAccount?: any;
 }
 
-// Use a global variable to persist across hot reloads in development
-declare global {
-  var __serverWallets: Map<string, ServerWallet> | undefined;
+interface WalletStorage {
+  rewardDistributor?: {
+    address: string;
+    smartAccountAddress: string;
+    createdAt: string;
+  };
 }
 
-const serverWallets = globalThis.__serverWallets ?? new Map<string, ServerWallet>();
-globalThis.__serverWallets = serverWallets;
+const WALLET_STORAGE_PATH = path.join(process.cwd(), '.wallet-storage.json');
 
-export async function createServerWalletForUser(userAddress: string): Promise<ServerWallet> {
+function loadWalletStorage(): WalletStorage {
   try {
-    console.log('Creating/getting server wallet for user:', userAddress);
-    console.log('Current server wallets count:', serverWallets.size);
-    console.log('Server wallets keys:', Array.from(serverWallets.keys()));
-    
-    // Check if wallet already exists for this user
-    if (serverWallets.has(userAddress) && serverWallets.get(userAddress)?.smartAccount) {
-      console.log('Found existing server wallet for user:', userAddress);
-      return serverWallets.get(userAddress)!;
+    if (fs.existsSync(WALLET_STORAGE_PATH)) {
+      const data = fs.readFileSync(WALLET_STORAGE_PATH, 'utf8');
+      return JSON.parse(data);
     }
-
-    console.log('Creating new server wallet for user:', userAddress);
-    const cdp = getCdpClient();
-    
-    // Create CDP account
-    const account = await cdp.evm.createAccount();
-    console.log('Created CDP account with address:', account.address);
-
-    // Create viem wallet client
-    const walletClient = createWalletClient({
-      account: toAccount(account),
-      chain: base,
-      transport: http(),
-    });
-
-    // Create smart account for gas sponsorship with spend permissions enabled
-    const smartAccount = await cdp.evm.createSmartAccount({
-      owner: account,
-      enableSpendPermissions: true, // NOTE: Smart Accounts must have spend permissions enabled at the time of creation
-    });
-
-    console.log('Smart account:', smartAccount);
-
-    const serverWallet: ServerWallet = {
-      address: account.address,
-      walletClient,
-      account,
-      smartAccount
-    };
-
-    // Store wallet for this user session
-    serverWallets.set(userAddress, serverWallet);
-    console.log('Stored server wallet with smart account. New count:', serverWallets.size);
-
-    // Note: Server wallet will use gas sponsorship via paymaster, no funding needed
-    console.log('Server wallet created for Base mainnet with gas sponsorship');
-
-    return serverWallet;
   } catch (error) {
-    console.error('Failed to create server wallet:', error);
-    throw new Error('Failed to create server wallet');
+    console.error('Failed to load wallet storage:', error);
+  }
+  return {};
+}
+
+function saveWalletStorage(storage: WalletStorage): void {
+  try {
+    fs.writeFileSync(WALLET_STORAGE_PATH, JSON.stringify(storage, null, 2));
+  } catch (error) {
+    console.error('Failed to save wallet storage:', error);
   }
 }
 
-export function getServerWalletForUser(userAddress: string): ServerWallet | null {
-  return serverWallets.get(userAddress) || null;
-}
+// Removed per-user wallet creation - we only need one reward distributor wallet
 
 // Use a global variable to persist across hot reloads in development
 declare global {
@@ -99,55 +64,37 @@ globalThis.__rewardDistributorWallet = rewardDistributorWallet;
 
 export async function getRewardDistributorWallet(): Promise<ServerWallet> {
   try {
-    // Check if CDP client is available (server-side only)
-    if (!cdp) {
-      throw new Error('CDP client not available - this function must be called server-side');
-    }
-
-    // Check if wallet already exists
+    // Check if wallet already exists in memory
     if (globalThis.__rewardDistributorWallet?.smartAccount) {
-      console.log('Found existing reward distributor wallet');
+      console.log('Found existing reward distributor wallet in memory');
       return globalThis.__rewardDistributorWallet;
     }
 
-    console.log('Creating new reward distributor wallet');
-    // Using centralized CDP client
-    
-    // Create CDP account
-    const account = await cdp.evm.createAccount();
-    console.log('Created CDP account with address:', account.address);
+    // Load from persistent storage - ALWAYS use stored addresses, never create new ones
+    const storage = loadWalletStorage();
+    if (storage.rewardDistributor) {
+      console.log(`🏦 Using persistent reward distributor: ${storage.rewardDistributor.address}`);
+      console.log(`📍 Smart Account: ${storage.rewardDistributor.smartAccountAddress}`);
+      
+      // Return wallet object with persistent addresses - no creation needed
+      const persistentWallet: ServerWallet = {
+        address: storage.rewardDistributor.address,
+        walletClient: null, // Not needed for address reference
+        account: null, // Not needed for address reference
+        smartAccount: {
+          address: storage.rewardDistributor.smartAccountAddress
+        }
+      };
 
-    // Create viem wallet client
-    const walletClient = createWalletClient({
-      account: toAccount(account),
-      chain: baseSepolia,
-      transport: http(),
-    });
+      globalThis.__rewardDistributorWallet = persistentWallet;
+      return persistentWallet;
+    }
 
-    // Create smart account for gas sponsorship with spend permissions enabled
-    const smartAccount = await cdp.evm.createSmartAccount({
-      owner: account,
-      enableSpendPermissions: true, // NOTE: Smart Accounts must have spend permissions enabled at the time of creation
-    });
-
-    console.log('Smart account created:', smartAccount.address);
-
-    const serverWallet: ServerWallet = {
-      address: account.address,
-      walletClient,
-      account,
-      smartAccount
-    };
-
-    // Store wallet globally
-    globalThis.__rewardDistributorWallet = serverWallet;
-    console.log('Reward distributor wallet created for Base Sepolia with gas sponsorship');
-    console.log(`🏦 Reward distributor address: ${account.address}`);
-
-    return serverWallet;
+    // If no wallet exists in storage, throw error - manual setup required
+    throw new Error('No reward distributor wallet found in storage. Please set up wallet addresses manually in .wallet-storage.json');
   } catch (error) {
-    console.error('❌ Failed to create reward distributor wallet:', error);
-    throw new Error('Failed to create reward distributor wallet');
+    console.error('❌ Failed to get reward distributor wallet:', error);
+    throw error;
   }
 }
 

@@ -1,7 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { SignInWithBaseButton } from '@/app/components/SignInWithBase';
+import { getRewardDistributorAddressesClient } from '@/lib/utils/wallet-storage';
 
 interface DistributionHistory {
   timestamp: string;
@@ -18,14 +20,99 @@ interface RewardDistributionPanelProps {
 export default function RewardDistributionPanel({ onDistribute }: RewardDistributionPanelProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [walletBalance, setWalletBalance] = useState('0');
+  const [adminWalletBalance, setAdminWalletBalance] = useState('0');
   const [distributionHistory, setDistributionHistory] = useState<DistributionHistory[]>([]);
   const [selectedTimeframe, setSelectedTimeframe] = useState<'week' | 'month' | 'all-time'>('week');
   const [currentLeaderboard, setCurrentLeaderboard] = useState<any[]>([]);
-  const [rewardPool, setRewardPool] = useState('0');
+  const [rewardPool, setRewardPool] = useState('0.1');
+  const [isWalletAuthenticated, setIsWalletAuthenticated] = useState(false);
+  const [adminAddress, setAdminAddress] = useState<string>('');
+  const [spendPermissionStatus, setSpendPermissionStatus] = useState<'none' | 'valid' | 'invalid' | 'expired'>('none');
+  const [serverWallet, setServerWallet] = useState<any>(null);
 
   useEffect(() => {
-    loadDistributionStatus();
-  }, [selectedTimeframe]);
+    checkWalletAuthStatus();
+    checkSpendPermissionStatus();
+    if (isWalletAuthenticated) {
+      loadDistributionStatus();
+    }
+  }, [selectedTimeframe, isWalletAuthenticated, adminAddress]);
+
+  const checkWalletAuthStatus = async () => {
+    // No need to check wallet creation API - we use fixed addresses
+    // Admin just needs to connect their wallet for spend permissions
+    console.log('Wallet auth check skipped - using fixed reward distributor addresses');
+  };
+
+  const checkSpendPermissionStatus = () => {
+    if (!adminAddress) {
+      setSpendPermissionStatus('none');
+      return;
+    }
+
+    const storedPermission = localStorage.getItem('adminSpendPermission');
+    if (!storedPermission) {
+      setSpendPermissionStatus('none');
+      return;
+    }
+
+    try {
+      const permission = JSON.parse(storedPermission);
+      
+      // Validate permission structure
+      if (!permission.account || !permission.spender || !permission.allowance) {
+        setSpendPermissionStatus('invalid');
+        return;
+      }
+      
+      // Verify permission account matches current admin address
+      if (permission.account.toLowerCase() !== adminAddress.toLowerCase()) {
+        setSpendPermissionStatus('invalid');
+        return;
+      }
+      
+      // Check if permission has expired (if it has an end date)
+      if (permission.end && Date.now() / 1000 > permission.end) {
+        setSpendPermissionStatus('expired');
+        return;
+      }
+      
+      setSpendPermissionStatus('valid');
+    } catch (error) {
+      console.error('Error checking spend permission status:', error);
+      setSpendPermissionStatus('invalid');
+    }
+  };
+
+  const handleSignIn = async (address: string) => {
+    console.log('Admin authenticated with address:', address);
+    setIsWalletAuthenticated(true);
+    setAdminAddress(address);
+    
+    // Load reward distributor addresses from storage
+    try {
+      const addresses = await getRewardDistributorAddressesClient();
+      setServerWallet(addresses);
+      console.log('Loaded reward distributor addresses from storage:', addresses);
+      
+      // Fetch admin wallet balance
+      await fetchAdminWalletBalance(address);
+    } catch (error) {
+      console.error('Failed to load wallet addresses:', error);
+    }
+  };
+
+  const fetchAdminWalletBalance = async (adminAddr: string) => {
+    try {
+      const response = await fetch(`/api/wallet/balance?address=${adminAddr}`);
+      if (response.ok) {
+        const data = await response.json();
+        setAdminWalletBalance(data.balance || '0');
+      }
+    } catch (error) {
+      console.error('Failed to fetch admin wallet balance:', error);
+    }
+  };
 
   const loadDistributionStatus = async () => {
     try {
@@ -42,7 +129,38 @@ export default function RewardDistributionPanel({ onDistribute }: RewardDistribu
     }
   };
 
+  // Check if distribution should be enabled
+  const isDistributionEnabled = () => {
+    if (!isWalletAuthenticated || !adminAddress) return false;
+    if (!rewardPool || parseFloat(rewardPool) <= 0) return false;
+    
+    // Check if spend permission exists and is valid
+    const storedPermission = localStorage.getItem('adminSpendPermission');
+    if (!storedPermission) return false;
+    
+    try {
+      const permission = JSON.parse(storedPermission);
+      // Validate permission structure
+      if (!permission.account || !permission.spender || !permission.allowance) return false;
+      // Verify permission account matches current admin address
+      if (permission.account.toLowerCase() !== adminAddress.toLowerCase()) return false;
+    } catch (error) {
+      console.error('Invalid spend permission format:', error);
+      return false;
+    }
+    
+    // Check if admin wallet has sufficient balance
+    if (!adminWalletBalance || parseFloat(adminWalletBalance) < parseFloat(rewardPool)) return false;
+    
+    return true;
+  };
+
   const handleManualDistribution = async () => {
+    if (!isDistributionEnabled()) {
+      alert('Distribution is not enabled. Please ensure you have connected your wallet, granted spend permission, and have sufficient balance.');
+      return;
+    }
+
     const rawPin = prompt('Enter admin PIN to confirm reward distribution:');
     if (!rawPin) return;
     
@@ -51,12 +169,42 @@ export default function RewardDistributionPanel({ onDistribute }: RewardDistribu
 
     setIsLoading(true);
     try {
-      const response = await fetch('/api/rewards/distribute', {
+      // First get the spend permission from localStorage or request it
+      const storedPermission = localStorage.getItem('adminSpendPermission');
+      let spendPermission = null;
+      
+      if (storedPermission) {
+        spendPermission = JSON.parse(storedPermission);
+      } else {
+        alert('No spend permission found. Please grant spend permission first.');
+        setIsLoading(false);
+        return;
+      }
+
+      // Calculate AI-powered distribution
+      const calculateResponse = await fetch('/api/admin/calculate-rewards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          weeklyRewardPool: parseFloat(rewardPool) || 0.1
+        })
+      });
+
+      if (!calculateResponse.ok) {
+        throw new Error('Failed to calculate reward distribution');
+      }
+
+      const calculationResult = await calculateResponse.json();
+      
+      // Execute the distribution using spend permissions
+      const response = await fetch('/api/admin/distribute-rewards', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          timeframe: selectedTimeframe,
-          triggerType: 'manual',
+          distribution: calculationResult.rewards,
+          totalAmount: rewardPool,
+          adminAddress,
+          spendPermission,
           adminPin
         })
       });
@@ -93,15 +241,65 @@ export default function RewardDistributionPanel({ onDistribute }: RewardDistribu
     return parseFloat(amount.toString()).toFixed(6);
   };
 
+  // Show wallet authentication if not connected
+  if (!isWalletAuthenticated) {
+    return (
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <h3 className="text-xl font-bold text-gray-800 mb-4">🎁 Reward Distribution Center</h3>
+        <div className="text-center py-8">
+          <p className="text-gray-600 mb-6 text-center">
+            Connect your admin wallet to manage reward distributions and spend permissions
+          </p>
+          <div className='w-fit mx-auto'>
+          <SignInWithBaseButton onSignIn={handleSignIn} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
-      <h3 className="text-xl font-bold text-gray-800 mb-4">🎁 Reward Distribution Center</h3>
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-xl font-bold text-gray-800">🎁 Reward Distribution Center</h3>
+        <div className="text-sm text-gray-600">
+          Admin: {adminAddress?.slice(0, 6)}...{adminAddress?.slice(-4)}
+        </div>
+      </div>
       
       {/* Wallet Status */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h4 className="font-medium text-blue-800">Wallet Balance</h4>
-          <p className="text-2xl font-bold text-blue-900">{formatEth(walletBalance)} ETH</p>
+          <h4 className="font-medium text-blue-900 mb-2">Server Balance</h4>
+          <p className="text-2xl font-bold text-blue-800">{formatEth(walletBalance)} ETH</p>
+        </div>
+        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+          <h4 className="font-medium text-purple-900 mb-2">Admin Balance</h4>
+          <p className="text-2xl font-bold text-purple-800">{formatEth(adminWalletBalance)} ETH</p>
+        </div>
+        <div className={`border rounded-lg p-4 ${
+          spendPermissionStatus === 'valid' ? 'bg-green-50 border-green-200' :
+          spendPermissionStatus === 'invalid' ? 'bg-red-50 border-red-200' :
+          spendPermissionStatus === 'expired' ? 'bg-yellow-50 border-yellow-200' :
+          'bg-gray-50 border-gray-200'
+        }`}>
+          <h4 className={`font-medium mb-2 ${
+            spendPermissionStatus === 'valid' ? 'text-green-900' :
+            spendPermissionStatus === 'invalid' ? 'text-red-900' :
+            spendPermissionStatus === 'expired' ? 'text-yellow-900' :
+            'text-gray-900'
+          }`}>Spend Permission</h4>
+          <p className={`text-sm font-medium ${
+            spendPermissionStatus === 'valid' ? 'text-green-800' :
+            spendPermissionStatus === 'invalid' ? 'text-red-800' :
+            spendPermissionStatus === 'expired' ? 'text-yellow-800' :
+            'text-gray-800'
+          }`}>
+            {spendPermissionStatus === 'valid' ? '✅ Active' :
+             spendPermissionStatus === 'invalid' ? '❌ Invalid' :
+             spendPermissionStatus === 'expired' ? '⏰ Expired' :
+             '⚠️ Not Set'}
+          </p>
         </div>
         
         <div className="bg-green-50 border border-green-200 rounded-lg p-4">
@@ -137,9 +335,9 @@ export default function RewardDistributionPanel({ onDistribute }: RewardDistribu
           
           <button
             onClick={handleManualDistribution}
-            disabled={isLoading || parseFloat(walletBalance) === 0 || currentLeaderboard.length === 0}
+            disabled={isLoading || !isWalletAuthenticated || parseFloat(adminWalletBalance) < parseFloat(rewardPool) || currentLeaderboard.length === 0}
             className={`px-6 py-2 rounded-md font-medium text-white ${
-              isLoading || parseFloat(walletBalance) === 0 || currentLeaderboard.length === 0
+              isLoading || !isWalletAuthenticated || parseFloat(adminWalletBalance) < parseFloat(rewardPool) || currentLeaderboard.length === 0
                 ? 'bg-gray-400 cursor-not-allowed'
                 : 'bg-green-600 hover:bg-green-700'
             }`}

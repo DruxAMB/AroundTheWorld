@@ -33,14 +33,14 @@ export async function requestUserSpendPermission(
 
     const sdk = createBaseAccountSDK({
       appName: 'AroundTheWorld Game',
-      appChainIds: [8453], // Base mainnet
+      appChainIds: [84532], // Base sepolia
     });
 
     const permission = await requestSpendPermission({
       account: userAccount as `0x${string}`,
       spender: spenderAccount as `0x${string}`,
       token: ETH_ADDRESS as `0x${string}`,
-      chainId: 8453, // Base mainnet
+      chainId: 84532, // Base sepolia
       allowance: allowanceWei,
       periodInDays: 1,
       provider: sdk.getProvider(),
@@ -52,7 +52,7 @@ export async function requestUserSpendPermission(
       account: userAccount,
       spender: spenderAccount,
       token: ETH_ADDRESS,
-      chainId: 8453, // Base mainnet
+      chainId: 84532, // Base sepolia
       allowance: allowanceWei,
       periodInDays: 1,
       ...permission
