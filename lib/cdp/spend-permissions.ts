@@ -17,13 +17,15 @@ export interface SpendPermission {
   signature?: string;
 }
 
-export const USDC_BASE_ADDRESS = '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913';
 export const ETH_ADDRESS = '0x0000000000000000000000000000000000000000';
+export const LEVEL_COST_ETH = 0.0000092; // ~$0.04
+export const DAILY_ALLOWANCE_ETH = 0.000046; // ~$0.20
 
+// This function is now deprecated - use SpendPermissionSetup component instead
 export async function requestUserSpendPermission(
   userAccount: string,
   spenderAccount: string,
-  dailyLimitETH: number = 0.01
+  dailyLimitETH: number = DAILY_ALLOWANCE_ETH
 ): Promise<SpendPermission> {
   try {
     // Convert ETH to wei (18 decimals)
@@ -31,15 +33,14 @@ export async function requestUserSpendPermission(
 
     const sdk = createBaseAccountSDK({
       appName: 'AroundTheWorld Game',
-      appLogoUrl: 'https://basearoundtheworld.vercel.app/logo.png',
-      appChainIds: [84532], // Base sepolia
+      appChainIds: [8453], // Base mainnet
     });
 
     const permission = await requestSpendPermission({
       account: userAccount as `0x${string}`,
       spender: spenderAccount as `0x${string}`,
       token: ETH_ADDRESS as `0x${string}`,
-      chainId: 84532,
+      chainId: 8453, // Base mainnet
       allowance: allowanceWei,
       periodInDays: 1,
       provider: sdk.getProvider(),
@@ -51,7 +52,7 @@ export async function requestUserSpendPermission(
       account: userAccount,
       spender: spenderAccount,
       token: ETH_ADDRESS,
-      chainId: 84532,
+      chainId: 8453, // Base mainnet
       allowance: allowanceWei,
       periodInDays: 1,
       ...permission

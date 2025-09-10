@@ -1,56 +1,78 @@
 # Base Builder Quest Implementation Plan
-**Pay-Per-Level Model with AI Agent Batching**
+**Pay-Per-Level Model with Spend Permissions (Following Base Demo Architecture)**
 
 ## Architecture Overview
-- **Pay-per-level**: $0.04 per level play
-- **Daily allowance**: $0.2 spend permission (5 levels max/day)
-- **Batched collections**: AI agent collects fees periodically + on miniApp close
-- **AI-powered rewards**: Automated distribution to top players using collected fees
-- **Gemini AI Agent**: Using gemini-2.0-flash-001 for intelligent decision making
+- **Pay-per-level**: 0.0000092 ETH per level play (~$0.04) using ETH spend permissions
+- **Daily allowance**: 0.000046 ETH spend permission (~$0.20, 5 levels max/day)
+- **Smart Account system**: User Smart Account → Server Smart Account spend permissions
+- **AI-powered rewards**: Automated distribution using collected fees
+- **Three-account architecture**: User EOA → User Smart Account → Server Smart Account
 
-## Implementation Steps
+## Implementation Steps (Following Base Demo Pattern)
 
-### 1. Level Play Charging System
-- Build UI component for granting $0.2 daily spend permission
-- Implement $0.04 charge tracking per level play (local storage)
-- Create "pending charges" display in game UI
-- Integration with existing level selection/play components
+### 1. Authentication Infrastructure (SIWE + Smart Accounts)
+- **Create `/api/auth/verify` endpoint**: Nonce generation and signature verification
+- **Implement SignInWithBase component**: 
+  - `wallet_connect` with `signInWithEthereum` capabilities
+  - SIWE message signing and server verification
+  - Session management with HTTP-only cookies
+- **Smart Account creation**: Base Account SDK creates user Smart Account during auth
+- **Session-based authentication**: Secure user sessions for spend permission management
 
-### 2. AI Agent Batching Logic
-- **Periodic collection**: Every 10-15 minutes, collect accumulated charges
-- **Session-end collection**: Batch remaining charges on miniApp close
-- **Smart batching**: Use Gemini AI to optimize collection timing
-- Store pending charges in Redis with player session data
+### 2. Server-Side Wallet Infrastructure
+- **Update `/api/wallet/create` endpoint**: 
+  - Session-based authentication checks
+  - CDP Smart Account creation for server (spender)
+  - Per-user server wallet mapping and persistence
+- **Smart Account management**: 
+  - Gas sponsorship via CDP paymaster
+  - Proper wallet persistence across server restarts
+  - User-specific server wallet isolation
 
-### 3. CDP Smart Account Integration
-- Use existing CDP smart account for receiving batched payments
-- Implement spend permission execution via user operations
-- Handle batch transaction failures and retries
-- Gas-optimized batching for multiple players simultaneously
+### 3. Spend Permission System (ETH-based)
+- **SpendPermissionSetup component**:
+  - ETH token permissions (0x0000000000000000000000000000000000000000)
+  - Base mainnet (chain ID 8453) configuration
+  - Daily limit: 0.000046 ETH (~$0.20, max 5 levels)
+  - User Smart Account → Server Smart Account permission granting
+- **Permission management**:
+  - Fetch existing permissions from user's Smart Account
+  - Permission status checking and renewal
+  - Revocation capabilities
 
-### 4. AI-Powered Reward Distribution
-- **Gemini AI logic**: Analyze collected fees vs reward pool needs
-- **Smart triggers**: Determine optimal reward distribution timing
-- **Dynamic amounts**: AI calculates reward amounts based on participation
-- Integration with existing leaderboard and reward systems
+### 4. Level Play Charging Integration
+- **Update LevelPlayCharging component**:
+  - Require authentication before showing spend permission UI
+  - ETH-based charging (0.0000092 ETH per level ~$0.04)
+  - Integration with Smart Account spend permission flow
+  - Real-time permission status updates
+- **Charge execution**:
+  - Server-side spend permission execution via CDP
+  - Batch transaction processing for multiple players
+  - Error handling for insufficient permissions/funds
 
-### 5. Level Play Integration
-- Modify existing level play flow to check spend permissions
-- Add charge tracking to level completion events
-- Display pending charges and permission status
-- Handle permission expiry and renewal prompts
+### 5. AI Agent Integration (Post-Authentication)
+- **Authenticated AI operations**:
+  - Session-based access to user's spend permissions
+  - Gemini AI decision making for collection timing
+  - Smart batching based on user activity patterns
+- **Reward distribution logic**:
+  - AI-powered analysis of collected fees vs reward pool
+  - Automated distribution to top players
+  - Integration with existing leaderboard system
 
 ### 6. Admin Monitoring & Controls
-- Add spend permission monitoring to /update panel
-- Display batching status and collected fees
-- AI agent decision logs and override capabilities
-- Real-time collection and distribution analytics
+- **Authentication-aware admin panel**:
+  - Session-based admin access
+  - Spend permission monitoring across all users
+  - Server Smart Account balance tracking
+  - AI agent decision logs and manual overrides
 
-### 7. Base Builder Quest Features
-- **Client-side spend permissions**: Base Account SDK integration
-- **CDP server wallet**: Smart account for automated collections
-- **AI agent access**: Gemini-powered fund management decisions
-- **Grant/revoke system**: Full permission lifecycle management
+### 7. Security & Production Readiness
+- **Proper session management**: JWT tokens with secure secrets
+- **Nonce storage**: Redis-based nonce management (not in-memory)
+- **Error handling**: Comprehensive error states for all permission flows
+- **Gas optimization**: Batch operations for multiple user transactions
 
 ## Technical Stack
 - **AI Model**: Gemini 2.0 Flash (configured in .env)
