@@ -1,10 +1,8 @@
-import { CdpClient } from '@coinbase/cdp-sdk';
 import { createWalletClient, http, Address, parseEther } from 'viem';
 import { toAccount } from 'viem/accounts';
 import { base } from 'viem/chains';
 import { serializeTransaction } from 'viem';
-
-let cdpClient: CdpClient | null = null;
+import { cdp } from './client.js';
 
 interface ServerWallet {
   address: string;
@@ -21,12 +19,7 @@ declare global {
 const rewardDistributorWallet = globalThis.__rewardDistributorWallet;
 globalThis.__rewardDistributorWallet = rewardDistributorWallet;
 
-export function getCdpClient(): CdpClient {
-  if (!cdpClient) {
-    cdpClient = new CdpClient();
-  }
-  return cdpClient;
-}
+// Remove the old getCdpClient function - now using centralized client
 
 export async function getRewardDistributorWallet(): Promise<ServerWallet> {
   try {
@@ -37,7 +30,7 @@ export async function getRewardDistributorWallet(): Promise<ServerWallet> {
     }
 
     console.log('Creating new reward distributor wallet');
-    const cdp = getCdpClient();
+    // Using centralized CDP client
     
     // Create CDP account
     const account = await cdp.evm.createAccount();
@@ -80,7 +73,7 @@ export async function getRewardDistributorWallet(): Promise<ServerWallet> {
 export const getWalletBalance = async (): Promise<{ eth: string; usd?: string }> => {
   try {
     const wallet = await getRewardDistributorWallet();
-    const cdp = getCdpClient();
+    // Using centralized CDP client
     
     // Get balance using CDP client
     const balance = await cdp.evm.listTokenBalances({
@@ -106,7 +99,7 @@ export const distributeReward = async (
 ): Promise<{ success: boolean; transactionHash?: string; error?: string }> => {
   try {
     const wallet = await getRewardDistributorWallet();
-    const cdp = getCdpClient();
+    // Using centralized CDP client
     
     console.log(`💸 Distributing ${amount} ETH to ${recipientAddress}`);
     

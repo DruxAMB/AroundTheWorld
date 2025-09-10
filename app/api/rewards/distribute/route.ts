@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { gameDataService } from '@/app/services/gameDataService';
 import { RewardDistributionService } from '@/lib/reward-distribution';
-import { distributeReward, batchDistributeRewards, getWalletBalance, getRewardDistributorWallet } from '@/lib/cdp-wallet';
+import { batchDistributeRewards, getWalletBalance, getRewardDistributorWallet } from '@/lib/cdp/cdp-wallet';
 import { redis } from '@/lib/redis';
 
 // Security: Only allow requests from authenticated admin or automated triggers
