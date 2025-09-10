@@ -9,7 +9,7 @@ import {
   getUserSpendPermissions, 
   revokeSpendPermission,
   checkSpendPermissionStatus 
-} from '@/lib/spend-permissions';
+} from '@/lib/cdp/spend-permissions';
 
 // Get reward distributor address from server wallet
 let REWARD_DISTRIBUTOR_ADDRESS = "0x0000000000000000000000000000000000000000";

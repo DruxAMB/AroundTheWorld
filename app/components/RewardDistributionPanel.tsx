@@ -43,8 +43,11 @@ export default function RewardDistributionPanel({ onDistribute }: RewardDistribu
   };
 
   const handleManualDistribution = async () => {
-    const adminPin = prompt('Enter admin PIN to confirm reward distribution:');
-    if (!adminPin) return;
+    const rawPin = prompt('Enter admin PIN to confirm reward distribution:');
+    if (!rawPin) return;
+    
+    // Clean the PIN input (remove non-digits, trim whitespace)
+    const adminPin = rawPin.replace(/[^0-9]/g, '').trim();
 
     setIsLoading(true);
     try {
@@ -60,12 +63,20 @@ export default function RewardDistributionPanel({ onDistribute }: RewardDistribu
 
       const result = await response.json();
       
+      console.log('Distribution API Response:', {
+        status: response.status,
+        ok: response.ok,
+        result: result
+      });
+      
       if (response.ok && result.success) {
         alert(`✅ ${result.message}\nTotal distributed: ${result.totalAmount} ETH`);
         loadDistributionStatus();
         onDistribute?.(result);
       } else {
-        alert(`❌ Distribution failed: ${result.error}`);
+        const errorMessage = result.error || result.message || `HTTP ${response.status}: ${response.statusText}`;
+        alert(`❌ Distribution failed: ${errorMessage}`);
+        console.error('Distribution failed with result:', result);
       }
     } catch (error) {
       alert(`❌ Distribution failed: ${error instanceof Error ? error.message : 'Unknown error'}`);

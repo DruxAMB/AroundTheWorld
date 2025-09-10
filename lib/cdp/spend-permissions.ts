@@ -29,23 +29,29 @@ export async function requestUserSpendPermission(
     // Convert ETH to wei (18 decimals)
     const allowanceWei = BigInt(Math.floor(dailyLimitETH * 1e18));
 
+    const sdk = createBaseAccountSDK({
+      appName: 'AroundTheWorld Game',
+      appLogoUrl: 'https://basearoundtheworld.vercel.app/logo.png',
+      appChainIds: [84532], // Base sepolia
+    });
+
     const permission = await requestSpendPermission({
       account: userAccount as `0x${string}`,
       spender: spenderAccount as `0x${string}`,
       token: ETH_ADDRESS as `0x${string}`,
-      chainId: 8453, // Base mainnet
+      chainId: 84532,
       allowance: allowanceWei,
-      periodInDays: 1, // Daily limit
-      provider: createBaseAccountSDK({
-        appName: "AroundTheWorld Game",
-      }).getProvider(),
+      periodInDays: 1,
+      provider: sdk.getProvider(),
     });
+
+    console.log("Spend Permission created:", permission);
 
     return {
       account: userAccount,
       spender: spenderAccount,
       token: ETH_ADDRESS,
-      chainId: 8453,
+      chainId: 84532,
       allowance: allowanceWei,
       periodInDays: 1,
       ...permission
@@ -70,13 +76,13 @@ export async function getUserSpendPermissions(
 
     console.log('📡 Calling fetchPermissions with:');
     console.log('  - account:', userAccount);
-    console.log('  - chainId: 8453');
+    console.log('  - chainId: 84532');
     console.log('  - spender:', spenderAccount);
     console.log('  - ETH_ADDRESS:', ETH_ADDRESS);
 
     const permissions = await fetchPermissions({
       account: userAccount as `0x${string}`,
-      chainId: 8453,
+      chainId: 84532,
       spender: spenderAccount as `0x${string}`,
       provider,
     });

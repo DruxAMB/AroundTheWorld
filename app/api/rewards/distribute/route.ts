@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get leaderboard data
-    const leaderboard = await gameDataService.getLeaderboard(timeframe, 10); // Top 10 players
+    const leaderboard = await gameDataService.getLeaderboard(timeframe, 50); // Get more players for eligibility check
     
     if (leaderboard.length === 0) {
       return NextResponse.json({ 
@@ -80,14 +80,28 @@ export async function POST(request: NextRequest) {
     const totalRewardPool = baseRewardAmount * 1e18; // Convert to wei equivalent
     const rewardDistributions: RewardDistribution[] = [];
 
-    // Only distribute to players with wallet addresses and scores > 0
-    const eligiblePlayers = leaderboard.filter(player => 
-      player.playerId && 
-      player.score > 0 && 
-      player.playerId.startsWith('0x') // Valid Ethereum address
+    // Get player profiles with wallet addresses for all leaderboard players
+    const playerProfiles = await Promise.all(
+      leaderboard.map(async (player) => {
+        if (!player.score || player.score <= 0) return null;
+        
+        // Get full player profile from database
+        const profile = await gameDataService.getPlayer(player.playerId);
+        if (!profile || !profile.walletAddress || !profile.walletAddress.startsWith('0x')) {
+          return null;
+        }
+        
+        return {
+          ...player,
+          walletAddress: profile.walletAddress
+        };
+      })
     );
 
-    for (let i = 0; i < Math.min(eligiblePlayers.length, 10); i++) {
+    // Filter out null entries and get eligible players
+    const eligiblePlayers = playerProfiles.filter(player => player !== null);
+
+    for (let i = 0; i < Math.min(eligiblePlayers.length, 15); i++) {
       const player = eligiblePlayers[i];
       const rank = i + 1;
       
@@ -98,7 +112,7 @@ export async function POST(request: NextRequest) {
       // Only distribute if reward amount is meaningful (> 0.0001 ETH)
       if (parseFloat(rewardAmountEth) >= 0.0001) {
         rewardDistributions.push({
-          address: player.playerId,
+          address: player.walletAddress,
           amount: rewardAmountEth,
           rank,
           playerName: player.name,
@@ -226,7 +240,7 @@ export async function GET(request: NextRequest) {
     const serverWallet = await getRewardDistributorWallet();
     
     // Get current leaderboard for preview
-    const leaderboard = await gameDataService.getLeaderboard(timeframe, 10);
+    const leaderboard = await gameDataService.getLeaderboard(timeframe, 50);
     const globalStats = await gameDataService.getGlobalStats();
     
     return NextResponse.json({
