@@ -135,11 +135,11 @@ export class RewardDistributionService {
       // For large amounts, show fewer decimal places
       return `${Math.round(tokenAmount).toLocaleString()}`;
     } else if (tokenAmount >= 1) {
-      return `${tokenAmount.toFixed(3)}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      return `${tokenAmount.toFixed(3)}`;
     } else if (tokenAmount >= 0.001) {
-      return `${tokenAmount.toFixed(4)}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      return `${tokenAmount.toFixed(4)}`;
     } else {
-      return `${tokenAmount.toFixed(6)}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      return `${tokenAmount.toFixed(6)}`;
     }
   }
 

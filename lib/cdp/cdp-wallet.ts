@@ -1,4 +1,4 @@
-import { createWalletClient, http, Address, parseEther } from 'viem';
+import { createWalletClient, http, Address, parseEther, parseUnits } from 'viem';
 import { toAccount } from 'viem/accounts';
 import { baseSepolia } from 'viem/chains';
 import { serializeTransaction } from 'viem';
@@ -74,9 +74,9 @@ export const getWalletBalance = async (): Promise<{ eth: string; usd?: string }>
   try {
     const wallet = await getRewardDistributorWallet();
     
-    // Get ETH balance of the smart account (where funds are actually held)
+    // Get ETH balance of the CDP account (where funds are actually held)
     const result = await cdp.evm.listTokenBalances({
-      address: wallet.smartAccount.address as Address,
+      address: wallet.address as Address,
       network: "base-sepolia"
     });
     
@@ -112,14 +112,18 @@ export const distributeReward = async (
     // Using centralized CDP client
     
     console.log(`💸 Distributing ${amount} ETH to ${recipientAddress}`);
+    console.log(`🏦 Using CDP account address: ${wallet.address}`);
     
     // Create transaction using CDP client with smart account (gas sponsored)
     const { transactionHash } = await cdp.evm.sendTransaction({
-      address: wallet.smartAccount.address,
+      address: wallet.address as Address, // Use the original CDP account address (delegates to smart account)
       transaction: serializeTransaction({
         to: recipientAddress as Address,
         value: parseEther(amount),
         chainId: 84532, // Base Sepolia
+        type: 'eip1559',
+        maxFeePerGas: parseUnits('20', 9), // 20 gwei max fee
+        maxPriorityFeePerGas: parseUnits('1', 9), // 1 gwei priority fee
       }),
       network: "base-sepolia"
     });

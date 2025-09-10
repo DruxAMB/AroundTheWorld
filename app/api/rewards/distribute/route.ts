@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get leaderboard data
-    const leaderboard = await gameDataService.getLeaderboard(timeframe, 50); // Get more players for eligibility check
+    const leaderboard = await gameDataService.getLeaderboard(timeframe, 15); // Get more players for eligibility check
     
     if (leaderboard.length === 0) {
       return NextResponse.json({ 
@@ -80,46 +80,73 @@ export async function POST(request: NextRequest) {
     const totalRewardPool = baseRewardAmount * 1e18; // Convert to wei equivalent
     const rewardDistributions: RewardDistribution[] = [];
 
-    // Get player profiles with wallet addresses for all leaderboard players
-    const playerProfiles = await Promise.all(
-      leaderboard.map(async (player) => {
-        if (!player.score || player.score <= 0) return null;
-        
-        // Get full player profile from database
+    // Track used wallet addresses to prevent duplicates
+    const usedWalletAddresses = new Set<string>();
+    
+    // Process players sequentially to preserve rankings and enable early termination
+    for (let i = 0; i < leaderboard.length && rewardDistributions.length < 15; i++) {
+      const player = leaderboard[i];
+      const actualRank = i + 1; // Preserve original leaderboard rank
+      
+      // Skip players with no score
+      if (!player.score || player.score <= 0) continue;
+      
+      // Validate playerId exists
+      if (!player.playerId) {
+        console.warn(`Player at rank ${actualRank} has no playerId, skipping`);
+        continue;
+      }
+      
+      try {
+        // Get full player profile from database with error handling
         const profile = await gameDataService.getPlayer(player.playerId);
-        if (!profile || !profile.walletAddress || !profile.walletAddress.startsWith('0x')) {
-          return null;
+        if (!profile) {
+          console.warn(`Player profile not found for playerId: ${player.playerId} at rank ${actualRank}`);
+          continue;
         }
         
-        return {
-          ...player,
-          walletAddress: profile.walletAddress
-        };
-      })
-    );
-
-    // Filter out null entries and get eligible players
-    const eligiblePlayers = playerProfiles.filter(player => player !== null);
-
-    for (let i = 0; i < Math.min(eligiblePlayers.length, 15); i++) {
-      const player = eligiblePlayers[i];
-      const rank = i + 1;
-      
-      // Calculate reward amount for this rank
-      const rewardAmount = RewardDistributionService.getRewardForRank(rank, totalRewardPool);
-      const rewardAmountEth = RewardDistributionService.formatRewardAmount(rewardAmount);
-      
-      // Only distribute if reward amount is meaningful (> 0.0001 ETH)
-      if (parseFloat(rewardAmountEth) >= 0.0001) {
-        rewardDistributions.push({
-          address: player.walletAddress,
-          amount: rewardAmountEth,
-          rank,
-          playerName: player.name,
-          score: player.score
-        });
+        // Validate wallet address
+        if (!profile.walletAddress || !profile.walletAddress.startsWith('0x')) {
+          console.log(`Player ${player.name} at rank ${actualRank} has no valid wallet address`);
+          continue;
+        }
+        
+        // Check for duplicate wallet addresses
+        if (usedWalletAddresses.has(profile.walletAddress)) {
+          console.warn(`Duplicate wallet address ${profile.walletAddress} for player ${player.name} at rank ${actualRank}, skipping`);
+          continue;
+        }
+        
+        // Calculate reward amount for this rank
+        const rewardAmount = RewardDistributionService.getRewardForRank(actualRank, totalRewardPool);
+        const rewardAmountEth = RewardDistributionService.formatRewardAmount(rewardAmount);
+        
+        // Only distribute if reward amount is meaningful (> 0.00001 ETH)
+        if (parseFloat(rewardAmountEth) >= 0.00001) {
+          rewardDistributions.push({
+            address: profile.walletAddress,
+            amount: rewardAmountEth,
+            rank: actualRank,
+            playerName: player.name,
+            score: player.score
+          });
+          
+          // Track this wallet address as used
+          usedWalletAddresses.add(profile.walletAddress);
+          
+          console.log(`✅ Added player ${player.name} (rank ${actualRank}) for ${rewardAmountEth} ETH reward`);
+        } else {
+          console.log(`⚠️ Reward amount ${rewardAmountEth} ETH too small for player ${player.name} at rank ${actualRank}`);
+        }
+        
+      } catch (error) {
+        console.error(`Failed to process player ${player.playerId} at rank ${actualRank}:`, error);
+        // Continue processing other players instead of failing completely
+        continue;
       }
     }
+    
+    console.log(`🎯 Processed ${leaderboard.length} leaderboard players, found ${rewardDistributions.length} eligible for rewards`);
 
     if (rewardDistributions.length === 0) {
       return NextResponse.json({ 
@@ -228,7 +255,12 @@ export async function GET(request: NextRequest) {
       try {
         const record = await redis.get(key);
         if (record) {
-          recentDistributions.push(JSON.parse(record as string));
+          // Handle both string and object responses from Redis
+          if (typeof record === 'string') {
+            recentDistributions.push(JSON.parse(record));
+          } else if (typeof record === 'object' && record !== null) {
+            recentDistributions.push(record);
+          }
         }
       } catch (parseError) {
         console.error('Failed to parse distribution record:', parseError);
@@ -240,7 +272,7 @@ export async function GET(request: NextRequest) {
     const serverWallet = await getRewardDistributorWallet();
     
     // Get current leaderboard for preview
-    const leaderboard = await gameDataService.getLeaderboard(timeframe, 50);
+    const leaderboard = await gameDataService.getLeaderboard(timeframe, 15);
     const globalStats = await gameDataService.getGlobalStats();
     
     return NextResponse.json({
