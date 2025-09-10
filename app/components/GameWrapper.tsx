@@ -6,6 +6,7 @@ import { LevelSelector } from "./LevelSelector";
 import { Match3Game } from "./Match3Game";
 import LevelCompleteModal from "./LevelCompleteModal";
 import { InfoModal } from "./InfoModal";
+import LevelPlayCharging from "./LevelPlayCharging";
 import { Level } from "../data/levels";
 import { soundManager } from "../utils/soundManager";
 import { useGameData } from "../hooks/useGameData";
@@ -15,7 +16,7 @@ import { useComposeCast } from '@coinbase/onchainkit/minikit';
 import { useDailyBonus } from '../hooks/useDailyBonus';
 import DailyBonusModal from './DailyBonusModal';
 
-type GameState = 'level-select' | 'playing' | 'level-complete' | 'error';
+type GameState = 'level-select' | 'charging' | 'playing' | 'level-complete' | 'error';
 
 // Define level progression order as a constant to prevent inconsistencies
 const LEVEL_ORDER = ['africa-1', 'india-1', 'latam-1', 'southeast-asia-1', 'europe-1'] as const;
@@ -274,6 +275,13 @@ export function GameWrapper({ onGameStateChange }: GameWrapperProps = {}) {
 
   const handleLevelSelect = useCallback((level: Level) => {
     setCurrentLevel(level);
+    setGameState('charging'); // Go to charging state first
+  }, []);
+
+  // Handle successful charge and proceed to game
+  const handleChargeSuccess = useCallback(() => {
+    if (!currentLevel) return;
+    
     setGameState('playing');
     
     // Play region-specific background music
@@ -285,13 +293,19 @@ export function GameWrapper({ onGameStateChange }: GameWrapperProps = {}) {
       'Europe': 'europe'
     };
     
-    const musicKey = regionMusicMap[level.region];
+    const musicKey = regionMusicMap[currentLevel.region];
     if (musicKey && soundManager.isMusicEnabled()) {
       soundManager.fadeOutMusic(300);
       setTimeout(() => {
         soundManager.playMusic(musicKey);
       }, 400);
     }
+  }, [currentLevel]);
+
+  // Handle charge cancellation - return to level select
+  const handleChargeCancel = useCallback(() => {
+    setCurrentLevel(null);
+    setGameState('level-select');
   }, []);
 
   const handleLevelComplete = useCallback(async (success: boolean, score: number) => {
@@ -414,6 +428,22 @@ export function GameWrapper({ onGameStateChange }: GameWrapperProps = {}) {
       handleLevelSelect(currentLevel);
     }
   }, [currentLevel, handleLevelSelect]);
+
+  // Charging state - show level play charging interface
+  if (gameState === 'charging' && currentLevel && address) {
+    return (
+      <LevelPlayCharging
+        userAddress={address}
+        levelName={currentLevel.name}
+        levelCost={0.04}
+        onChargeSuccess={handleChargeSuccess}
+        onCancel={handleChargeCancel}
+        onPermissionGranted={(permission) => {
+          console.log('Spend permission granted:', permission);
+        }}
+      />
+    );
+  }
 
   if (gameState === 'playing' && currentLevel) {
     return (
