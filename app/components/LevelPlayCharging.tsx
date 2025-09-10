@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { requestUserSpendPermission, getUserSpendPermissions } from '../../lib/cdp/spend-permissions';
-import { getRewardDistributorWallet } from '../../lib/cdp/cdp-wallet';
 
 interface LevelPlayChargingProps {
   userAddress: string;
@@ -46,24 +45,30 @@ export default function LevelPlayCharging({
   useEffect(() => {
     loadSpendPermissionStatus();
     loadPendingCharges();
-    loadSpenderAddress();
   }, [userAddress]);
-
-  const loadSpenderAddress = async () => {
-    try {
-      const wallet = await getRewardDistributorWallet();
-      setSpenderAddress(wallet.smartAccount.address);
-    } catch (error) {
-      console.error('Failed to load spender address:', error);
-    }
-  };
 
   const loadSpendPermissionStatus = async () => {
     if (!userAddress) return;
 
     try {
-      const wallet = await getRewardDistributorWallet();
-      const permissions = await getUserSpendPermissions(userAddress, wallet.smartAccount.address);
+      console.log('🔍 Loading spend permission status...');
+      
+      // Get the reward distributor wallet address via API
+      const walletResponse = await fetch('/api/wallet/create', {
+        method: 'POST',
+      });
+      
+      if (!walletResponse.ok) {
+        throw new Error('Failed to get server wallet address');
+      }
+      
+      const walletData = await walletResponse.json();
+      const spenderAddr = walletData.smartAccountAddress;
+      setSpenderAddress(spenderAddr);
+      
+      console.log('🏦 Spender address:', spenderAddr);
+      
+      const permissions = await getUserSpendPermissions(userAddress, spenderAddr);
       
       if (permissions.length > 0) {
         setHasPermission(true);
@@ -114,18 +119,34 @@ export default function LevelPlayCharging({
 
     setIsGrantingPermission(true);
     try {
-      const wallet = await getRewardDistributorWallet();
+      // Get the reward distributor wallet address via API
+      const walletResponse = await fetch('/api/wallet/create', {
+        method: 'POST',
+      });
+      
+      if (!walletResponse.ok) {
+        throw new Error('Failed to get server wallet address');
+      }
+      
+      const walletData = await walletResponse.json();
+      const spenderAddr = walletData.smartAccountAddress;
+      
       const permission = await requestUserSpendPermission(
         userAddress,
-        wallet.smartAccount.address,
+        spenderAddr,
         DAILY_ALLOWANCE
       );
 
       console.log('✅ Spend permission granted:', permission);
       setHasPermission(true);
+      setPermissionStatus({
+        remainingAllowance: 0.2,
+        levelsRemaining: 5
+      });
+      
+      // Notify parent component
       onPermissionGranted?.(permission);
       
-      // Refresh permission status
       await loadSpendPermissionStatus();
       
     } catch (error) {

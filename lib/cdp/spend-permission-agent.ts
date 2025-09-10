@@ -47,6 +47,11 @@ export class SpendPermissionAgent {
   }> {
     console.log('🤖 AI Agent: Starting automated daily contribution collection...');
     
+    // Check if CDP client is available (server-side only)
+    if (!cdp) {
+      throw new Error('CDP client not available - this function must be called server-side');
+    }
+    
     const wallet = await getRewardDistributorWallet();
     let totalCollected = 0;
     let successfulCollections = 0;
@@ -70,7 +75,7 @@ export class SpendPermissionAgent {
         const spendCalls = await prepareSpendCallData(record.permission, amountWei);
 
         // Execute collection via smart account user operation
-        const userOp = await cdp.evm.sendUserOperation({
+        const userOp = await cdp!.evm.sendUserOperation({
           smartAccount: wallet.smartAccount,
           network: "base-sepolia",
           calls: spendCalls.map(call => ({
@@ -83,7 +88,7 @@ export class SpendPermissionAgent {
         console.log(`📡 Collection user operation sent: ${userOp.userOpHash}`);
 
         // Wait for confirmation
-        const result = await cdp.evm.waitForUserOperation({
+        const result = await cdp!.evm.waitForUserOperation({
           userOpHash: userOp.userOpHash,
           smartAccountAddress: wallet.smartAccount.address as Address,
         });
@@ -138,10 +143,15 @@ export class SpendPermissionAgent {
    * AI Agent decides when to trigger reward distribution based on collected funds
    */
   async shouldTriggerRewardDistribution(): Promise<boolean> {
+    // Check if CDP client is available (server-side only)
+    if (!cdp) {
+      throw new Error('CDP client not available - this function must be called server-side');
+    }
+    
     const wallet = await getRewardDistributorWallet();
     
     // Get current balance
-    const result = await cdp.evm.listTokenBalances({
+    const result = await cdp!.evm.listTokenBalances({
       address: wallet.smartAccount.address as Address,
       network: "base-sepolia"
     });

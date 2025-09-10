@@ -22,6 +22,11 @@ globalThis.__rewardDistributorWallet = rewardDistributorWallet;
 
 export async function getRewardDistributorWallet(): Promise<ServerWallet> {
   try {
+    // Check if CDP client is available (server-side only)
+    if (!cdp) {
+      throw new Error('CDP client not available - this function must be called server-side');
+    }
+
     // Check if wallet already exists
     if (globalThis.__rewardDistributorWallet?.smartAccount) {
       console.log('Found existing reward distributor wallet');
@@ -71,6 +76,11 @@ export async function getRewardDistributorWallet(): Promise<ServerWallet> {
 // Get wallet balance
 export const getWalletBalance = async (): Promise<{ eth: string; usd?: string }> => {
   try {
+    // Check if CDP client is available
+    if (!cdp) {
+      throw new Error('CDP client not available - this function must be called server-side');
+    }
+
     const wallet = await getRewardDistributorWallet();
     
     // Get ETH balance of the smart account (where funds are held for user operations)
@@ -112,6 +122,11 @@ export const distributeReward = async (
     console.log(`💸 Distributing ${amount} ETH to ${recipientAddress}`);
     console.log(`🏦 Using smart account address: ${wallet.smartAccount.address}`);
     
+    // Check if CDP client is available
+    if (!cdp) {
+      throw new Error('CDP client not available - this function must be called server-side');
+    }
+
     // Use sendUserOperation with smart account for gas sponsorship
     const userOp = await cdp.evm.sendUserOperation({
       smartAccount: wallet.smartAccount,
