@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     // Create Base Account SDK for spend permission operations
     const sdk = createBaseAccountSDK({
       appName: 'AroundTheWorld Game',
-      appChainIds: [84532], // Base Sepolia
+      appChainIds: [8453], // Base mainnet
     })
 
     // Step 1: Use spend permission to pull total reward pool from admin to server wallet

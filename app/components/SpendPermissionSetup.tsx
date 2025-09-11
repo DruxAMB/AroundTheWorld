@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { requestSpendPermission } from "@base-org/account/spend-permission";
 import { getRewardDistributorAddressesClient } from "@/lib/utils/wallet-storage";
 import { createBaseAccountSDK } from "@base-org/account";
+import { ETH_ADDRESS, DAILY_ALLOWANCE_ETH } from "@/lib/cdp/spend-permissions";
 
 interface SpendPermissionSetupProps {
   userAddress: string;
@@ -14,7 +15,7 @@ export function SpendPermissionSetup({
   userAddress,
   onPermissionGranted,
 }: SpendPermissionSetupProps) {
-  const [dailyLimit, setDailyLimit] = useState(0.000046); // 0.000046 ETH = ~$0.20
+  const [dailyLimit, setDailyLimit] = useState(DAILY_ALLOWANCE_ETH); // Default ETH allowance
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [walletAddresses, setWalletAddresses] = useState<{address: string, smartAccountAddress: string} | null>(null);
@@ -47,24 +48,22 @@ export function SpendPermissionSetup({
       console.log("Using smart account address (spender):", spenderAddress);
       console.log("Using server wallet address:", serverWalletAddress);
 
-      // ETH address (native ETH)
-      const ETH_ADDRESS = "0x0000000000000000000000000000000000000000";
-
       // Convert ETH to wei (18 decimals)
       const allowanceWei = BigInt(Math.floor(dailyLimit * 1e18));
 
       // Request spend permission from user's wallet (this requires user signature)
       console.log("Requesting spend permission from user...");
+      const sdk = createBaseAccountSDK({
+        appName: "AroundTheWorld Game",
+      });
       const permission = await requestSpendPermission({
         account: userAddress as `0x${string}`,
-        spender: spenderAddress as `0x${string}`,
-        token: ETH_ADDRESS as `0x${string}`,
-        chainId: 84532, // Base sepolia
-        allowance: allowanceWei,
-        periodInDays: 1, // Daily limit
-        provider: createBaseAccountSDK({
-          appName: "AroundTheWorld Game",
-        }).getProvider(),
+        spender: walletAddresses.address as `0x${string}`,
+        token: ETH_ADDRESS as `0x${string}`, // ETH on Base mainnet
+        chainId: 8453, // Base mainnet
+        allowance: allowanceWei, // Convert to ETH units (18 decimals)
+        periodInDays: 1,
+        provider: sdk.getProvider(),
       });
 
       console.log("Spend permission granted:", permission);
@@ -88,8 +87,8 @@ export function SpendPermissionSetup({
       </h3>
 
       <p className="text-gray-600 text-sm mb-6">
-        To play levels, you need to grant spend permissions. This allows the game
-        to charge 0.0000092 ETH (~$0.04) per level from your wallet.
+        To enable reward distribution, you need to grant spend permissions. This allows the server
+        to distribute ETH rewards from your admin wallet to players.
       </p>
 
       <div className="space-y-4">
@@ -104,22 +103,22 @@ export function SpendPermissionSetup({
             <input
               type="range"
               id="dailyLimit"
-              min="0.0000092"
-              max="0.000046"
-              step="0.0000092"
+              min="0.0001"
+              max="0.005"
+              step="0.0001"
               value={dailyLimit}
               onChange={(e) => setDailyLimit(Number(e.target.value))}
               className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
             />
             <div className="flex justify-between text-xs text-gray-500 mt-1">
-              <span>0.0000092 ETH</span>
+              <span>$0.0001</span>
               <span className="font-medium text-blue-600">
-                {dailyLimit.toFixed(8)} ETH (~${(dailyLimit * 43478).toFixed(2)})
+                ${dailyLimit.toFixed(8)} ETH
               </span>
-              <span>0.000046 ETH</span>
+              <span>$0.005</span>
             </div>
             <div className="text-center text-xs text-gray-500 mt-1">
-              Max {Math.floor(dailyLimit / 0.0000092)} levels per day
+              Max ${Math.floor(dailyLimit / 0.0001 * 0.0001).toFixed(2)} reward pool per day
             </div>
           </div>
         </div>
