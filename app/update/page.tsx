@@ -6,11 +6,12 @@ import RewardCalculator from '@/app/components/RewardCalculator';
 import LeaderboardReset from '@/app/components/LeaderboardReset';
 import PinAuth from '@/app/components/PinAuth';
 import RewardDistributionPanel from '@/app/components/RewardDistributionPanel';
-import SpendPermissionManager from '@/app/components/SpendPermissionManager';
+import { SpendPermissionSetup } from '@/app/components/SpendPermissionSetup';
 
 export default function AdminPage() {
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [adminAddress, setAdminAddress] = useState<string>('');
   
   // Check for existing authentication on mount
   useEffect(() => {
@@ -73,13 +74,29 @@ export default function AdminPage() {
             
             {/* Reward Distribution Panel */}
             <div className="mb-8">
-              <RewardDistributionPanel />
+              <RewardDistributionPanel 
+                onAdminConnect={(address: string) => setAdminAddress(address)}
+              />
             </div>
 
-            {/* Spend Permission Manager */}
-            <div className="mb-8">
-              <SpendPermissionManager />
-            </div>
+            {/* Spend Permission Setup */}
+            {adminAddress && (
+              <div className="mb-8">
+                <div className="bg-white rounded-lg shadow-md p-6">
+                  <h3 className="text-xl font-bold text-gray-800 mb-4">🔐 Spend Permission Setup</h3>
+                  <p className="text-gray-600 mb-4">
+                    Grant spend permission to enable automated reward distribution from your admin wallet.
+                  </p>
+                  <SpendPermissionSetup 
+                    userAddress={adminAddress}
+                    onPermissionGranted={() => {
+                      console.log('Spend permission granted successfully');
+                      // Refresh the page or update state as needed
+                    }}
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Leaderboard Reset Tool */}
             <div className="mb-8">

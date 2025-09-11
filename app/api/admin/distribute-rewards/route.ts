@@ -53,48 +53,49 @@ export async function POST(request: NextRequest) {
       appChainIds: [84532], // Base Sepolia
     })
 
-    // Step 1: Use spend permission to transfer total reward pool from admin to server wallet
+    // Step 1: Use spend permission to pull total reward pool from admin to server wallet
     const totalAmountWei = parseEther(totalAmount.toString())
     
     try {
-      console.log('Using spend permission to transfer reward pool from admin to server wallet...')
+      console.log(`Using spend permission to pull ${totalAmount} ETH from admin to server wallet`)
       
-      // Prepare spend call data to pull total reward pool from admin wallet to server wallet
+      // Prepare spend call data for total reward pool
       const spendCalls = await prepareSpendCallData(spendPermission, totalAmountWei)
 
-      // Execute the spend calls using the server wallet (as the authorized spender)
+      // Execute the spend calls - this transfers from admin wallet to server wallet
       const provider = sdk.getProvider()
       
-      // Submit the spend calls to transfer funds from admin to server wallet
       const poolTxHashes = await Promise.all(
         spendCalls.map(async (call) => {
           return await provider.request({
             method: "eth_sendTransaction",
             params: [{
               ...call,
-              from: serverWallet.address, // Server wallet executes as authorized spender
+              from: serverWallet.address, // Server executes as authorized spender
             }]
           })
         })
       )
       
-      console.log('Reward pool transferred to server wallet via spend permission:', poolTxHashes)
+      console.log('Reward pool transferred from admin to server wallet:', poolTxHashes)
       
     } catch (poolError) {
-      console.error('Failed to transfer reward pool from admin wallet:', poolError)
+      console.error('Failed to pull reward pool from admin wallet:', poolError)
       return NextResponse.json({ 
-        error: 'Failed to transfer reward pool from admin wallet using spend permission',
+        error: 'Failed to pull reward pool from admin wallet using spend permission',
         details: poolError instanceof Error ? poolError.message : 'Unknown error'
       }, { status: 500 })
     }
 
-    // Step 2: Now distribute from server wallet to individual players using CDP wallet
+    // Step 2: Distribute from server wallet to individual players
     const transferResults = []
     let totalDistributed = 0
 
     for (const reward of distribution) {
       try {
-        // Transfer from server wallet to player using CDP wallet
+        console.log(`Distributing ${reward.amount} ETH from server wallet to ${reward.address}`)
+        
+        // Use CDP wallet to transfer from server wallet to player
         const result = await distributeReward(
           reward.address,
           reward.amount,
@@ -102,7 +103,7 @@ export async function POST(request: NextRequest) {
         )
 
         if (result.success) {
-          console.log(`Direct transfer to ${reward.address}: ${reward.amount} ETH`, {
+          console.log(`Distribution completed: ${reward.amount} ETH to ${reward.address}`, {
             position: reward.position,
             percentage: reward.percentage,
             transactionHash: result.transactionHash
@@ -118,11 +119,11 @@ export async function POST(request: NextRequest) {
 
           totalDistributed += parseFloat(reward.amount)
         } else {
-          throw new Error(result.error || 'Transfer failed')
+          throw new Error(result.error || 'Distribution failed')
         }
 
       } catch (transferError) {
-        console.error(`Failed to transfer to ${reward.address}:`, transferError)
+        console.error(`Failed to distribute to ${reward.address}:`, transferError)
         
         transferResults.push({
           address: reward.address,
