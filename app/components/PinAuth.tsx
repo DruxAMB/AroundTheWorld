@@ -143,7 +143,7 @@ export default function PinAuth({ onAuthenticated }: PinAuthProps) {
                 transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                 className="inline-block mr-2"
               >
-                🔄
+                🌎
               </motion.span>
               Verifying...
             </span>

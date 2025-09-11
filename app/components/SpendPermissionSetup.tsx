@@ -60,7 +60,7 @@ export function SpendPermissionSetup({
         account: userAddress as `0x${string}`,
         spender: walletAddresses.address as `0x${string}`,
         token: ETH_ADDRESS as `0x${string}`, // ETH on Base mainnet
-        chainId: 8453, // Base mainnet
+        chainId: 84532, // Base mainnet
         allowance: allowanceWei, // Convert to ETH units (18 decimals)
         periodInDays: 1,
         provider: sdk.getProvider(),

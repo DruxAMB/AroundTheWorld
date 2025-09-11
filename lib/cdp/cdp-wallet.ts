@@ -116,7 +116,7 @@ export const getWalletBalance = async (): Promise<{ eth: string; usd?: string }>
     
     // Find ETH balance in the response (ETH contract address is 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE)
     const ethBalance = result.balances.find(balance => 
-      balance.token.contractAddress.toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' ||
+      balance.token.contractAddress.toLowerCase() === '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE' ||
       balance.token.symbol?.toLowerCase() === 'eth'
     );
     

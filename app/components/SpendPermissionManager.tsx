@@ -12,7 +12,7 @@ import {
 } from '@/lib/cdp/spend-permissions';
 
 // Get reward distributor address from server wallet
-let REWARD_DISTRIBUTOR_ADDRESS = "0x0000000000000000000000000000000000000000";
+let REWARD_DISTRIBUTOR_ADDRESS = "0x4200000000000000000000000000000000000011";
 
 // Fetch the actual server wallet address on component mount
 const fetchServerWalletAddress = async () => {
@@ -78,20 +78,38 @@ export default function SpendPermissionManager({
     if (!address || !serverWalletAddress) return;
     
     try {
+      console.log('🔍 Loading permissions for:', address, 'spender:', serverWalletAddress);
       const rawPermissions = await getUserSpendPermissions(address, serverWalletAddress);
+      
+      console.log('📋 Raw permissions:', rawPermissions);
+      console.log('📊 Permission count:', rawPermissions.length);
       
       const formattedPermissions: SpendPermissionUI[] = [];
       
       for (const rawPerm of rawPermissions) {
         try {
+          // Validate permissionHash exists (critical Base demo requirement)
+          if (!rawPerm.permissionHash) {
+            console.log('⚠️ Permission missing permissionHash, skipping:', rawPerm);
+            continue;
+          }
+
+          console.log('✅ Valid permission found:', {
+            permissionHash: rawPerm.permissionHash,
+            account: rawPerm.permission?.account,
+            spender: rawPerm.permission?.spender,
+            token: rawPerm.permission?.token,
+            allowance: rawPerm.permission?.allowance?.toString()
+          });
+
           const status = await checkSpendPermissionStatus(rawPerm);
           
           formattedPermissions.push({
-            id: `${rawPerm.permission?.account}-${rawPerm.permission?.spender}` || 'unknown',
+            id: rawPerm.permissionHash,
             allowance: formatEther(BigInt(rawPerm.permission?.allowance || '0')),
             period: rawPerm.permission?.period || 1,
-            start: 0, // Will be set by the permission system
-            end: 0,   // Will be set by the permission system
+            start: rawPerm.permission?.start || 0,
+            end: rawPerm.permission?.end || 0,
             isActive: status.isActive,
             remainingSpend: formatEther(status.remainingSpend || BigInt(0))
           });
@@ -100,6 +118,7 @@ export default function SpendPermissionManager({
         }
       }
       
+      console.log('🎯 Final formatted permissions:', formattedPermissions);
       setPermissions(formattedPermissions);
     } catch (error) {
       console.error('Failed to load permissions:', error);
@@ -248,7 +267,7 @@ export default function SpendPermissionManager({
                   transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                   className="inline-block mr-2"
                 >
-                  🔄
+                  🌎
                 </motion.span>
                 'Granting Permission...'
               </span>

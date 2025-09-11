@@ -16,12 +16,12 @@ module.exports = {
     base: {
       url: "https://mainnet.base.org",
       accounts: process.env.WALLET_PRIVATE_KEY ? [process.env.WALLET_PRIVATE_KEY] : [],
-      chainId: 8453,
+      chainId: 84532,
     },
     "base-sepolia": {
       url: "https://sepolia.base.org",
       accounts: process.env.WALLET_PRIVATE_KEY ? [process.env.WALLET_PRIVATE_KEY] : [],
-      chainId: 8453,
+      chainId: 84532,
     }
   },
   etherscan: {
@@ -32,7 +32,7 @@ module.exports = {
     customChains: [
       {
         network: "base",
-        chainId: 8453,
+        chainId: 84532,
         urls: {
           apiURL: "https://api.basescan.org/api",
           browserURL: "https://basescan.org",
@@ -40,7 +40,7 @@ module.exports = {
       },
       {
         network: "base-sepolia",
-        chainId: 8453,
+        chainId: 84532,
         urls: {
           apiURL: "https://api-sepolia.basescan.org/api",
           browserURL: "https://sepolia.basescan.org",

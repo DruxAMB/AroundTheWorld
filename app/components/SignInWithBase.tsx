@@ -94,7 +94,7 @@ export const SignInWithBaseButton = ({
         // Create SIWE message manually
         const domain = window.location.host;
         const uri = window.location.origin;
-        const message = `${domain} wants you to sign in with your Ethereum account:\n${address}\n\nAroundTheWorld Game Authentication\n\nURI: ${uri}\nVersion: 1\nChain ID: 8453\nNonce: ${nonce}\nIssued At: ${new Date().toISOString()}`;
+        const message = `${domain} wants you to sign in with your Ethereum account:\n${address}\n\nAroundTheWorld Game Authentication\n\nURI: ${uri}\nVersion: 1\nChain ID: 84532\nNonce: ${nonce}\nIssued At: ${new Date().toISOString()}`;
 
         // Request signature
         const signature = await provider.request({

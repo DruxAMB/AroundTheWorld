@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { SignInWithBaseButton } from '@/app/components/SignInWithBase';
 import { getRewardDistributorAddressesClient } from '@/lib/utils/wallet-storage';
+import { getUserSpendPermissions } from '@/lib/cdp/spend-permissions';
 
 interface DistributionHistory {
   timestamp: string;
@@ -51,7 +52,8 @@ export default function RewardDistributionPanel({ onDistribute, onAdminConnect }
       return;
     }
 
-    const storedPermission = localStorage.getItem('adminSpendPermission');
+    // Simple localStorage check like ChatInterface demo
+    const storedPermission = localStorage.getItem('spendPermission');
     if (!storedPermission) {
       setSpendPermissionStatus('none');
       return;
@@ -59,28 +61,12 @@ export default function RewardDistributionPanel({ onDistribute, onAdminConnect }
 
     try {
       const permission = JSON.parse(storedPermission);
-      
-      // Validate permission structure
-      if (!permission.account || !permission.spender || !permission.allowance) {
+      if (permission && permission.permissionHash) {
+        setSpendPermissionStatus('valid');
+      } else {
         setSpendPermissionStatus('invalid');
-        return;
       }
-      
-      // Verify permission account matches current admin address
-      if (permission.account.toLowerCase() !== adminAddress.toLowerCase()) {
-        setSpendPermissionStatus('invalid');
-        return;
-      }
-      
-      // Check if permission has expired (if it has an end date)
-      if (permission.end && Date.now() / 1000 > permission.end) {
-        setSpendPermissionStatus('expired');
-        return;
-      }
-      
-      setSpendPermissionStatus('valid');
     } catch (error) {
-      console.error('Error checking spend permission status:', error);
       setSpendPermissionStatus('invalid');
     }
   };
@@ -140,20 +126,8 @@ export default function RewardDistributionPanel({ onDistribute, onAdminConnect }
     if (!isWalletAuthenticated || !adminAddress) return false;
     if (!rewardPool || parseFloat(rewardPool) <= 0) return false;
     
-    // Check if spend permission exists and is valid
-    const storedPermission = localStorage.getItem('adminSpendPermission');
-    if (!storedPermission) return false;
-    
-    try {
-      const permission = JSON.parse(storedPermission);
-      // Validate permission structure
-      if (!permission.account || !permission.spender || !permission.allowance) return false;
-      // Verify permission account matches current admin address
-      if (permission.account.toLowerCase() !== adminAddress.toLowerCase()) return false;
-    } catch (error) {
-      console.error('Invalid spend permission format:', error);
-      return false;
-    }
+    // Check if spend permission is valid (using the async status we already checked)
+    if (spendPermissionStatus !== 'valid') return false;
     
     // Check if admin wallet has sufficient balance
     if (!adminWalletBalance || parseFloat(adminWalletBalance) < parseFloat(rewardPool)) return false;
@@ -175,17 +149,15 @@ export default function RewardDistributionPanel({ onDistribute, onAdminConnect }
 
     setIsLoading(true);
     try {
-      // First get the spend permission from localStorage or request it
-      const storedPermission = localStorage.getItem('adminSpendPermission');
-      let spendPermission = null;
-      
-      if (storedPermission) {
-        spendPermission = JSON.parse(storedPermission);
-      } else {
+      // Get stored spend permission like ChatInterface demo
+      const storedPermission = localStorage.getItem('spendPermission');
+      if (!storedPermission) {
         alert('No spend permission found. Please grant spend permission first.');
         setIsLoading(false);
         return;
       }
+
+      const spendPermission = JSON.parse(storedPermission);
 
       // Calculate AI-powered distribution
       const calculateResponse = await fetch('/api/admin/calculate-rewards', {

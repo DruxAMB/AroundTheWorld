@@ -59,12 +59,12 @@ export default function SpendPermissionTest() {
     try {
       const sdk = createBaseAccountSDK({
         appName: "AroundTheWorld Game",
-        appChainIds: [8453], // Base mainnet
+        appChainIds: [84532], // Base mainnet
       })
       
       const permissions = await fetchPermissions({
         account: userAddress as `0x${string}`,
-        chainId: 8453,
+        chainId: 84532,
         spender: serverWallet.smartAccountAddress as `0x${string}`,
         provider: sdk.getProvider(),
       })

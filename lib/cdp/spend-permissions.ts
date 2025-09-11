@@ -17,7 +17,7 @@ export interface SpendPermission {
   signature?: string;
 }
 
-export const ETH_ADDRESS = '0x0000000000000000000000000000000000000000';
+export const ETH_ADDRESS = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 export const LEVEL_COST_ETH = 0.00001; // ~$0.04
 export const DAILY_ALLOWANCE_ETH = 0.0005; // ~$0.20
 
@@ -33,14 +33,14 @@ export async function requestUserSpendPermission(
 
     const sdk = createBaseAccountSDK({
       appName: 'AroundTheWorld Game',
-      appChainIds: [8453], // Base sepolia
+      appChainIds: [84532], // Base sepolia
     });
 
     const permission = await requestSpendPermission({
       account: userAccount as `0x${string}`,
       spender: spenderAccount as `0x${string}`,
       token: ETH_ADDRESS as `0x${string}`,
-      chainId: 8453, // Base sepolia
+      chainId: 84532, // Base sepolia
       allowance: allowanceWei,
       periodInDays: 1,
       provider: sdk.getProvider(),
@@ -52,7 +52,7 @@ export async function requestUserSpendPermission(
       account: userAccount,
       spender: spenderAccount,
       token: ETH_ADDRESS,
-      chainId: 8453, // Base sepolia
+      chainId: 84532, // Base sepolia
       allowance: allowanceWei,
       periodInDays: 1,
       ...permission
@@ -77,13 +77,13 @@ export async function getUserSpendPermissions(
 
     console.log('📡 Calling fetchPermissions with:');
     console.log('  - account:', userAccount);
-    console.log('  - chainId: 8453');
+    console.log('  - chainId: 84532');
     console.log('  - spender:', spenderAccount);
     console.log('  - ETH_ADDRESS:', ETH_ADDRESS);
 
     const permissions = await fetchPermissions({
       account: userAccount as `0x${string}`,
-      chainId: 8453,
+      chainId: 84532,
       spender: spenderAccount as `0x${string}`,
       provider,
     });

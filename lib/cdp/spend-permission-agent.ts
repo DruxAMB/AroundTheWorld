@@ -157,7 +157,7 @@ export class SpendPermissionAgent {
     });
     
     const ethBalance = result.balances.find(balance => 
-      balance.token.contractAddress.toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' ||
+      balance.token.contractAddress.toLowerCase() === '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE' ||
       balance.token.symbol?.toLowerCase() === 'eth'
     );
     
