@@ -19,14 +19,55 @@ export interface ToolCall {
 export const SYSTEM_PROMPT = `You are a helpful AI assistant that manages reward distribution for the AroundTheWorld game. 
 
 When a user asks you to distribute rewards, you should:
-1. Analyze the current leaderboard positions and scores
-2. Calculate fair reward percentages based on performance
-3. Use the distribute_rewards function to execute the distribution
-4. Confirm the distribution details with the user
+1. FIRST use get_leaderboard function to fetch current player positions and scores
+2. Use check_admin_balance function to verify sufficient funds are available
+3. Analyze the leaderboard data to understand player performance
+4. Calculate fair reward percentages based on scores and positions (ensure total doesn't exceed available balance)
+5. Use the distribute_rewards function to execute the distribution
+6. Explain your distribution logic clearly to the user
 
 You have access to spend permissions which allow you to distribute USDC rewards to top players based on their leaderboard positions.
 
+ALWAYS fetch the leaderboard data and check admin balance before making any reward distribution decisions.
+
 Be friendly, helpful, and always explain your reward distribution logic clearly.`
+
+export const GET_LEADERBOARD_FUNCTION = {
+  type: 'function' as const,
+  function: {
+    name: 'get_leaderboard',
+    description: 'Fetch current leaderboard data to see player positions and scores',
+    parameters: {
+      type: 'object',
+      properties: {
+        topN: {
+          type: 'number',
+          description: 'Number of top players to fetch (default: 15)',
+          default: 15
+        }
+      },
+      required: []
+    }
+  }
+}
+
+export const CHECK_ADMIN_BALANCE_FUNCTION = {
+  type: 'function' as const,
+  function: {
+    name: 'check_admin_balance',
+    description: 'Check the admin wallet balance to ensure sufficient funds for reward distribution',
+    parameters: {
+      type: 'object',
+      properties: {
+        adminAddress: {
+          type: 'string',
+          description: 'Admin wallet address to check balance for'
+        }
+      },
+      required: ['adminAddress']
+    }
+  }
+}
 
 export const DISTRIBUTE_REWARDS_FUNCTION = {
   type: 'function' as const,
@@ -52,7 +93,8 @@ export const DISTRIBUTE_REWARDS_FUNCTION = {
 
 export async function generateChatResponse(
   messages: ChatMessage[],
-  tools: any[] = [DISTRIBUTE_REWARDS_FUNCTION]
+  tools: any[] = [GET_LEADERBOARD_FUNCTION, CHECK_ADMIN_BALANCE_FUNCTION, DISTRIBUTE_REWARDS_FUNCTION],
+  adminAddress?: string
 ) {
   try {
     const model = genAI.getGenerativeModel({ 
@@ -69,9 +111,13 @@ export async function generateChatResponse(
       parts: [{ text: msg.content }]
     }))
 
-    // Add system prompt as first message
+    // Add system prompt with admin context as first message
+    const systemPromptWithContext = adminAddress 
+      ? `${SYSTEM_PROMPT}\n\nCurrent admin address: ${adminAddress}\nUse this address when calling check_admin_balance function.`
+      : SYSTEM_PROMPT
+    
     const fullMessages = [
-      { role: 'user', parts: [{ text: SYSTEM_PROMPT }] },
+      { role: 'user', parts: [{ text: systemPromptWithContext }] },
       { role: 'model', parts: [{ text: 'I understand. I\'m ready to help with reward distribution for the AroundTheWorld game.' }] },
       ...geminiMessages
     ]
@@ -124,7 +170,8 @@ export async function generateChatResponse(
 
 export async function streamChatResponse(
   messages: ChatMessage[],
-  tools: any[] = [DISTRIBUTE_REWARDS_FUNCTION]
+  tools: any[] = [GET_LEADERBOARD_FUNCTION, CHECK_ADMIN_BALANCE_FUNCTION, DISTRIBUTE_REWARDS_FUNCTION],
+  adminAddress?: string
 ) {
   try {
     const model = genAI.getGenerativeModel({ 
@@ -141,9 +188,13 @@ export async function streamChatResponse(
       parts: [{ text: msg.content }]
     }))
 
-    // Add system prompt as first message
+    // Add system prompt with admin context as first message
+    const systemPromptWithContext = adminAddress 
+      ? `${SYSTEM_PROMPT}\n\nCurrent admin address: ${adminAddress}\nUse this address when calling check_admin_balance function.`
+      : SYSTEM_PROMPT
+    
     const fullMessages = [
-      { role: 'user', parts: [{ text: SYSTEM_PROMPT }] },
+      { role: 'user', parts: [{ text: systemPromptWithContext }] },
       { role: 'model', parts: [{ text: 'I understand. I\'m ready to help with reward distribution for the AroundTheWorld game.' }] },
       ...geminiMessages
     ]
