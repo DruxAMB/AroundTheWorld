@@ -26,7 +26,7 @@ export const SignInWithBaseButton = ({
       // 1 — Get a fresh nonce from the server
       const nonceResponse = await fetch('/api/auth/verify', { method: 'GET' });
       const { nonce } = await nonceResponse.json();
-
+      
       console.log('Using nonce:', nonce);
 
       const ethRequestAccountsResponse = await provider.request({

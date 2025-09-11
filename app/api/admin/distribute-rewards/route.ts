@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getRewardDistributorWallet, distributeReward } from '@/lib/cdp/cdp-wallet'
-import { parseEther, formatEther } from 'viem'
+import { executeSpendPermissionAndDistribute, USDC_BASE_ADDRESS } from '@/lib/cdp/cdp'
+import { parseUnits, formatUnits } from 'viem'
 
 interface RewardDistribution {
   address: string
@@ -57,18 +57,10 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // Get server wallet for executing spend permissions
-    const serverWallet = await getRewardDistributorWallet()
-    
-    if (!serverWallet) {
-      return NextResponse.json({ error: 'Failed to initialize server wallet' }, { status: 500 })
-    }
-
-    console.log('Starting reward distribution using spend permissions:', {
+    console.log('Starting atomic spend permission + reward distribution:', {
       totalRecipients: distribution.length,
       totalAmount,
       adminAddress,
-      serverWalletAddress: serverWallet.address,
       permissionDetails: {
         account: permission.account,
         spender: permission.spender,
@@ -77,63 +69,44 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // NOTE: Spend permissions should be executed client-side in a batch transaction
-    // The proper flow is:
-    // 1. Client creates batch transaction with: approve permission + pull funds to server wallet
-    // 2. Server wallet distributes to recipients
-    // 
-    // For now, we assume the admin has already executed the spend permission
-    // and transferred funds to the server wallet before calling this API
-    console.log('💡 Spend permission execution should happen client-side before calling this API')
-    console.log('Server wallet should already have the reward pool funds available')
+    // Prepare spend permission calls to pull USDC from admin wallet
+    const spendPermissionCalls = [{
+      to: permission.spender, // Server wallet address that will pull funds
+      data: permission.signature || permission.data || '0x' // Spend permission execution data
+    }]
 
-    // Step 2: Distribute from server wallet to individual players
-    const transferResults = []
-    let totalDistributed = 0
+    // Convert reward amounts to USDC (6 decimals)
+    const usdcDistributions = distribution.map(reward => ({
+      address: reward.address,
+      amount: parseUnits(reward.amount, 6).toString() // Convert to USDC wei (6 decimals)
+    }))
 
-    for (const reward of distribution) {
-      try {
-        console.log(`Distributing ${reward.amount} ETH from server wallet to ${reward.address}`)
-        
-        // Use CDP wallet to transfer from server wallet to player
-        const result = await distributeReward(
-          reward.address,
-          reward.amount,
-          `Reward for position ${reward.position} (${reward.percentage}%)`
-        )
+    console.log('Executing atomic spend permission + distribution transaction')
+    
+    // Execute atomic transaction: pull funds + distribute rewards
+    const result = await executeSpendPermissionAndDistribute(
+      spendPermissionCalls,
+      usdcDistributions,
+      adminAddress
+    )
 
-        if (result.success) {
-          console.log(`Distribution completed: ${reward.amount} ETH to ${reward.address}`, {
-            position: reward.position,
-            percentage: reward.percentage,
-            transactionHash: result.transactionHash
-          })
-
-          transferResults.push({
-            address: reward.address,
-            position: reward.position,
-            amount: reward.amount,
-            transactionHash: result.transactionHash,
-            status: 'success'
-          })
-
-          totalDistributed += parseFloat(reward.amount)
-        } else {
-          throw new Error(result.error || 'Distribution failed')
-        }
-
-      } catch (transferError) {
-        console.error(`Failed to distribute to ${reward.address}:`, transferError)
-        
-        transferResults.push({
-          address: reward.address,
-          position: reward.position,
-          amount: reward.amount,
-          status: 'failed',
-          error: transferError instanceof Error ? transferError.message : 'Unknown error'
-        })
-      }
+    if (!result.success) {
+      return NextResponse.json({ 
+        error: 'Failed to execute spend permission and distribution',
+        details: result.error
+      }, { status: 500 })
     }
+
+    // Prepare transfer results for response
+    const transferResults = distribution.map(reward => ({
+      address: reward.address,
+      position: reward.position,
+      amount: reward.amount,
+      transactionHash: result.transactionHash,
+      status: 'success'
+    }))
+
+    const totalDistributed = distribution.reduce((sum, reward) => sum + parseFloat(reward.amount), 0)
 
     // Send notifications to winners
     try {

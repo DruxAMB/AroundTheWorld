@@ -8,10 +8,13 @@ import PinAuth from '@/app/components/PinAuth';
 import RewardDistributionPanel from '@/app/components/RewardDistributionPanel';
 import { SpendPermissionSetup } from '@/app/components/SpendPermissionSetup';
 
+type TabType = 'rewards' | 'broadcast' | 'leaderboard';
+
 export default function AdminPage() {
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [adminAddress, setAdminAddress] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<TabType>('rewards');
   
   // Check for existing authentication on mount
   useEffect(() => {
@@ -51,10 +54,17 @@ export default function AdminPage() {
           <PinAuth onAuthenticated={handleAuthenticated} />
         ) : (
           <>
-            {/* Admin Tools Section */}
+            {/* Header with Logout */}
             <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-gray-800">Admin Tools</h2>
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-4">
+                  <button 
+                    onClick={() => setIsCalculatorOpen(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                  >
+                    🧮 Reward Calculator
+                  </button>
+                </div>
                 <button
                   onClick={handleLogout}
                   className="px-3 py-1 text-sm text-red-600 border border-red-600 rounded-md hover:bg-red-50"
@@ -62,48 +72,81 @@ export default function AdminPage() {
                   Logout
                 </button>
               </div>
-              <div className="flex flex-wrap gap-3">
-                <button 
-                  onClick={() => setIsCalculatorOpen(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-                >
-                  🧮 Reward Calculator
-                </button>
-              </div>
-            </div>
-            
-            {/* Reward Distribution Panel */}
-            <div className="mb-8">
-              <RewardDistributionPanel 
-                onAdminConnect={(address: string) => setAdminAddress(address)}
-              />
             </div>
 
-            {/* Spend Permission Setup */}
-            {adminAddress && (
-              <div className="mb-8">
-                <div className="bg-white rounded-lg shadow-md p-6">
-                  <h3 className="text-xl font-bold text-gray-800 mb-4">🔐 Spend Permission Setup</h3>
-                  <p className="text-gray-600 mb-4">
-                    Grant spend permission to enable automated reward distribution from your admin wallet.
-                  </p>
-                  <SpendPermissionSetup 
-                    userAddress={adminAddress}
-                    onPermissionGranted={() => {
-                      console.log('Spend permission granted successfully');
-                      // Refresh the page or update state as needed
-                    }}
-                  />
-                </div>
+            {/* Tab Navigation */}
+            <div className="bg-white rounded-lg shadow-md mb-8">
+              <div className="border-b border-gray-200">
+                <nav className="flex space-x-8 px-6">
+                  <button
+                    onClick={() => setActiveTab('rewards')}
+                    className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                      activeTab === 'rewards'
+                        ? 'border-blue-500 text-blue-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    🎁 Reward Distribution
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('broadcast')}
+                    className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                      activeTab === 'broadcast'
+                        ? 'border-blue-500 text-blue-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    📢 Broadcast Notifications
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('leaderboard')}
+                    className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                      activeTab === 'leaderboard'
+                        ? 'border-blue-500 text-blue-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    ⚙️ Reset Leaderboard
+                  </button>
+                </nav>
               </div>
-            )}
 
-            {/* Leaderboard Reset Tool */}
-            <div className="mb-8">
-              <LeaderboardReset />
+              {/* Tab Content */}
+              <div className="p-6">
+                {activeTab === 'rewards' && (
+                  <div className="space-y-8">
+                    {/* Reward Distribution Panel */}
+                    <RewardDistributionPanel 
+                      onAdminConnect={(address: string) => setAdminAddress(address)}
+                    />
+
+                    {/* Spend Permission Setup */}
+                    {adminAddress && (
+                      <div className="border-t pt-8">
+                        <h3 className="text-xl font-bold text-gray-800 mb-4">🔐 Spend Permission Setup</h3>
+                        <p className="text-gray-600 mb-4">
+                          Grant spend permission to enable automated reward distribution from your admin wallet.
+                        </p>
+                        <SpendPermissionSetup 
+                          userAddress={adminAddress}
+                          onPermissionGranted={() => {
+                            console.log('Spend permission granted successfully');
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {activeTab === 'broadcast' && (
+                  <BroadcastNotifications />
+                )}
+
+                {activeTab === 'leaderboard' && (
+                  <LeaderboardReset />
+                )}
+              </div>
             </div>
-            
-            <BroadcastNotifications />
           </>
         )}
         {/* Reward Calculator Modal */}

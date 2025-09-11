@@ -6,6 +6,8 @@ import { createBaseAccountSDK } from '@base-org/account';
 import { getRewardDistributorAddressesClient } from '@/lib/utils/wallet-storage';
 import { motion } from 'framer-motion';
 import { SignInWithBaseButton } from './SignInWithBase';
+import { RewardChatInterface } from './RewardChatInterface';
+import { SpendPermissionSetup } from './SpendPermissionSetup';
 
 interface DistributionHistory {
   timestamp: string;
@@ -242,24 +244,29 @@ export default function RewardDistributionPanel({ onDistribute, onAdminConnect }
       }
       
       const spendCalls = await prepareSpendCallData(spendPermission, totalAmountWei);
+      console.log('Prepared spend calls:', spendCalls);
 
-      // Execute the spend calls to transfer from admin to server wallet
-      const provider = sdk.getProvider();
-      
-      console.log('Transferring reward pool from admin to server wallet...');
-      const poolTxHashes = await Promise.all(
-        spendCalls.map(async (call) => {
-          return await provider.request({
-            method: "eth_sendTransaction",
-            params: [{
-              ...call,
-              from: adminAddress, // Admin wallet executes the spend
-            }]
-          });
+      // Send spend calls to backend for execution via CDP with paymaster (Base demo pattern)
+      console.log('Sending spend calls to server for execution with gas sponsorship...');
+      const spendResponse = await fetch('/api/admin/execute-spend-permission', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          spendCalls,
+          adminPin,
+          rewardPool: parseFloat(rewardPool),
+          userAddress: adminAddress // Admin address for server wallet lookup
         })
-      );
-      
-      console.log('Reward pool transferred:', poolTxHashes);
+      });
+
+      if (!spendResponse.ok) {
+        throw new Error('Failed to execute spend permission');
+      }
+
+      const spendResult = await spendResponse.json();
+      console.log('Spend calls executed by server with gas sponsorship:', spendResult);
       
       // Step 2: Execute the distribution from server wallet to players
       const response = await fetch('/api/admin/distribute-rewards', {
@@ -415,65 +422,82 @@ export default function RewardDistributionPanel({ onDistribute, onAdminConnect }
         </div>
       </div>
 
-      {/* Current Leaderboard Preview */}
-      <div className="mb-6">
-        <h4 className="font-medium mb-3">Current {selectedTimeframe} Leaderboard (Top 5)</h4>
-        <div className="bg-gray-50 rounded-lg p-4">
-          {currentLeaderboard.slice(0, 5).map((player, index) => (
-            <div key={player.playerId} className="flex items-center justify-between py-2 border-b border-gray-200 last:border-b-0">
-              <div className="flex items-center">
-                <span className="w-8 h-8 bg-blue-100 text-blue-800 rounded-full flex items-center justify-center text-sm font-medium mr-3">
-                  {index + 1}
-                </span>
-                <div>
-                  <p className="font-medium">{player.name}</p>
-                  <p className="text-sm text-gray-500">{player.playerId.slice(0, 8)}...</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="font-medium">{player.score.toLocaleString()}</p>
-                <p className="text-sm text-gray-500">Level {player.bestLevel}</p>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* AI Chat Interface - Left Side (2/3 width) */}
+            <div className="lg:col-span-2">
+              <div className="bg-white rounded-2xl shadow-lg border border-slate-200 chat-container overflow-hidden h-[600px]">
+                <RewardChatInterface isAuthenticated={true} userAddress={adminAddress} />
               </div>
             </div>
-          ))}
-          {currentLeaderboard.length === 0 && (
-            <p className="text-gray-500 text-center py-4">No eligible players found</p>
-          )}
-        </div>
-      </div>
+            
+            {/* Reward Management Panel - Right Side (1/3 width) */}
+            <div className="lg:col-span-1">
+              <div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden h-[600px] p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Reward Management</h3>
+                
+                {/* Current Leaderboard Preview */}
+                <div className="mb-6">
+                  <h4 className="font-medium mb-3">Current {selectedTimeframe} Leaderboard (Top 5)</h4>
+                  <div className="bg-gray-50 rounded-lg p-4 max-h-48 overflow-y-auto">
+                    {currentLeaderboard.slice(0, 5).map((player, index) => (
+                      <div key={player.playerId} className="flex items-center justify-between py-2 border-b border-gray-200 last:border-b-0">
+                        <div className="flex items-center">
+                          <span className="w-6 h-6 bg-blue-100 text-blue-800 rounded-full flex items-center justify-center text-xs font-medium mr-2">
+                            {index + 1}
+                          </span>
+                          <div>
+                            <p className="font-medium text-sm">{player.name}</p>
+                            <p className="text-xs text-gray-500">{player.playerId.slice(0, 8)}...</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-medium text-sm">{player.score.toLocaleString()}</p>
+                          <p className="text-xs text-gray-500">Level {player.bestLevel}</p>
+                        </div>
+                      </div>
+                    ))}
+                    {currentLeaderboard.length === 0 && (
+                      <p className="text-gray-500 text-center py-4 text-sm">No eligible players found</p>
+                    )}
+                  </div>
+                </div>
 
-      {/* Distribution History */}
-      <div>
-        <h4 className="font-medium mb-3">Recent Distributions</h4>
-        <div className="space-y-2 max-h-64 overflow-y-auto">
-          {distributionHistory.map((distribution, index) => (
-            <div key={index} className="bg-gray-50 rounded-lg p-3">
-              <div className="flex items-center justify-between">
+                {/* Distribution History */}
                 <div>
-                  <p className="font-medium capitalize">{distribution.timeframe} Distribution</p>
-                  <p className="text-sm text-gray-500">{formatDate(distribution.timestamp)}</p>
+                  <h4 className="font-medium mb-3">Recent Distributions</h4>
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {distributionHistory.map((distribution, index) => (
+                      <div key={index} className="bg-gray-50 rounded-lg p-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium text-sm capitalize">{distribution.timeframe} Distribution</p>
+                            <p className="text-xs text-gray-500">{formatDate(distribution.timestamp)}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-medium text-sm">{formatEth(distribution.totalAmount)} USDC</p>
+                            <p className="text-xs text-gray-500">{distribution.recipientCount} recipients</p>
+                          </div>
+                        </div>
+                        <div className="mt-2">
+                          <span className={`inline-block px-2 py-1 text-xs rounded-full ${
+                            distribution.triggerType === 'automated' 
+                              ? 'bg-blue-100 text-blue-800' 
+                              : 'bg-purple-100 text-purple-800'
+                          }`}>
+                            {distribution.triggerType}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                    {distributionHistory.length === 0 && (
+                      <p className="text-gray-500 text-center py-4 text-sm">No recent distributions</p>
+                    )}
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="font-medium">{formatEth(distribution.totalAmount)} ETH</p>
-                  <p className="text-sm text-gray-500">{distribution.recipientCount} recipients</p>
-                </div>
-              </div>
-              <div className="mt-2">
-                <span className={`inline-block px-2 py-1 text-xs rounded-full ${
-                  distribution.triggerType === 'automated' 
-                    ? 'bg-blue-100 text-blue-800' 
-                    : 'bg-purple-100 text-purple-800'
-                }`}>
-                  {distribution.triggerType}
-                </span>
               </div>
             </div>
-          ))}
-          {distributionHistory.length === 0 && (
-            <p className="text-gray-500 text-center py-4">No recent distributions</p>
-          )}
-        </div>
+          </div>
       </div>
-    </div>
   );
 }

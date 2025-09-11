@@ -1,10 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { requestSpendPermission } from "@base-org/account/spend-permission";
-import { getRewardDistributorAddressesClient } from "@/lib/utils/wallet-storage";
 import { createBaseAccountSDK } from "@base-org/account";
-import { ETH_ADDRESS, DAILY_ALLOWANCE_ETH } from "@/lib/cdp/spend-permissions";
 
 interface SpendPermissionSetupProps {
   userAddress: string;
@@ -15,63 +13,59 @@ export function SpendPermissionSetup({
   userAddress,
   onPermissionGranted,
 }: SpendPermissionSetupProps) {
-  const [dailyLimit, setDailyLimit] = useState(DAILY_ALLOWANCE_ETH); // Default ETH allowance
+  const [weeklyLimit, setWeeklyLimit] = useState(50);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [walletAddresses, setWalletAddresses] = useState<{address: string, smartAccountAddress: string} | null>(null);
-
-  useEffect(() => {
-    const loadWalletAddresses = async () => {
-      try {
-        const addresses = await getRewardDistributorAddressesClient();
-        setWalletAddresses(addresses);
-      } catch (error) {
-        console.error('Failed to load wallet addresses:', error);
-        setError('Failed to load wallet addresses');
-      }
-    };
-    loadWalletAddresses();
-  }, []);
 
   const handleSetupPermission = async () => {
     setIsLoading(true);
     setError("");
 
     try {
-      if (!walletAddresses) {
-        throw new Error('Wallet addresses not loaded');
+      // First create server wallet to get the spender address
+      const walletResponse = await fetch("/api/wallet/create", {
+        method: "POST",
+      });
+
+      if (!walletResponse.ok) {
+        throw new Error("Failed to create server wallet");
       }
 
-      const spenderAddress = walletAddresses.smartAccountAddress;
-      const serverWalletAddress = walletAddresses.address;
+      const walletData = await walletResponse.json();
+      const spenderAddress = walletData.smartAccountAddress;
 
-      console.log("Using smart account address (spender):", spenderAddress);
-      console.log("Using server wallet address:", serverWalletAddress);
+      if (!spenderAddress) {
+        throw new Error("Smart account address not found");
+      }
 
-      // Convert ETH to wei (18 decimals)
-      const allowanceWei = BigInt(Math.floor(dailyLimit * 1e18));
+      console.log("Smart account address (spender):", spenderAddress);
+      console.log("Server wallet address:", walletData.address);
+
+      // USDC address on Base mainnet
+      const USDC_BASE_ADDRESS = "0x036CbD53842c5426634e7929541eC2318f3dCF7e";
+
+      // Convert USD to USDC (6 decimals)
+      const allowanceUSDC = BigInt(weeklyLimit * 1_000_000);
 
       // Request spend permission from user's wallet (this requires user signature)
       console.log("Requesting spend permission from user...");
-      const sdk = createBaseAccountSDK({
-        appName: "AroundTheWorld Game",
-      });
       const permission = await requestSpendPermission({
         account: userAddress as `0x${string}`,
-        spender: walletAddresses.address as `0x${string}`,
-        token: ETH_ADDRESS as `0x${string}`, // ETH on Base sepolia
-        chainId: 84532, // Base seploia
-        allowance: allowanceWei, // Convert to ETH units (18 decimals)
-        periodInDays: 1,
-        start: new Date(), // Start immediately (current time)
-        provider: sdk.getProvider(),
+        spender: spenderAddress as `0x${string}`,
+        token: USDC_BASE_ADDRESS as `0x${string}`,
+        chainId: 84532, // Base mainnet
+        allowance: allowanceUSDC,
+        periodInDays: 7, // Weekly limit
+        provider: createBaseAccountSDK({
+          appName: "AroundTheWorld Game",
+        }).getProvider(),
       });
 
       console.log("Spend permission granted:", permission);
 
       // Store the permission for later use
       localStorage.setItem("spendPermission", JSON.stringify(permission));
-
+      
       onPermissionGranted();
     } catch (error) {
       console.error("Permission setup error:", error);
@@ -88,38 +82,33 @@ export function SpendPermissionSetup({
       </h3>
 
       <p className="text-gray-600 text-sm mb-6">
-        To enable reward distribution, you need to grant spend permissions. This allows the server
-        to distribute ETH rewards from your admin wallet to players.
+        Grant spend permissions for weekly reward distribution. This allows the AI agent to 
+        pull USDC from your wallet and distribute rewards to players automatically.
       </p>
 
       <div className="space-y-4">
         <div>
           <label
-            htmlFor="dailyLimit"
+            htmlFor="weeklyLimit"
             className="block text-sm font-medium text-gray-700"
           >
-            Daily Spend Permission (ETH)
+            Weekly Spend Permission (USD)
           </label>
           <div className="mt-1">
             <input
               type="range"
-              id="dailyLimit"
-              min="0.0001"
-              max="0.01"
-              step="0.0001"
-              value={dailyLimit}
-              onChange={(e) => setDailyLimit(Number(e.target.value))}
+              id="weeklyLimit"
+              min="1"
+              max="20"
+              step="1"
+              value={weeklyLimit}
+              onChange={(e) => setWeeklyLimit(Number(e.target.value))}
               className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
             />
             <div className="flex justify-between text-xs text-gray-500 mt-1">
-              <span>$0.0001</span>
-              <span className="font-medium text-blue-600">
-                ${dailyLimit.toFixed(8)} ETH
-              </span>
-              <span>$0.01</span>
-            </div>
-            <div className="text-center text-xs text-gray-500 mt-1">
-              Max ${Math.floor(dailyLimit / 0.0001 * 0.0001).toFixed(2)} reward pool per day
+              <span>$1.00</span>
+              <span className="font-medium text-blue-600">${weeklyLimit.toFixed(2)}</span>
+              <span>$20.00</span>
             </div>
           </div>
         </div>
@@ -137,14 +126,14 @@ export function SpendPermissionSetup({
         >
           {isLoading
             ? "Setting up..."
-            : `Grant ${dailyLimit.toFixed(8)} ETH/day Spend Permission`}
+            : `Grant $${weeklyLimit.toFixed(2)}/week Spend Permission`}
         </button>
       </div>
 
       <div className="mt-4 text-xs text-gray-500">
         <p>
-          💡 This creates a secure spend permission that allows the game to
-          charge up to {dailyLimit.toFixed(8)} ETH per day from your wallet for level play.
+          💡 This creates a secure spend permission that allows the agent to
+          spend up to ${weeklyLimit.toFixed(2)} per week from your wallet for reward distribution.
           Gas fees are sponsored automatically.
         </p>
       </div>

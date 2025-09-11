@@ -1,315 +1,199 @@
-'use client';
+'use client'
 
-import { useState, useEffect } from 'react';
-import { useAccount } from 'wagmi';
-import { formatEther } from 'viem';
-import { motion } from 'framer-motion';
-import { 
-  requestUserSpendPermission, 
-  getUserSpendPermissions, 
-  revokeSpendPermission,
-  checkSpendPermissionStatus 
-} from '@/lib/cdp/spend-permissions';
-
-// Get reward distributor address from server wallet
-let REWARD_DISTRIBUTOR_ADDRESS = "0x4200000000000000000000000000000000000011";
-
-// Fetch the actual server wallet address on component mount
-const fetchServerWalletAddress = async () => {
-  try {
-    const response = await fetch('/api/rewards/distribute');
-    if (response.ok) {
-      const data = await response.json();
-      // The server will return the wallet address in the response
-      return data.serverWalletAddress;
-    }
-  } catch (error) {
-    console.error('Failed to fetch server wallet address:', error);
-  }
-  return null;
-};
-
-interface SpendPermissionUI {
-  id: string;
-  allowance: string;
-  period: number;
-  start: number;
-  end: number;
-  isActive: boolean;
-  remainingSpend?: string;
-}
+import React, { useState, useEffect } from 'react'
+import { getUserSpendPermissions, revokeSpendPermission } from '@/lib/cdp/spend-permissions'
 
 interface SpendPermissionManagerProps {
-  onPermissionGranted?: (permissionId: string) => void;
-  onPermissionRevoked?: (permissionId: string) => void;
+  isAuthenticated: boolean
+  userAddress?: string
 }
 
-export default function SpendPermissionManager({ 
-  onPermissionGranted, 
-  onPermissionRevoked 
-}: SpendPermissionManagerProps) {
-  const { address, isConnected } = useAccount();
+export function SpendPermissionManager({ isAuthenticated, userAddress }: SpendPermissionManagerProps) {
+  const [permissions, setPermissions] = useState<any[]>([])
+  const [isLoadingPermissions, setIsLoadingPermissions] = useState(true)
+  const [isRevoking, setIsRevoking] = useState(false)
+  const [permissionError, setPermissionError] = useState('')
 
-  const [allowanceAmount, setAllowanceAmount] = useState('0.01');
-  const [duration, setDuration] = useState(30); // days
-  const [isLoading, setIsLoading] = useState(false);
-  const [permissions, setPermissions] = useState<SpendPermissionUI[]>([]);
-  const [serverWalletAddress, setServerWalletAddress] = useState<string>('');
-  const [showGrantForm, setShowGrantForm] = useState(false);
-
-  // Load server wallet address and permissions
   useEffect(() => {
-    const initializeComponent = async () => {
-      const walletAddr = await fetchServerWalletAddress();
-      if (walletAddr) {
-        setServerWalletAddress(walletAddr);
-        REWARD_DISTRIBUTOR_ADDRESS = walletAddr;
-      }
-      
-      if (address && walletAddr) {
-        loadPermissions();
-      }
-    };
-    
-    initializeComponent();
-  }, [address]);
+    if (isAuthenticated && userAddress) {
+      loadPermissions()
+    }
+  }, [isAuthenticated, userAddress])
 
   const loadPermissions = async () => {
-    if (!address || !serverWalletAddress) return;
+    if (!userAddress) {
+      console.log('❌ No userAddress provided to loadPermissions')
+      return
+    }
     
+    console.log('🔍 Starting to load permissions for user:', userAddress)
+    setIsLoadingPermissions(true)
     try {
-      console.log('🔍 Loading permissions for:', address, 'spender:', serverWalletAddress);
-      const rawPermissions = await getUserSpendPermissions(address, serverWalletAddress);
-      
-      console.log('📋 Raw permissions:', rawPermissions);
-      console.log('📊 Permission count:', rawPermissions.length);
-      
-      const formattedPermissions: SpendPermissionUI[] = [];
-      
-      for (const rawPerm of rawPermissions) {
-        try {
-          // Validate permissionHash exists (critical Base demo requirement)
-          if (!rawPerm.permissionHash) {
-            console.log('⚠️ Permission missing permissionHash, skipping:', rawPerm);
-            continue;
-          }
+      // Get server wallet address
+      console.log('📡 Fetching server wallet address...')
+      const walletResponse = await fetch("/api/wallet/create", {
+        method: "POST",
+      });
 
-          console.log('✅ Valid permission found:', {
-            permissionHash: rawPerm.permissionHash,
-            account: rawPerm.permission?.account,
-            spender: rawPerm.permission?.spender,
-            token: rawPerm.permission?.token,
-            allowance: rawPerm.permission?.allowance?.toString()
-          });
+      console.log('📡 Wallet API response status:', walletResponse.status)
+      if (!walletResponse.ok) {
+        throw new Error(`Failed to get server wallet: ${walletResponse.status}`)
+      }
 
-          const status = await checkSpendPermissionStatus(rawPerm);
-          
-          formattedPermissions.push({
-            id: rawPerm.permissionHash,
-            allowance: formatEther(BigInt(rawPerm.permission?.allowance || '0')),
-            period: rawPerm.permission?.period || 1,
-            start: rawPerm.permission?.start || 0,
-            end: rawPerm.permission?.end || 0,
-            isActive: status.isActive,
-            remainingSpend: formatEther(status.remainingSpend || BigInt(0))
-          });
-        } catch (statusError) {
-          console.error('Failed to get status for permission:', statusError);
-        }
+      const walletData = await walletResponse.json();
+      console.log('💰 Server wallet data:', walletData)
+      
+      const spenderAddress = walletData.smartAccountAddress;
+      console.log('🏦 Spender address (server wallet):', spenderAddress)
+
+      if (!spenderAddress) {
+        throw new Error('Server wallet address not found in response')
+      }
+
+      // Get user's spend permissions
+      console.log('🔍 Fetching permissions with:')
+      console.log('  - User account:', userAddress)
+      console.log('  - Spender account:', spenderAddress)
+      console.log('  - Chain ID: 84532 (Base mainnet)')
+      
+      const userPermissions = await getUserSpendPermissions(userAddress, spenderAddress)
+      
+      console.log('✅ Raw permissions fetched:', userPermissions)
+      console.log('📊 Number of permissions found:', userPermissions.length)
+      
+      if (userPermissions.length > 0) {
+        userPermissions.forEach((permission: any, index: number) => {
+          console.log(`📋 Permission ${index + 1}:`, {
+            permissionHash: permission.permissionHash,
+            signature: permission.signature ? `${permission.signature.slice(0, 10)}...` : 'No signature',
+            chainId: permission.chainId,
+            permission: {
+              account: permission.permission?.account,
+              spender: permission.permission?.spender,
+              token: permission.permission?.token,
+              allowance: permission.permission?.allowance?.toString(),
+              period: permission.permission?.period,
+              start: permission.permission?.start,
+              end: permission.permission?.end,
+            }
+          })
+        })
+      } else {
+        console.log('⚠️ No permissions found for this user/spender combination')
       }
       
-      console.log('🎯 Final formatted permissions:', formattedPermissions);
-      setPermissions(formattedPermissions);
+      setPermissions(userPermissions)
     } catch (error) {
-      console.error('Failed to load permissions:', error);
+      console.error('❌ Error loading permissions:', error)
+      setPermissionError(`Failed to load spend permissions: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      setIsLoadingPermissions(false)
     }
-  };
+  }
 
-  const handleGrantPermission = async () => {
-    if (!address || !isConnected || !serverWalletAddress) return;
-
-    setIsLoading(true);
-    try {
-      await requestUserSpendPermission(
-        address,
-        serverWalletAddress,
-        parseFloat(allowanceAmount)
-      );
-      
-      // Reload permissions after successful grant
-      setTimeout(() => {
-        loadPermissions();
-        setIsLoading(false);
-        setShowGrantForm(false);
-      }, 2000); // Give time for transaction to be processed
-    } catch (err) {
-      console.error('Failed to grant permission:', err);
-      setIsLoading(false);
-    }
-  };
-
-  const handleRevokePermission = async (permission: SpendPermissionUI) => {
-    if (!address || !isConnected) return;
+  const handleRevokePermission = async (permission: any) => {
+    setIsRevoking(true)
+    setPermissionError('')
 
     try {
-      // Find the original permission object
-      const rawPermissions = await getUserSpendPermissions(address, serverWalletAddress);
-      const targetPermission = rawPermissions.find(p => 
-        `${p.permission?.account}-${p.permission?.spender}` === permission.id
-      );
+      const hash = await revokeSpendPermission(permission)
+      console.log('Permission revoked successfully:', hash)
       
-      if (targetPermission) {
-        await revokeSpendPermission(targetPermission.permission);
-        
-        // Reload permissions after successful revoke
-        setTimeout(() => {
-          loadPermissions();
-        }, 2000);
-      }
-    } catch (err) {
-      console.error('Failed to revoke permission:', err);
+      // Reload permissions
+      await loadPermissions()
+    } catch (error) {
+      console.error('Revoke error:', error)
+      setPermissionError(error instanceof Error ? error.message : "Failed to revoke permission")
+    } finally {
+      setIsRevoking(false)
     }
-  };
+  }
 
-  // Handle permission granted callback
-  const handlePermissionGranted = (permissionId: string) => {
-    if (onPermissionGranted) {
-      onPermissionGranted(permissionId);
-    }
-  };
-
-  if (!isConnected) {
+  if (!isAuthenticated) {
     return (
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h3 className="text-lg font-semibold mb-4">🔐 Reward Distribution Permissions</h3>
-        <p className="text-gray-600">Connect your wallet to manage spend permissions for automated reward distribution.</p>
+      <div className="h-full flex items-center justify-center p-6">
+        <div className="text-center text-gray-500">
+          <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+            <span className="text-2xl">🔒</span>
+          </div>
+          <p className="text-sm">Sign in to manage your spend permissions</p>
+        </div>
       </div>
-    );
+    )
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold">🔐 Reward Distribution Permissions</h3>
-        <button
-          onClick={() => setShowGrantForm(!showGrantForm)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-        >
-          {showGrantForm ? 'Cancel' : 'Grant Permission'}
-        </button>
+    <div className="h-full flex flex-col bg-white border-l border-gray-200">
+      {/* Header */}
+      <div className="p-4 border-b border-gray-200 bg-gray-50">
+        <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+          <span className="w-3 h-3 bg-blue-500 rounded-full mr-2"></span>
+          Spend Permissions
+        </h3>
+        <p className="text-sm text-gray-600 mt-1">
+          Manage your active spend permissions
+        </p>
       </div>
 
-      <p className="text-gray-600 mb-4">
-        Grant spending permissions to enable automated reward distribution from your wallet.
-      </p>
-
-      {showGrantForm && (
-        <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: 'auto' }}
-          exit={{ opacity: 0, height: 0 }}
-          className="border rounded-lg p-4 mb-4 bg-gray-50"
-        >
-          <h4 className="font-medium mb-3">Grant New Permission</h4>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Daily Allowance (ETH)
-              </label>
-              <input
-                type="number"
-                step="0.001"
-                value={allowanceAmount}
-                onChange={(e) => setAllowanceAmount(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="0.01"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Duration (days)
-              </label>
-              <select
-                value={duration}
-                onChange={(e) => setDuration(Number(e.target.value))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value={7}>1 Week</option>
-                <option value={30}>1 Month</option>
-                <option value={90}>3 Months</option>
-                <option value={365}>1 Year</option>
-              </select>
-            </div>
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto p-4">
+        {isLoadingPermissions ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+            <span className="ml-2 text-sm text-gray-600">Loading permissions...</span>
           </div>
-
-          <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4">
-            <p className="text-sm text-blue-800">
-              <strong>Summary:</strong> Allow up to {allowanceAmount} ETH per day for {duration} days 
-              (Total: {(parseFloat(allowanceAmount) * duration).toFixed(4)} ETH maximum)
-            </p>
-          </div>
-
-          <button
-            onClick={handleGrantPermission}
-            disabled={isLoading}
-            className={`w-full py-2 px-4 rounded-md font-medium text-white ${
-              isLoading
-                ? 'bg-gray-400 cursor-not-allowed'
-                : 'bg-green-600 hover:bg-green-700'
-            }`}
-          >
-            {isLoading ? (
-              <span className="flex items-center justify-center">
-                <motion.span
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                  className="inline-block mr-2"
-                >
-                  🌎
-                </motion.span>
-                'Granting Permission...'
-              </span>
-            ) : (
-              'Grant Permission'
-            )}
-          </button>
-        </motion.div>
-      )}
-
-      {/* Active Permissions */}
-      <div>
-        <h4 className="font-medium mb-3">Active Permissions</h4>
-        {permissions.length === 0 ? (
-          <p className="text-gray-500 text-sm">No active permissions</p>
-        ) : (
-          <div className="space-y-2">
-            {permissions.map((permission) => (
-              <div key={permission.id} className="flex items-center justify-between p-3 border rounded-lg">
-                <div>
-                  <p className="font-medium">{permission.allowance} ETH/day</p>
-                  <p className="text-sm text-gray-500">
-                    Status: {permission.isActive ? 'Active' : 'Inactive'}
-                  </p>
-                  {permission.remainingSpend && (
-                    <p className="text-sm text-blue-600">
-                      Remaining: {permission.remainingSpend} ETH
-                    </p>
-                  )}
+        ) : permissions.length > 0 ? (
+          <div className="space-y-3">
+            {permissions.map((permission, index) => (
+              <div key={index} className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="font-medium text-gray-900 mb-1">
+                      ${(Number(permission.permission?.allowance || permission.allowance || 0) / 1_000_000).toFixed(2)} USDC
+                    </div>
+                    <div className="text-xs text-gray-500 space-y-1">
+                      <div>Daily limit • Active</div>
+                      <div className="font-mono text-xs bg-white px-2 py-1 rounded border">
+                        {permission.permissionHash ? `${permission.permissionHash.slice(0, 10)}...` : 'N/A'}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleRevokePermission(permission)}
+                    disabled={isRevoking}
+                    className="ml-3 px-3 py-1 text-xs bg-red-50 text-red-600 hover:bg-red-100 rounded-md border border-red-200 disabled:opacity-50 transition-colors duration-200"
+                  >
+                    {isRevoking ? "Revoking..." : "Revoke"}
+                  </button>
                 </div>
-                <button
-                  onClick={() => handleRevokePermission(permission)}
-                  className="px-3 py-1 text-sm text-red-600 border border-red-600 rounded hover:bg-red-50"
-                >
-                  Revoke
-                </button>
               </div>
             ))}
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+              <span className="text-2xl">📝</span>
+            </div>
+            <p className="text-sm text-gray-600 mb-2">No active spend permissions</p>
+            <p className="text-xs text-gray-500">Set up permissions in the previous step to start using the agent</p>
+          </div>
+        )}
+        
+        {permissionError && (
+          <div className="mt-4 p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-md">
+            {permissionError}
           </div>
         )}
       </div>
 
+      {/* Footer */}
+      {permissions.length > 0 && (
+        <div className="p-4 border-t border-gray-200 bg-gray-50">
+          <div className="text-xs text-gray-500 text-center">
+            💡 Revoked permissions will be removed immediately
+          </div>
+        </div>
+      )}
     </div>
-  );
+  )
 }
