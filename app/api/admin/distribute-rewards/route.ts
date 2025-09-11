@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getRewardDistributorWallet, distributeReward } from '@/lib/cdp/cdp-wallet'
 import { parseEther, formatEther } from 'viem'
-import { prepareSpendCallData } from '@base-org/account/spend-permission'
-import { createBaseAccountSDK } from '@base-org/account'
 
 interface RewardDistribution {
   address: string
@@ -23,14 +21,40 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Admin address and spend permission required' }, { status: 400 })
     }
 
-    // Validate spend permission structure
-    if (!spendPermission.account || !spendPermission.spender || !spendPermission.allowance) {
-      return NextResponse.json({ error: 'Invalid spend permission structure' }, { status: 400 })
+    // Debug: Log the actual spend permission structure
+    console.log('Received spend permission structure:', {
+      keys: Object.keys(spendPermission),
+      hasPermissionField: !!spendPermission.permission,
+      structure: spendPermission
+    })
+
+    // Validate spend permission structure - the actual permission data is nested
+    if (!spendPermission || typeof spendPermission !== 'object') {
+      return NextResponse.json({ error: 'Invalid spend permission: not an object' }, { status: 400 })
+    }
+
+    // Extract the actual permission object from the nested structure
+    const permission = spendPermission.permission || spendPermission
+    
+    if (!permission || typeof permission !== 'object') {
+      return NextResponse.json({ error: 'Invalid permission object in spend permission' }, { status: 400 })
+    }
+
+    // Check for required fields in the permission object
+    if (!permission.account || !permission.spender || !permission.allowance) {
+      return NextResponse.json({ 
+        error: 'Invalid spend permission structure', 
+        details: `Missing required fields in permission object. Available fields: ${Object.keys(permission).join(', ')}`,
+        received: permission
+      }, { status: 400 })
     }
 
     // Verify admin address matches permission account
-    if (spendPermission.account.toLowerCase() !== adminAddress.toLowerCase()) {
-      return NextResponse.json({ error: 'Admin address does not match spend permission account' }, { status: 400 })
+    if (permission.account.toLowerCase() !== adminAddress.toLowerCase()) {
+      return NextResponse.json({ 
+        error: 'Admin address does not match spend permission account',
+        details: `Expected: ${adminAddress}, Got: ${permission.account}`
+      }, { status: 400 })
     }
 
     // Get server wallet for executing spend permissions
@@ -44,48 +68,24 @@ export async function POST(request: NextRequest) {
       totalRecipients: distribution.length,
       totalAmount,
       adminAddress,
-      serverWalletAddress: serverWallet.address
+      serverWalletAddress: serverWallet.address,
+      permissionDetails: {
+        account: permission.account,
+        spender: permission.spender,
+        allowance: permission.allowance,
+        token: permission.token
+      }
     })
 
-    // Create Base Account SDK for spend permission operations
-    const sdk = createBaseAccountSDK({
-      appName: 'AroundTheWorld Game',
-      appChainIds: [84532], // Base mainnet
-    })
-
-    // Step 1: Use spend permission to pull total reward pool from admin to server wallet
-    const totalAmountWei = parseEther(totalAmount.toString())
-    
-    try {
-      console.log(`Using spend permission to pull ${totalAmount} ETH from admin to server wallet`)
-      
-      // Prepare spend call data for total reward pool
-      const spendCalls = await prepareSpendCallData(spendPermission, totalAmountWei)
-
-      // Execute the spend calls - this transfers from admin wallet to server wallet
-      const provider = sdk.getProvider()
-      
-      const poolTxHashes = await Promise.all(
-        spendCalls.map(async (call) => {
-          return await provider.request({
-            method: "eth_sendTransaction",
-            params: [{
-              ...call,
-              from: serverWallet.address, // Server executes as authorized spender
-            }]
-          })
-        })
-      )
-      
-      console.log('Reward pool transferred from admin to server wallet:', poolTxHashes)
-      
-    } catch (poolError) {
-      console.error('Failed to pull reward pool from admin wallet:', poolError)
-      return NextResponse.json({ 
-        error: 'Failed to pull reward pool from admin wallet using spend permission',
-        details: poolError instanceof Error ? poolError.message : 'Unknown error'
-      }, { status: 500 })
-    }
+    // NOTE: Spend permissions should be executed client-side in a batch transaction
+    // The proper flow is:
+    // 1. Client creates batch transaction with: approve permission + pull funds to server wallet
+    // 2. Server wallet distributes to recipients
+    // 
+    // For now, we assume the admin has already executed the spend permission
+    // and transferred funds to the server wallet before calling this API
+    console.log('💡 Spend permission execution should happen client-side before calling this API')
+    console.log('Server wallet should already have the reward pool funds available')
 
     // Step 2: Distribute from server wallet to individual players
     const transferResults = []
@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
 
     // Send notifications to winners
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/notifications/reward-distribution`, {
+      await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/notifications/reward-distribution`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { SignInWithBaseButton } from '@/app/components/SignInWithBase';
+import { parseEther } from 'viem';
+import { createBaseAccountSDK } from '@base-org/account';
 import { getRewardDistributorAddressesClient } from '@/lib/utils/wallet-storage';
-import { getUserSpendPermissions } from '@/lib/cdp/spend-permissions';
+import { motion } from 'framer-motion';
+import { SignInWithBaseButton } from './SignInWithBase';
 
 interface DistributionHistory {
   timestamp: string;
@@ -174,7 +175,93 @@ export default function RewardDistributionPanel({ onDistribute, onAdminConnect }
 
       const calculationResult = await calculateResponse.json();
       
-      // Execute the distribution using spend permissions
+      // Step 1: Execute spend permission client-side to transfer funds to server wallet
+      console.log('Executing spend permission to transfer funds to server wallet...');
+      
+      const sdk = createBaseAccountSDK({
+        appName: 'AroundTheWorld Game',
+        appChainIds: [84532], // Base Sepolia
+      });
+
+      // Get server wallet address
+      const serverAddresses = await getRewardDistributorAddressesClient();
+      if (!serverAddresses?.address) {
+        throw new Error('Server wallet address not found');
+      }
+
+      // Prepare spend call data for total reward pool
+      const totalAmountWei = parseEther(rewardPool.toString());
+      
+      // Debug: Log the complete stored spend permission structure
+      console.log('Complete stored spendPermission:', JSON.stringify(spendPermission, null, 2));
+      
+      // The utilities expect the complete SpendPermission object with signature and chainId
+      // Ensure chainId is present at the top level if missing
+      if (!spendPermission.chainId) {
+        spendPermission.chainId = 84532; // Base Sepolia
+      }
+      
+      console.log('Using complete spend permission with chainId:', spendPermission.chainId);
+      
+      // Import spend permission utilities dynamically (client-side only)
+      const { getPermissionStatus, prepareSpendCallData } = await import('@base-org/account/spend-permission');
+      
+      // Check permission status
+      const status = await getPermissionStatus(spendPermission);
+      console.log('Permission status:', status);
+      console.log('Current time:', new Date());
+      console.log('Permission period start (Unix):', spendPermission.permission?.start);
+      console.log('Permission period start (Date):', new Date(spendPermission.permission?.start * 1000));
+      console.log('Permission period end (Unix):', spendPermission.permission?.end);
+      console.log('Permission period end (Date):', new Date(spendPermission.permission?.end * 1000));
+      
+      // Manual time check - if current time is past the permission start, it should be active
+      const currentTimestamp = Math.floor(Date.now() / 1000);
+      const permissionStart = spendPermission.permission?.start;
+      const permissionEnd = spendPermission.permission?.end;
+      
+      console.log('Current timestamp:', currentTimestamp);
+      console.log('Permission start timestamp:', permissionStart);
+      console.log('Time comparison - Current >= Start:', currentTimestamp >= permissionStart);
+      console.log('Time comparison - Current <= End:', currentTimestamp <= permissionEnd);
+      
+      if (!status.isActive) {
+        // Check if we should override the isActive check based on manual time comparison
+        const shouldBeActive = currentTimestamp >= permissionStart && currentTimestamp <= permissionEnd;
+        console.log('Manual calculation says permission should be active:', shouldBeActive);
+        
+        if (!shouldBeActive) {
+          throw new Error(`Spend permission is not active. Next period starts: ${status.nextPeriodStart}`);
+        } else {
+          console.log('WARNING: getPermissionStatus says inactive but manual check says active. Proceeding...');
+        }
+      }
+      
+      if (status.remainingSpend < totalAmountWei) {
+        throw new Error(`Insufficient spend permission. Remaining: ${Number(status.remainingSpend) / 1e18} ETH`);
+      }
+      
+      const spendCalls = await prepareSpendCallData(spendPermission, totalAmountWei);
+
+      // Execute the spend calls to transfer from admin to server wallet
+      const provider = sdk.getProvider();
+      
+      console.log('Transferring reward pool from admin to server wallet...');
+      const poolTxHashes = await Promise.all(
+        spendCalls.map(async (call) => {
+          return await provider.request({
+            method: "eth_sendTransaction",
+            params: [{
+              ...call,
+              from: adminAddress, // Admin wallet executes the spend
+            }]
+          });
+        })
+      );
+      
+      console.log('Reward pool transferred:', poolTxHashes);
+      
+      // Step 2: Execute the distribution from server wallet to players
       const response = await fetch('/api/admin/distribute-rewards', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -317,7 +404,7 @@ export default function RewardDistributionPanel({ onDistribute, onAdminConnect }
                   transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                   className="inline-block mr-2"
                 >
-                  🔄
+                  🌎
                 </motion.span>
                 Distributing...
               </span>

@@ -202,7 +202,7 @@ export async function POST(request: NextRequest) {
     if (successfulDistributions.length > 0) {
       // Trigger broadcast notification about reward distribution
       try {
-        await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/broadcast`, {
+        await fetch(`${process.env.NEXT_PUBLIC_URL}/api/broadcast`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

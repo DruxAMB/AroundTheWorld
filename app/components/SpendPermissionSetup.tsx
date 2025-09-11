@@ -59,10 +59,11 @@ export function SpendPermissionSetup({
       const permission = await requestSpendPermission({
         account: userAddress as `0x${string}`,
         spender: walletAddresses.address as `0x${string}`,
-        token: ETH_ADDRESS as `0x${string}`, // ETH on Base mainnet
-        chainId: 84532, // Base mainnet
+        token: ETH_ADDRESS as `0x${string}`, // ETH on Base sepolia
+        chainId: 84532, // Base seploia
         allowance: allowanceWei, // Convert to ETH units (18 decimals)
         periodInDays: 1,
+        start: new Date(), // Start immediately (current time)
         provider: sdk.getProvider(),
       });
 
@@ -104,7 +105,7 @@ export function SpendPermissionSetup({
               type="range"
               id="dailyLimit"
               min="0.0001"
-              max="0.005"
+              max="0.01"
               step="0.0001"
               value={dailyLimit}
               onChange={(e) => setDailyLimit(Number(e.target.value))}
@@ -115,7 +116,7 @@ export function SpendPermissionSetup({
               <span className="font-medium text-blue-600">
                 ${dailyLimit.toFixed(8)} ETH
               </span>
-              <span>$0.005</span>
+              <span>$0.01</span>
             </div>
             <div className="text-center text-xs text-gray-500 mt-1">
               Max ${Math.floor(dailyLimit / 0.0001 * 0.0001).toFixed(2)} reward pool per day

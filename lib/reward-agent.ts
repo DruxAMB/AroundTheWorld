@@ -163,7 +163,7 @@ export class RewardDistributionAgent {
     try {
       console.log(`🚀 AI Agent executing ${timeframe} reward distribution`);
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/rewards/distribute`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/rewards/distribute`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
