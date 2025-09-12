@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { parseEther } from 'viem';
 import { getRewardDistributorAddressesClient } from '@/lib/utils/wallet-storage';
 import { motion } from 'framer-motion';
@@ -46,7 +46,7 @@ export default function RewardDistributionPanel({ onDistribute, onAdminConnect }
 
   
 
-  const checkSpendPermissionStatus = () => {
+  const checkSpendPermissionStatus = useCallback(() => {
     if (!adminAddress) {
       setSpendPermissionStatus('none');
       return;
@@ -69,7 +69,27 @@ export default function RewardDistributionPanel({ onDistribute, onAdminConnect }
     } catch {
       setSpendPermissionStatus('invalid');
     }
-  };
+  }, [adminAddress]);
+
+  const loadDistributionStatus = useCallback(async () => {
+    try {
+      // Fetch weekly leaderboard data with correct timeframe parameter
+      const params = new URLSearchParams({
+        timeframe: 'week',
+        limit: '15'
+      });
+      
+      const leaderboardResponse = await fetch(`/api/leaderboard?${params}`);
+      if (leaderboardResponse.ok) {
+        const leaderboardData = await leaderboardResponse.json();
+        setCurrentLeaderboard(leaderboardData.leaderboard || []);
+      }
+      setDistributionHistory([]);
+      setRewardPool('0.005'); // Default reward pool
+    } catch (error) {
+      console.error('Failed to load distribution status:', error);
+    }
+  }, []);
   
   useEffect(() => {
     checkWalletAuthStatus();
@@ -77,12 +97,12 @@ export default function RewardDistributionPanel({ onDistribute, onAdminConnect }
     if (isWalletAuthenticated) {
       loadDistributionStatus();
     }
-  }, [selectedTimeframe, isWalletAuthenticated, adminAddress, checkSpendPermissionStatus]);
+  }, [selectedTimeframe, isWalletAuthenticated, adminAddress, checkSpendPermissionStatus, loadDistributionStatus]);
 
   const checkWalletAuthStatus = async () => {
     // No need to check wallet creation API - we use fixed addresses
     // Admin just needs to connect their wallet for spend permissions
-    console.log('Wallet auth check skipped - using fixed reward distributor addresses');
+    // console.log('Wallet auth check skipped - using fixed reward distributor addresses');
   };
 
   const handleSignIn = async (address: string) => {
@@ -112,26 +132,6 @@ export default function RewardDistributionPanel({ onDistribute, onAdminConnect }
       }
     } catch (error) {
       console.error('Failed to fetch admin wallet balance:', error);
-    }
-  };
-
-  const loadDistributionStatus = async () => {
-    try {
-      // Fetch weekly leaderboard data with correct timeframe parameter
-      const params = new URLSearchParams({
-        timeframe: 'week',
-        limit: '15'
-      });
-      
-      const leaderboardResponse = await fetch(`/api/leaderboard?${params}`);
-      if (leaderboardResponse.ok) {
-        const leaderboardData = await leaderboardResponse.json();
-        setCurrentLeaderboard(leaderboardData.leaderboard || []);
-      }
-      setDistributionHistory([]);
-      setRewardPool('0.005'); // Default reward pool
-    } catch (error) {
-      console.error('Failed to load distribution status:', error);
     }
   };
 

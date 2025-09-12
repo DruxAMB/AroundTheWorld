@@ -276,13 +276,13 @@ class GameDataService {
       return match ? parseInt(match[1]) : 1;
     }), 0);
 
-    console.log(`💯 [GameDataService] Calculating player stats:`, {
-      totalScore,
-      levelsCompleted,
-      bestLevel,
-      progressCount: progress.length,
-      previousScore
-    });
+    // console.log(`💯 [GameDataService] Calculating player stats:`, {
+    //   totalScore,
+    //   levelsCompleted,
+    //   bestLevel,
+    //   progressCount: progress.length,
+    //   previousScore
+    // });
 
     // Save progress
     await redis.set(progressKey, JSON.stringify(progress));

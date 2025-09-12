@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     // Compare the provided PIN with the stored PIN
     // Convert both to strings to ensure type matching
     const isValid = String(pin) === String(storedPin);
-    console.log(`Debug - PIN comparison: provided=${typeof pin}:${pin}, stored=${typeof storedPin}:${storedPin}, isValid=${isValid}`);
+    // console.log(`Debug - PIN comparison: provided=${typeof pin}:${pin}, stored=${typeof storedPin}:${storedPin}, isValid=${isValid}`);
     
     if (isValid) {
       return NextResponse.json({ success: true });
