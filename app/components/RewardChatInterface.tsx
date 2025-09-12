@@ -48,6 +48,48 @@ export function RewardChatInterface({ isAuthenticated, userAddress }: RewardChat
   const sendMessage = async () => {
     if (!inputValue.trim() || isLoading) return
 
+    // Check if this is a confirmation response to a pending action
+    const lastMessage = messages[messages.length - 1]
+    if (lastMessage?.requiresConfirmation && lastMessage.pendingAction) {
+      const userResponse = inputValue.trim().toLowerCase()
+      
+      if (userResponse === 'yes' || userResponse === 'y') {
+        const userMessage: Message = {
+          id: `user-${Date.now()}-${messageCounter}`,
+          content: inputValue,
+          sender: 'user',
+          timestamp: new Date(),
+        }
+        setMessageCounter(prev => prev + 1)
+        setMessages(prev => [...prev, userMessage])
+        setInputValue('')
+        setIsLoading(true)
+        setLoadingStage('setting up spend permission')
+
+        // Execute the pending action
+        if (lastMessage.pendingAction.type === 'setup_spend_permission') {
+          await handleSpendPermissionSetup(lastMessage.pendingAction.args)
+        }
+        return
+      } else if (userResponse === 'no' || userResponse === 'n') {
+        const userMessage: Message = {
+          id: `user-${Date.now()}-${messageCounter}`,
+          content: inputValue,
+          sender: 'user',
+          timestamp: new Date(),
+        }
+        const cancelMessage: Message = {
+          id: `cancel-${Date.now()}-${messageCounter + 1}`,
+          content: '❌ Spend permission setup cancelled. You can try again anytime by saying "set spend permission of [amount] eth".',
+          sender: 'agent',
+          timestamp: new Date(),
+        }
+        setMessageCounter(prev => prev + 2)
+        setMessages(prev => [...prev, userMessage, cancelMessage])
+        setInputValue('')
+        return
+      }
+    }
 
     const userMessage: Message = {
       id: `user-${Date.now()}-${messageCounter}`,
@@ -103,7 +145,7 @@ export function RewardChatInterface({ isAuthenticated, userAddress }: RewardChat
         
         const confirmationMessage: Message = {
           id: `spend-confirm-${Date.now()}-${messageCounter}`,
-          content: `🔐 **Spend Permission Setup**\n\nI'll help you set up a spend permission for **${args.weeklyLimit} ETH per week**.\n\nThis will allow me to automatically distribute rewards on your behalf. You'll need to confirm this transaction in your wallet.`,
+          content: `🔐 **Spend Permission Setup**\n\nI'll help you set up a spend permission for **${args.weeklyLimit} ETH per week**.\n\nThis will allow me to automatically distribute rewards on your behalf. You'll need to confirm this transaction in your wallet.\n\n**Ready to proceed?** Type "yes" to continue or "no" to cancel.`,
           sender: 'agent',
           timestamp: new Date(),
           requiresConfirmation: true,
@@ -348,17 +390,6 @@ export function RewardChatInterface({ isAuthenticated, userAddress }: RewardChat
               <p className={`text-sm whitespace-pre-wrap leading-relaxed ${
                 message.sender === 'user' ? 'text-white' : 'text-slate-900'
               }`}>{message.content}</p>
-              {message.requiresConfirmation && message.pendingAction?.type === 'setup_spend_permission' && (
-                <div className="mt-3">
-                  <button
-                    onClick={() => handleSpendPermissionSetup(message.pendingAction!.args)}
-                    disabled={isLoading}
-                    className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-                  >
-                    {isLoading ? "Setting up..." : `Grant Permission`}
-                  </button>
-                </div>
-              )}
               {message.toolCall && message.details && message.details.success && (
                 <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg text-sm">
                   <p className="font-medium text-green-800 mb-2">🎉 Reward distribution completed!</p>
