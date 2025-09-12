@@ -1,13 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getRewardDistributorWallet, distributeReward } from '@/lib/cdp/cdp'
-import { parseEther, formatEther } from 'viem'
-
-interface RewardDistribution {
-  address: string
-  position: number
-  percentage: number
-  amount: string
-}
 
 export async function POST(request: NextRequest) {
   try {

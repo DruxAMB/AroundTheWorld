@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { parseEther } from 'viem';
-import { createBaseAccountSDK } from '@base-org/account';
 import { getRewardDistributorAddressesClient } from '@/lib/utils/wallet-storage';
 import { motion } from 'framer-motion';
 import { SignInWithBaseButton } from './SignInWithBase';
@@ -18,7 +17,7 @@ interface DistributionHistory {
 }
 
 interface RewardDistributionPanelProps {
-  onDistribute?: (result: any) => void;
+  onDistribute?: (result: Record<string, unknown>) => void;
   onAdminConnect?: (address: string) => void;
 }
 
@@ -27,25 +26,25 @@ export default function RewardDistributionPanel({ onDistribute, onAdminConnect }
   const [adminWalletBalance, setAdminWalletBalance] = useState('0');
   const [distributionHistory, setDistributionHistory] = useState<DistributionHistory[]>([]);
   const [selectedTimeframe, ] = useState<'week'>('week');
-  const [currentLeaderboard, setCurrentLeaderboard] = useState<any[]>([]);
+  const [currentLeaderboard, setCurrentLeaderboard] = useState<Array<{ 
+    playerId: string; 
+    score: number; 
+    name?: string; 
+    avatar?: string;
+    levelsCompleted?: number;
+    farcasterProfile?: { 
+      displayName?: string; 
+      pfpUrl?: string; 
+      username?: string; 
+    } 
+  }>>([]);
   const [rewardPool, setRewardPool] = useState('0.1');
   const [isWalletAuthenticated, setIsWalletAuthenticated] = useState(false);
   const [adminAddress, setAdminAddress] = useState<string>('');
   const [spendPermissionStatus, setSpendPermissionStatus] = useState<'none' | 'valid' | 'invalid' | 'expired'>('none');
 
-  useEffect(() => {
-    checkWalletAuthStatus();
-    checkSpendPermissionStatus();
-    if (isWalletAuthenticated) {
-      loadDistributionStatus();
-    }
-  }, [selectedTimeframe, isWalletAuthenticated, adminAddress]);
 
-  const checkWalletAuthStatus = async () => {
-    // No need to check wallet creation API - we use fixed addresses
-    // Admin just needs to connect their wallet for spend permissions
-    console.log('Wallet auth check skipped - using fixed reward distributor addresses');
-  };
+  
 
   const checkSpendPermissionStatus = () => {
     if (!adminAddress) {
@@ -67,9 +66,23 @@ export default function RewardDistributionPanel({ onDistribute, onAdminConnect }
       } else {
         setSpendPermissionStatus('invalid');
       }
-    } catch (error) {
+    } catch {
       setSpendPermissionStatus('invalid');
     }
+  };
+  
+  useEffect(() => {
+    checkWalletAuthStatus();
+    checkSpendPermissionStatus();
+    if (isWalletAuthenticated) {
+      loadDistributionStatus();
+    }
+  }, [selectedTimeframe, isWalletAuthenticated, adminAddress, checkSpendPermissionStatus]);
+
+  const checkWalletAuthStatus = async () => {
+    // No need to check wallet creation API - we use fixed addresses
+    // Admin just needs to connect their wallet for spend permissions
+    console.log('Wallet auth check skipped - using fixed reward distributor addresses');
   };
 
   const handleSignIn = async (address: string) => {
@@ -178,10 +191,10 @@ export default function RewardDistributionPanel({ onDistribute, onAdminConnect }
       // Step 1: Execute spend permission client-side to transfer funds to server wallet
       console.log('Executing spend permission to transfer funds to server wallet...');
       
-      const sdk = createBaseAccountSDK({
-        appName: 'AroundTheWorld Game',
-        appChainIds: [84532], // Base Sepolia
-      });
+      // const sdk = createBaseAccountSDK({
+      //   appName: 'AroundTheWorld Game',
+      //   appChainIds: [84532], // Base Sepolia
+      // });
 
       // Get server wallet address
       const serverAddresses = await getRewardDistributorAddressesClient();
@@ -464,7 +477,7 @@ export default function RewardDistributionPanel({ onDistribute, onAdminConnect }
                               {player.farcasterProfile?.pfpUrl ? (
                                 <Image
                                   src={player.farcasterProfile.pfpUrl}
-                                  alt={player.farcasterProfile.displayName || player.name}
+                                  alt={player.farcasterProfile.displayName || player.name || 'Player'}
                                   width={32}
                                   height={32}
                                   className="w-auto h-auto rounded-full object-cover"

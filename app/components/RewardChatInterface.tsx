@@ -9,11 +9,11 @@ interface Message {
   sender: 'user' | 'agent'
   timestamp: Date
   toolCall?: boolean
-  details?: any
+  details?: Record<string, unknown>
   requiresConfirmation?: boolean
   pendingAction?: {
     type: string
-    args: any
+    args: Record<string, unknown>
   }
 }
 
@@ -186,7 +186,7 @@ export function RewardChatInterface({ isAuthenticated, userAddress }: RewardChat
     }
   }
 
-  const handleRewardDistribution = async (args: any) => {
+  const handleRewardDistribution = async (args: Record<string, unknown>) => {
     try {
       // Parse the function arguments
       const { weeklyRewardPool, distributionReason } = typeof args === 'string' ? JSON.parse(args) : args
@@ -250,7 +250,7 @@ export function RewardChatInterface({ isAuthenticated, userAddress }: RewardChat
       const resultMessage: Message = {
         id: `result-${Date.now()}-${messageCounter}`,
         content: distributeResult.success 
-          ? `✅ Successfully distributed ${weeklyRewardPool} ETH to ${calculateResult.qualifyingPlayers} players!\n\nDistribution:\n${calculateResult.rewards.map((r: any) => `• Position ${r.position}: ${r.amount} ETH (${r.percentage}%)`).join('\n')}\n\nReason: ${distributionReason}`
+          ? `✅ Successfully distributed ${weeklyRewardPool} ETH to ${calculateResult.qualifyingPlayers} players!\n\nDistribution:\n${calculateResult.rewards.map((r: { position: number; amount: string; percentage: number }) => `• Position ${r.position}: ${r.amount} ETH (${r.percentage}%)`).join('\n')}\n\nReason: ${distributionReason}`
           : `❌ Failed to distribute rewards: ${distributeResult.error}`,
         sender: 'agent',
         timestamp: new Date(),
@@ -281,7 +281,7 @@ export function RewardChatInterface({ isAuthenticated, userAddress }: RewardChat
     }
   }
 
-  const handleSpendPermissionSetup = async (args: any) => {
+  const handleSpendPermissionSetup = async (args: Record<string, unknown>) => {
     try {
       // Parse the function arguments
       const { weeklyLimit } = typeof args === 'string' ? JSON.parse(args) : args
@@ -393,12 +393,12 @@ export function RewardChatInterface({ isAuthenticated, userAddress }: RewardChat
               <p className={`text-sm whitespace-pre-wrap leading-relaxed ${
                 message.sender === 'user' ? 'text-white' : 'text-slate-900'
               }`}>{message.content}</p>
-              {message.toolCall && message.details && message.details.success && (
+              {message.toolCall && message.details && (message.details.success as boolean) && (
                 <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg text-sm">
                   <p className="font-medium text-green-800 mb-2">🎉 Reward distribution completed!</p>
                   
                   <p className="text-green-700 text-xs mt-2">Check the transaction on Basescan to see the reward distributions</p>
-                  {message.details.transactionHash && (
+                  {(message.details.transactionHash as string) && (
                     <a 
                       href={`https://sepolia.basescan.org/tx/${message.details.transactionHash}`}
                       target="_blank" 

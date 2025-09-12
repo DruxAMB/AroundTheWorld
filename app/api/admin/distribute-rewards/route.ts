@@ -2,13 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { executeSpendPermissionAndDistribute} from '@/lib/cdp/cdp'
 import { parseUnits } from 'viem'
 
-interface RewardDistribution {
-  address: string
-  position: number
-  percentage: number
-  amount: string
-}
-
 export async function POST(request: NextRequest) {
   try {
     const { distribution, totalAmount, adminAddress, spendPermission } = await request.json()

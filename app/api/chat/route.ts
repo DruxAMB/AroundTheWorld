@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
 }
 
 async function executeAutonomousWorkflow(messages: ChatMessage[], adminAddress?: string) {
-  let workflowData: any = {}
+  const workflowData: Record<string, unknown> = {}
   
   // Step 1: Generate initial AI response
   const response = await generateChatResponse(messages, undefined, adminAddress)
@@ -58,7 +58,7 @@ async function executeAutonomousWorkflow(messages: ChatMessage[], adminAddress?:
       const leaderboardData = await leaderboardResponse.json()
       const topPlayers = leaderboardData.leaderboard
         .slice(0, topN)
-        .map((entry: any, index: number) => ({
+        .map((entry: { playerId: string; score: number; name?: string; farcasterProfile?: { displayName?: string } }, index: number) => ({
           position: index + 1,
           address: entry.playerId,
           score: entry.score,
@@ -77,7 +77,7 @@ async function executeAutonomousWorkflow(messages: ChatMessage[], adminAddress?:
             const balanceData = await balanceResponse.json()
             workflowData.adminBalance = balanceData.balance || '0'
           }
-        } catch (error) {
+        } catch {
           console.log('Balance check failed, proceeding without balance info')
         }
       }
@@ -90,7 +90,7 @@ ${workflowData.adminBalance ? `✅ Checked admin wallet balance: ${workflowData.
 ✅ Ready to calculate reward distribution
 
 📋 Top Players:
-${topPlayers.slice(0, 10).map((p: any) => `${p.position}. ${p.name} (Score: ${p.score})`).join('\n')}
+${topPlayers.slice(0, 10).map((p: { position: number; name: string; score: number }) => `${p.position}. ${p.name} (Score: ${p.score})`).join('\n')}
 ${topPlayers.length > 10 ? `... and ${topPlayers.length - 10} more players` : ''}
 
 Ready to proceed with distribution calculation. Please confirm the reward amount and I'll execute the distribution.`

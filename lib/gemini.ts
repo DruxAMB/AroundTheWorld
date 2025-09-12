@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai'
+import { GoogleGenerativeAI, FunctionDeclaration, SchemaType } from '@google/generative-ai'
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY!)
 
@@ -79,86 +79,73 @@ Use this format for autonomous execution responses:
 
 Remember: Execute autonomously, report transparently, confirm once.`
 
-export const GET_LEADERBOARD_FUNCTION = {
-  type: 'function' as const,
-  function: {
-    name: 'get_leaderboard',
-    description: 'Retrieve current weekly leaderboard rankings with player scores, addresses, and performance metrics. Essential first step for any reward distribution analysis.',
-    parameters: {
-      type: 'object',
-      properties: {
-        topN: {
-          type: 'number',
-          description: 'Number of top-performing players to analyze (recommended: 10-15 for meaningful distribution)',
-          default: 15
-        }
-      },
-      required: []
-    }
-  }
-}
-
-export const CHECK_ADMIN_BALANCE_FUNCTION = {
-  type: 'function' as const,
-  function: {
-    name: 'check_admin_balance',
-    description: 'Verify admin wallet ETH balance on Base network. Critical for determining maximum safe distribution amount and preventing failed transactions.',
-    parameters: {
-      type: 'object',
-      properties: {
-        adminAddress: {
-          type: 'string',
-          description: 'Base network wallet address of the reward distribution admin (0x format)'
-        }
-      },
-      required: ['adminAddress']
-    }
-  }
-}
-
-export const DISTRIBUTE_REWARDS_FUNCTION = {
-  type: 'function' as const,
-  function: {
-    name: 'distribute_rewards',
-    description: 'Execute ETH reward distribution to qualified players using spend permissions. Only call after analyzing leaderboard data and confirming sufficient admin balance.',
-    parameters: {
-      type: 'object',
-      properties: {
-        weeklyRewardPool: {
-          type: 'number',
-          description: 'Total ETH amount to distribute (must not exceed 80% of available admin balance for safety)',
-        },
-        distributionReason: {
-          type: 'string',
-          description: 'Detailed mathematical explanation of distribution methodology, including score analysis and allocation rationale',
-        },
-      },
-      required: ['weeklyRewardPool', 'distributionReason'],
+export const GET_LEADERBOARD_FUNCTION: FunctionDeclaration = {
+  name: "get_leaderboard",
+  description: "Fetch current weekly leaderboard data to see top players and their scores",
+  parameters: {
+    type: SchemaType.OBJECT,
+    properties: {
+      topN: {
+        type: SchemaType.NUMBER,
+        description: "Number of top players to fetch (default: 15)",
+      }
     },
+    required: []
+  }
+}
+
+export const CHECK_ADMIN_BALANCE_FUNCTION: FunctionDeclaration = {
+  name: 'check_admin_balance',
+  description: 'Verify admin wallet ETH balance on Base network. Critical for determining maximum safe distribution amount and preventing failed transactions.',
+  parameters: {
+    type: SchemaType.OBJECT,
+    properties: {
+      adminAddress: {
+        type: SchemaType.STRING,
+        description: 'Base network wallet address of the reward distribution admin (0x format)'
+      }
+    },
+    required: ['adminAddress']
+  }
+}
+
+export const DISTRIBUTE_REWARDS_FUNCTION: FunctionDeclaration = {
+  name: 'distribute_rewards',
+  description: 'Execute ETH reward distribution to qualified players using spend permissions. Only call after analyzing leaderboard data and confirming sufficient admin balance.',
+  parameters: {
+    type: SchemaType.OBJECT,
+    properties: {
+      weeklyRewardPool: {
+        type: SchemaType.NUMBER,
+        description: 'Total ETH amount to distribute (must not exceed 80% of available admin balance for safety)',
+      },
+      distributionReason: {
+        type: SchemaType.STRING,
+        description: 'Detailed mathematical explanation of distribution methodology, including score analysis and allocation rationale',
+      },
+    },
+    required: ['weeklyRewardPool', 'distributionReason'],
   },
 }
 
-export const SETUP_SPEND_PERMISSION_FUNCTION = {
-  type: 'function' as const,
-  function: {
-    name: 'setup_spend_permission',
-    description: 'Set up spend permissions for automated reward distribution. Allows the AI agent to spend ETH from user wallet for reward distributions.',
-    parameters: {
-      type: 'object',
-      properties: {
-        weeklyLimit: {
-          type: 'number',
-          description: 'Weekly spending limit in ETH (e.g., 0.0004 for 0.0004 ETH per week)',
-        },
+export const SETUP_SPEND_PERMISSION_FUNCTION: FunctionDeclaration = {
+  name: 'setup_spend_permission',
+  description: 'Set up spend permissions for automated reward distribution. Allows the AI agent to spend ETH from user wallet for reward distributions.',
+  parameters: {
+    type: SchemaType.OBJECT,
+    properties: {
+      weeklyLimit: {
+        type: SchemaType.NUMBER,
+        description: 'Weekly spending limit in ETH (e.g., 0.0004 for 0.0004 ETH per week)',
       },
-      required: ['weeklyLimit'],
     },
+    required: ['weeklyLimit'],
   },
 }
 
 export async function generateChatResponse(
   messages: ChatMessage[],
-  tools: any[] = [GET_LEADERBOARD_FUNCTION, CHECK_ADMIN_BALANCE_FUNCTION, DISTRIBUTE_REWARDS_FUNCTION, SETUP_SPEND_PERMISSION_FUNCTION],
+  tools: FunctionDeclaration[] = [GET_LEADERBOARD_FUNCTION, CHECK_ADMIN_BALANCE_FUNCTION, DISTRIBUTE_REWARDS_FUNCTION, SETUP_SPEND_PERMISSION_FUNCTION],
   adminAddress?: string
 ) {
   try {
@@ -190,7 +177,7 @@ export async function generateChatResponse(
     const result = await model.generateContent({
       contents: fullMessages,
       tools: [{
-        functionDeclarations: tools.map(tool => tool.function)
+        functionDeclarations: tools
       }]
     })
 
@@ -235,7 +222,7 @@ export async function generateChatResponse(
 
 export async function streamChatResponse(
   messages: ChatMessage[],
-  tools: any[] = [GET_LEADERBOARD_FUNCTION, CHECK_ADMIN_BALANCE_FUNCTION, DISTRIBUTE_REWARDS_FUNCTION, SETUP_SPEND_PERMISSION_FUNCTION],
+  tools: FunctionDeclaration[] = [GET_LEADERBOARD_FUNCTION, CHECK_ADMIN_BALANCE_FUNCTION, DISTRIBUTE_REWARDS_FUNCTION, SETUP_SPEND_PERMISSION_FUNCTION],
   adminAddress?: string
 ) {
   try {
@@ -267,7 +254,7 @@ export async function streamChatResponse(
     const result = await model.generateContentStream({
       contents: fullMessages,
       tools: [{
-        functionDeclarations: tools.map(tool => tool.function)
+        functionDeclarations: tools
       }]
     })
 

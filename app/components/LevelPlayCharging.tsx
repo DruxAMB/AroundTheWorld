@@ -8,7 +8,7 @@ interface LevelPlayChargingProps {
   userAddress: string;
   levelName?: string;
   levelCost?: number;
-  onPermissionGranted?: (permission: any) => void;
+  onPermissionGranted?: (permission: unknown) => void;
   onChargeLevel?: (levelId: string) => void;
   onChargeSuccess?: () => void;
   onCancel?: () => void;
@@ -42,10 +42,6 @@ export default function LevelPlayCharging({
   const LEVEL_COST = 0.04; // $0.04 per level
   const DAILY_ALLOWANCE = 0.2; // $0.2 daily allowance
 
-  useEffect(() => {
-    loadSpendPermissionStatus();
-    loadPendingCharges();
-  }, [userAddress]);
 
   const loadSpendPermissionStatus = async () => {
     if (!userAddress) return;
@@ -92,7 +88,7 @@ export default function LevelPlayCharging({
     try {
       const stored = localStorage.getItem(`pending_charges_${userAddress}`);
       if (stored) {
-        const charges = JSON.parse(stored).map((charge: any) => ({
+        const charges = JSON.parse(stored).map((charge: { timestamp: string; levelId: string; levelName: string; amount: number }) => ({
           ...charge,
           timestamp: new Date(charge.timestamp)
         }));
@@ -113,6 +109,11 @@ export default function LevelPlayCharging({
       setPendingCharges([]);
     }
   };
+  
+  useEffect(() => {
+    loadSpendPermissionStatus();
+    loadPendingCharges();
+  }, [userAddress, loadPendingCharges, loadSpendPermissionStatus]);
 
   const grantSpendPermission = async () => {
     if (!userAddress) return;
@@ -149,8 +150,8 @@ export default function LevelPlayCharging({
       
       await loadSpendPermissionStatus();
       
-    } catch (error) {
-      console.error('❌ Failed to grant spend permission:', error);
+    } catch (err) {
+      console.error('❌ Failed to grant spend permission:', err);
       alert('Failed to grant spend permission. Please try again.');
     } finally {
       setIsGrantingPermission(false);
@@ -356,5 +357,5 @@ export default function LevelPlayCharging({
   );
 
   // Expose the addPendingCharge function for external use
-  (window as any).addLevelCharge = addPendingCharge;
+  (window as { addLevelCharge?: typeof addPendingCharge }).addLevelCharge = addPendingCharge;
 }

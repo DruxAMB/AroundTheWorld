@@ -17,13 +17,14 @@ export function getCdpClient(): CdpClient {
 
 interface ServerWallet {
   address: string
-  walletClient: any
-  account: any
-  smartAccount?: any
+  walletClient: Record<string, unknown>
+  account: Record<string, unknown>
+  smartAccount?: Record<string, unknown>
 }
 
 // Use a global variable to persist across hot reloads in development
 declare global {
+  // eslint-disable-next-line no-var
   var __serverWallets: Map<string, ServerWallet> | undefined
 }
 

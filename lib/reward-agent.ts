@@ -55,8 +55,8 @@ export class RewardDistributionAgent {
 
   // Evaluate weekly reward distribution
   private async evaluateWeeklyDistribution(
-    leaderboard: any[], 
-    globalStats: any
+    leaderboard: Array<{ playerId: string; score: number; name?: string }>, 
+    globalStats: Record<string, unknown>
   ): Promise<{ shouldDistribute: boolean; reason: string; timeframe?: 'week'; estimatedAmount?: number }> {
     
     // Check if there are eligible players
@@ -74,7 +74,7 @@ export class RewardDistributionAgent {
     }
 
     // Check if reward pool is configured
-    const rewardAmount = parseFloat(globalStats.rewardAmount || globalStats.totalRewards || '0');
+    const rewardAmount = parseFloat((globalStats.rewardAmount as string) || (globalStats.totalRewards as string) || '0');
     if (rewardAmount <= 0) {
       return { 
         shouldDistribute: false, 
@@ -85,7 +85,7 @@ export class RewardDistributionAgent {
     // Check if we already distributed rewards recently
     if (redis) {
       const recentDistribution = await this.getLastDistribution('week');
-      if (recentDistribution && this.isRecentDistribution(recentDistribution.timestamp)) {
+      if (recentDistribution && this.isRecentDistribution(recentDistribution.timestamp as string)) {
         return { 
           shouldDistribute: false, 
           reason: 'Rewards already distributed recently for this week' 
@@ -116,7 +116,7 @@ export class RewardDistributionAgent {
   }
 
   // Evaluate daily bonus distribution (smaller amounts)
-  private async evaluateDailyDistribution(globalStats: any): Promise<{
+  private async evaluateDailyDistribution(globalStats: Record<string, unknown>): Promise<{
     shouldDistribute: boolean; 
     reason: string; 
     timeframe?: 'week';
@@ -124,7 +124,7 @@ export class RewardDistributionAgent {
   }> {
     
     // Daily bonuses are smaller, more frequent distributions
-    const rewardAmount = parseFloat(globalStats.rewardAmount || globalStats.totalRewards || '0');
+    const rewardAmount = parseFloat((globalStats.rewardAmount as string) || (globalStats.totalRewards as string) || '0');
     const dailyBudget = rewardAmount * 0.1; // 10% of weekly pool for daily bonuses
     
     if (dailyBudget < 0.001) { // Minimum 0.001 ETH for daily distribution
@@ -197,7 +197,7 @@ export class RewardDistributionAgent {
         return {
           success: true,
           message: result.message,
-          transactionHashes: result.distributed?.map((d: any) => d.transactionHash).filter(Boolean)
+          transactionHashes: result.distributed?.map((d: { transactionHash?: string }) => d.transactionHash).filter(Boolean)
         };
       } else {
         console.error(`❌ AI Agent distribution failed:`, result.error);
@@ -235,7 +235,7 @@ export class RewardDistributionAgent {
   }
 
   // Utility methods
-  private async getLastDistribution(timeframe: string): Promise<any> {
+  private async getLastDistribution(timeframe: string): Promise<Record<string, unknown> | null> {
     if (!redis) return null;
     
     const keys = await redis.keys(`reward_distribution:${timeframe}:*`);
@@ -256,7 +256,7 @@ export class RewardDistributionAgent {
     return hoursSince < 24; // Consider recent if within 24 hours
   }
 
-  private calculateEstimatedDistribution(players: any[], rewardPool: number): number {
+  private calculateEstimatedDistribution(players: Record<string, unknown>[], rewardPool: number): number {
     // Estimate based on top 10 distribution percentages
     const distributionPercentages = [0.4, 0.2, 0.15, 0.1, 0.067, 0.04, 0.02, 0.01, 0.007, 0.003];
     

@@ -2,7 +2,7 @@ import { CdpClient } from "@coinbase/cdp-sdk";
 import "dotenv/config";
 import crypto from "crypto";
 
-// @ts-ignore
+// @ts-expect-error Node.js crypto polyfill for global crypto object
 if (!global.crypto) global.crypto = crypto;
 
 // Create a singleton instance of the CDP client only on server side

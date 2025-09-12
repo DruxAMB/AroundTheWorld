@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerWalletForUser, getCdpClient } from '@/lib/cdp/cdp'
 
+interface SpendCall {
+  to: string
+  data: string
+  value?: string
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Get session from cookie
@@ -64,7 +70,7 @@ export async function POST(request: NextRequest) {
     const result = await cdpClient.evm.sendUserOperation({
       smartAccount: serverWallet.smartAccount,
       network: "base-sepolia", // Changed from "base" to "base-sepolia" to match testnet
-      calls: spendCalls.map((call: any) => ({
+      calls: spendCalls.map((call: SpendCall) => ({
         to: call.to,
         data: call.data,
       })),

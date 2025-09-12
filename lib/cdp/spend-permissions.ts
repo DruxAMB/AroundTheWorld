@@ -8,13 +8,18 @@ import {
 import { createBaseAccountSDK } from '@base-org/account'
 
 export interface SpendPermission {
-  account: string
-  spender: string
-  token: string
-  chainId: number
-  allowance: bigint
-  periodInDays: number
-  signature?: string
+  signature: string
+  permission: {
+    account: string
+    spender: string
+    token: string
+    allowance: string
+    period: number
+    start: number
+    end: number
+    salt: string
+    extraData: string
+  }
 }
 
 export const ETH_BASE_ADDRESS = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
@@ -40,15 +45,7 @@ export async function requestUserSpendPermission(
       }).getProvider(),
     })
 
-    return {
-      account: userAccount,
-      spender: spenderAccount,
-      token: ETH_BASE_ADDRESS,
-      chainId: 84532,
-      allowance: allowanceUSDC,
-      periodInDays: 1,
-      ...permission
-    }
+    return permission as SpendPermission
   } catch (error) {
     console.error('Failed to request spend permission:', error)
     throw new Error('Failed to request spend permission')
@@ -58,7 +55,7 @@ export async function requestUserSpendPermission(
 export async function getUserSpendPermissions(
   userAccount: string,
   spenderAccount: string
-) {
+): Promise<Record<string, unknown>[]> {
   try {
     console.log('🔧 Creating Base Account SDK...')
     const sdk = createBaseAccountSDK({
@@ -116,7 +113,7 @@ export async function getUserSpendPermissions(
   }
 }
 
-export async function checkSpendPermissionStatus(permission: any) {
+export async function checkSpendPermissionStatus(permission: SpendPermission) {
   try {
     const status = await getPermissionStatus(permission)
     return status
@@ -127,7 +124,7 @@ export async function checkSpendPermissionStatus(permission: any) {
 }
 
 export async function prepareSpendTransaction(
-  permission: any,
+  permission: SpendPermission,
   amountUSD: number
 ) {
   try {
@@ -143,7 +140,7 @@ export async function prepareSpendTransaction(
   }
 }
 
-export async function revokeSpendPermission(permission: any): Promise<string> {
+export async function revokeSpendPermission(permission: Record<string, unknown>): Promise<string> {
   try {
     console.log('🔄 Revoking spend permission:', permission)
     
@@ -158,14 +155,15 @@ export async function revokeSpendPermission(permission: any): Promise<string> {
     console.log('🔧 Normalized permission for revoke:', normalizedPermission)
     
     // Use requestRevoke for user-initiated revoke (shows wallet popup)
-    const result = await requestRevoke(normalizedPermission)
+    // Type assertion needed due to SDK interface mismatch
+    const result = await requestRevoke(normalizedPermission as never)
     
     console.log('✅ Spend permission revoked successfully, result:', result)
     console.log('🔍 Result type:', typeof result)
     console.log('🔍 Result structure:', result)
     
     // requestRevoke returns an object with an 'id' property containing the transaction hash
-    const hash: string = (result as any).id
+    const hash: string = (result as unknown as { id: string }).id
     
     console.log('✅ Final hash:', hash)
     return hash

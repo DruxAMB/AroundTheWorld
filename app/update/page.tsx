@@ -13,7 +13,7 @@ type TabType = 'rewards' | 'broadcast' | 'leaderboard';
 export default function AdminPage() {
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [adminAddress, setAdminAddress] = useState<string>('');
+  const [, setAdminAddress] = useState<string>('');
   const [activeTab, setActiveTab] = useState<TabType>('rewards');
   
   // Check for existing authentication on mount

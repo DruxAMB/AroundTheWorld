@@ -1,7 +1,25 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { getUserSpendPermissions, revokeSpendPermission } from '@/lib/cdp/spend-permissions'
+
+// Extended type to handle the actual data structure returned by the API
+type SpendPermissionData = {
+  signature: string
+  permissionHash?: string
+  chainId?: number
+  allowance?: string
+  permission: {
+    account: string
+    spender: string
+    token: string
+    allowance: string
+    period: number
+    start: number
+    end: number
+    salt?: string
+  }
+}
 
 interface SpendPermissionManagerProps {
   isAuthenticated: boolean
@@ -9,18 +27,12 @@ interface SpendPermissionManagerProps {
 }
 
 export function SpendPermissionManager({ isAuthenticated, userAddress }: SpendPermissionManagerProps) {
-  const [permissions, setPermissions] = useState<any[]>([])
+  const [permissions, setPermissions] = useState<SpendPermissionData[]>([])
   const [isLoadingPermissions, setIsLoadingPermissions] = useState(true)
   const [isRevoking, setIsRevoking] = useState(false)
   const [permissionError, setPermissionError] = useState('')
 
-  useEffect(() => {
-    if (isAuthenticated && userAddress) {
-      loadPermissions()
-    }
-  }, [isAuthenticated, userAddress])
-
-  const loadPermissions = async () => {
+  const loadPermissions = useCallback(async () => {
     if (!userAddress) {
       console.log('❌ No userAddress provided to loadPermissions')
       return
@@ -62,19 +74,19 @@ export function SpendPermissionManager({ isAuthenticated, userAddress }: SpendPe
       console.log('📊 Number of permissions found:', userPermissions.length)
       
       if (userPermissions.length > 0) {
-        userPermissions.forEach((permission: any, index: number) => {
+        userPermissions.forEach((permission: Record<string, unknown>, index: number) => {
           console.log(`📋 Permission ${index + 1}:`, {
-            permissionHash: permission.permissionHash,
-            signature: permission.signature ? `${permission.signature.slice(0, 10)}...` : 'No signature',
-            chainId: permission.chainId,
+            permissionHash: (permission as Record<string, unknown>).permissionHash,
+            signature: (permission as Record<string, unknown>).signature ? `${((permission as Record<string, unknown>).signature as string).slice(0, 10)}...` : 'No signature',
+            // chainId: (permission as Record<string, unknown>).chainId,
             permission: {
-              account: permission.permission?.account,
-              spender: permission.permission?.spender,
-              token: permission.permission?.token,
-              allowance: permission.permission?.allowance?.toString(),
-              period: permission.permission?.period,
-              start: permission.permission?.start,
-              end: permission.permission?.end,
+              account: ((permission as Record<string, unknown>).permission as Record<string, unknown>)?.account,
+              spender: ((permission as Record<string, unknown>).permission as Record<string, unknown>)?.spender,
+              token: ((permission as Record<string, unknown>).permission as Record<string, unknown>)?.token,
+              allowance: ((permission as Record<string, unknown>).permission as Record<string, unknown>)?.allowance,
+              period: ((permission as Record<string, unknown>).permission as Record<string, unknown>)?.period,
+              start: ((permission as Record<string, unknown>).permission as Record<string, unknown>)?.start,
+              end: ((permission as Record<string, unknown>).permission as Record<string, unknown>)?.end,
             }
           })
         })
@@ -82,21 +94,27 @@ export function SpendPermissionManager({ isAuthenticated, userAddress }: SpendPe
         console.log('⚠️ No permissions found for this user/spender combination')
       }
       
-      setPermissions(userPermissions)
+      setPermissions(userPermissions as SpendPermissionData[])
     } catch (error) {
       console.error('❌ Error loading permissions:', error)
       setPermissionError(`Failed to load spend permissions: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setIsLoadingPermissions(false)
     }
-  }
+  }, [userAddress])
 
-  const handleRevokePermission = async (permission: any) => {
+  useEffect(() => {
+    if (isAuthenticated && userAddress) {
+      loadPermissions()
+    }
+  }, [isAuthenticated, userAddress, loadPermissions])
+
+  const handleRevokePermission = async (permission: SpendPermissionData) => {
     setIsRevoking(true)
     setPermissionError('')
 
     try {
-      const hash = await revokeSpendPermission(permission)
+      const hash = await revokeSpendPermission(permission as unknown as Record<string, unknown>)
       console.log('Permission revoked successfully:', hash)
       
       // Reload permissions

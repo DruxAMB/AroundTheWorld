@@ -10,6 +10,13 @@ interface LeaderboardEntry {
   position: number
 }
 
+interface RawLeaderboardEntry {
+  playerId: string
+  score: number
+  name?: string
+  address?: string
+}
+
 interface RewardDistribution {
   address: string
   position: number
@@ -67,7 +74,7 @@ export async function POST(request: NextRequest) {
 
     const leaderboard: LeaderboardEntry[] = leaderboardData.leaderboard
       .slice(0, 15) // Only process top 15 players (reward eligible positions)
-      .map((entry: any, index: number) => {
+      .map((entry: RawLeaderboardEntry, index: number) => {
         console.log(`Processing leaderboard entry ${index + 1}:`, {
           playerId: entry.playerId,
           score: entry.score,
