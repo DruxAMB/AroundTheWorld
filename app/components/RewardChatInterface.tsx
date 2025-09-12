@@ -21,13 +21,14 @@ export function RewardChatInterface({ isAuthenticated, userAddress }: RewardChat
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'initial-1',
-      content: "Hello! I'm your AroundTheWorld reward distribution agent. I can help you distribute USDC rewards to top players based on their leaderboard positions. Just tell me how much you want to distribute and I'll analyze the leaderboard!",
+      content: "Hello! I'm your AroundTheWorld reward distribution agent. I can help you distribute ETH rewards to top players based on their leaderboard positions. Just tell me how much you want to distribute and I'll analyze the leaderboard!",
       sender: 'agent',
       timestamp: new Date(),
     },
   ])
   const [inputValue, setInputValue] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [loadingStage, setLoadingStage] = useState('thinking')
   const [messageCounter, setMessageCounter] = useState(1)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -40,7 +41,7 @@ export function RewardChatInterface({ isAuthenticated, userAddress }: RewardChat
   }, [messages])
 
   const sendMessage = async () => {
-    if (!inputValue.trim() || isLoading || !isAuthenticated) return
+    if (!inputValue.trim() || isLoading) return
 
     const userMessage: Message = {
       id: `user-${Date.now()}-${messageCounter}`,
@@ -48,11 +49,12 @@ export function RewardChatInterface({ isAuthenticated, userAddress }: RewardChat
       sender: 'user',
       timestamp: new Date(),
     }
-    setMessageCounter(prev => prev + 1)
 
     setMessages(prev => [...prev, userMessage])
     setInputValue('')
     setIsLoading(true)
+    setLoadingStage('processing request')
+    setMessageCounter(prev => prev + 1)
 
     try {
       // Prepare messages for API
@@ -64,14 +66,17 @@ export function RewardChatInterface({ isAuthenticated, userAddress }: RewardChat
           content: m.content,
         }))
 
+      setLoadingStage('fetching leaderboard data')
+      
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ messages: chatMessages }),
+        body: JSON.stringify({ messages: chatMessages, adminAddress: userAddress }),
       })
 
+      setLoadingStage('analyzing results')
       const data = await response.json()
 
       if (data.error) {
@@ -80,6 +85,7 @@ export function RewardChatInterface({ isAuthenticated, userAddress }: RewardChat
 
       // If this is a tool call (distribute_rewards), we need to handle spend permissions on the frontend
       if (data.toolCall && data.details?.function?.name === 'distribute_rewards') {
+        setLoadingStage('preparing transaction')
         await handleRewardDistribution(data.details.function.arguments)
         return
       }
@@ -107,6 +113,7 @@ export function RewardChatInterface({ isAuthenticated, userAddress }: RewardChat
       setMessages(prev => [...prev, errorMessage])
     } finally {
       setIsLoading(false)
+      setLoadingStage('thinking')
     }
   }
 
@@ -129,10 +136,10 @@ export function RewardChatInterface({ isAuthenticated, userAddress }: RewardChat
 
       // Check permission status
       const status = await getPermissionStatus(permission)
-      const requiredAmountUSDC = BigInt(Math.floor(weeklyRewardPool * 1_000_000))
+      const requiredAmountETH = BigInt(Math.floor(weeklyRewardPool * 1_000_000_000_000_000_000))
 
-      if (status.remainingSpend < requiredAmountUSDC) {
-        throw new Error(`Insufficient spend permission. Remaining: $${Number(status.remainingSpend) / 1_000_000}`)
+      if (status.remainingSpend < requiredAmountETH) {
+        throw new Error(`Insufficient spend permission. Remaining: ${Number(status.remainingSpend) / 1_000_000_000_000_000_000} ETH`)
       }
 
       // First, calculate rewards using AI
@@ -154,7 +161,7 @@ export function RewardChatInterface({ isAuthenticated, userAddress }: RewardChat
       }
 
       // Prepare spend calls on the frontend for the total amount
-      const spendCalls = await prepareSpendCallData(permission, requiredAmountUSDC)
+      const spendCalls = await prepareSpendCallData(permission, requiredAmountETH)
 
       // Execute the distribution with prepared calls
       const distributeResponse = await fetch('/api/admin/execute-spend-permission', {
@@ -174,7 +181,7 @@ export function RewardChatInterface({ isAuthenticated, userAddress }: RewardChat
       const resultMessage: Message = {
         id: `result-${Date.now()}-${messageCounter}`,
         content: distributeResult.success 
-          ? `✅ Successfully distributed $${weeklyRewardPool} USDC to ${calculateResult.qualifyingPlayers} players!\n\nDistribution:\n${calculateResult.rewards.map((r: any) => `• Position ${r.position}: $${r.amount} USDC (${r.percentage}%)`).join('\n')}\n\nReason: ${distributionReason}`
+          ? `✅ Successfully distributed ${weeklyRewardPool} ETH to ${calculateResult.qualifyingPlayers} players!\n\nDistribution:\n${calculateResult.rewards.map((r: any) => `• Position ${r.position}: ${r.amount} ETH (${r.percentage}%)`).join('\n')}\n\nReason: ${distributionReason}`
           : `❌ Failed to distribute rewards: ${distributeResult.error}`,
         sender: 'agent',
         timestamp: new Date(),
@@ -279,7 +286,7 @@ export function RewardChatInterface({ isAuthenticated, userAddress }: RewardChat
                   <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
                   <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                 </div>
-                <span className="text-sm text-slate-900">thinking...</span>
+                <span className="text-sm text-slate-900">{loadingStage}</span>
               </div>
             </div>
           </div>
@@ -294,7 +301,7 @@ export function RewardChatInterface({ isAuthenticated, userAddress }: RewardChat
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Ask me to distribute rewards... e.g., 'Distribute $100 USDC to the top players based on their performance'"
+            placeholder="Ask me to distribute rewards... e.g., 'Distribute 0.1 ETH to the top players based on their performance'"
             className="flex-1 px-3 py-1 border border-slate-300 rounded-l-xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent bg-white shadow-sm transition-all duration-200 text-slate-900 placeholder-slate-500"
             rows={2}
             disabled={isLoading}

@@ -4,7 +4,7 @@ import { toAccount } from 'viem/accounts'
 import { baseSepolia } from 'viem/chains'
 
 // USDC token address on Base mainnet
-export const USDC_BASE_ADDRESS = '0x036CbD53842c5426634e7929541eC2318f3dCF7e'
+export const ETH_BASE_ADDRESS = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
 
 let cdpClient: CdpClient | null = null
 
@@ -139,24 +139,15 @@ export async function distributeReward(
       throw new Error('Smart account not available for reward distribution')
     }
     
-    const USDC_BASE_ADDRESS = '0x036CbD53842c5426634e7929541eC2318f3dCF7e'
-    // const USDC_BASE_ADDRESS = '0x833589fCD6eDb6E08-----f4c7C32D4f71b54bdA02913'
-    const transferSelector = '0xa9059cbb' // transfer(address,uint256)
+    // Convert amount to ETH (18 decimals)
+    const ethAmount = BigInt(Math.floor(parseFloat(amount) * 1e18))
     
-    // Convert amount to USDC (6 decimals)
-    const usdcAmount = BigInt(Math.floor(parseFloat(amount) * 1e6))
-    
-    // Encode transfer call data
-    const transferData = transferSelector + 
-      toAddress.slice(2).padStart(64, '0') + 
-      usdcAmount.toString(16).padStart(64, '0')
-    
-    // Execute USDC transfer using smart account
+    // Execute native ETH transfer directly to player address
     const result = await distributorWallet.smartAccount.sendUserOperation({
       calls: [{
-        to: USDC_BASE_ADDRESS as `0x${string}`,
-        value: BigInt(0),
-        data: transferData as `0x${string}`
+        to: toAddress as `0x${string}`,
+        value: ethAmount,
+        data: '0x' // No data needed for native ETH transfer
       }],
       paymaster: process.env.PAYMASTER_URL ? {
         url: process.env.PAYMASTER_URL
@@ -217,7 +208,7 @@ export async function executeSpendPermissionAndDistribute(
     await new Promise(resolve => setTimeout(resolve, 3000))
     
     // Step 2: Distribute USDC from server wallet to reward recipients
-    const USDC_BASE_ADDRESS = '0x036CbD53842c5426634e7929541eC2318f3dCF7e'
+    const ETH_BASE_ADDRESS = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
     const transferSelector = '0xa9059cbb' // transfer(address,uint256)
     
     const distributionCalls = distributions.map(dist => {
@@ -226,7 +217,7 @@ export async function executeSpendPermissionAndDistribute(
       const transferData = `${transferSelector}${recipientAddress}${transferAmount}`
       
       return {
-        to: USDC_BASE_ADDRESS as `0x${string}`,
+        to: ETH_BASE_ADDRESS as `0x${string}`,
         data: transferData as `0x${string}`
       }
     })
@@ -269,7 +260,7 @@ export async function batchDistributeRewards(
     }
     
     const cdpClient = getCdpClient()
-    const USDC_BASE_ADDRESS = '0x036CbD53842c5426634e7929541eC2318f3dCF7e'
+    const ETH_BASE_ADDRESS = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
     const transferSelector = '0xa9059cbb' // transfer(address,uint256)
     
     // Prepare USDC transfer operations
@@ -279,7 +270,7 @@ export async function batchDistributeRewards(
       const transferData = `${transferSelector}${recipientAddress}${transferAmount}`
       
       return {
-        to: USDC_BASE_ADDRESS as `0x${string}`,
+        to: ETH_BASE_ADDRESS as `0x${string}`,
         data: transferData as `0x${string}`
       }
     })

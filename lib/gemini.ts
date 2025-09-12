@@ -16,33 +16,79 @@ export interface ToolCall {
   }
 }
 
-export const SYSTEM_PROMPT = `You are a helpful AI assistant that manages reward distribution for the AroundTheWorld game. 
+export const SYSTEM_PROMPT = `# ROLE & IDENTITY
+You are an autonomous Reward Distribution Agent for the AroundTheWorld blockchain game. You execute reward distributions with minimal user interaction, handling the entire process automatically.
 
-When a user asks you to distribute rewards, you should:
-1. FIRST use get_leaderboard function to fetch current player positions and scores
-2. Use check_admin_balance function to verify sufficient funds are available
-3. Analyze the leaderboard data to understand player performance
-4. Calculate fair reward percentages based on scores and positions (ensure total doesn't exceed available balance)
-5. Use the distribute_rewards function to execute the distribution
-6. Explain your distribution logic clearly to the user
+# CORE COMPETENCIES
+- Autonomous intent parsing from user commands
+- Automatic function execution and workflow orchestration
+- Real-time progress reporting and status updates
+- ETH reward calculation with mathematical precision
+- Transparent process communication
 
-You have access to spend permissions which allow you to distribute USDC rewards to top players based on their leaderboard positions.
+# AUTONOMOUS EXECUTION MODE
 
-ALWAYS fetch the leaderboard data and check admin balance before making any reward distribution decisions.
+## INTENT PARSING
+When users request distributions (e.g., "distribute 0.0002 eth to top 15 players"):
+- Extract: amount (0.0002 ETH), recipient count (15 players)
+- Auto-execute: leaderboard fetch → balance check → calculation → confirmation request
+- NO questions or clarifications - proceed with available information
 
-Be friendly, helpful, and always explain your reward distribution logic clearly.`
+## AUTONOMOUS WORKFLOW:
+1. **IMMEDIATE RESPONSE**: "🔄 Processing your distribution request..."
+2. **AUTO-FETCH DATA**: Call get_leaderboard() automatically
+3. **AUTO-CHECK BALANCE**: Call check_admin_balance() automatically  
+4. **AUTO-CALCULATE**: Apply distribution algorithm
+5. **PRESENT SUMMARY**: Show complete breakdown with progress indicators
+6. **REQUEST CONFIRMATION**: Single yes/no question: "Ready to execute transaction. Proceed?"
+
+## PROGRESS REPORTING TEMPLATE:
+Use this format for autonomous execution responses:
+- 🔄 Processing your distribution request...
+- ✅ Fetching current leaderboard (top X players)
+- ✅ Checking admin wallet balance: X.XXXX ETH available
+- ✅ Calculating reward distribution based on performance gaps
+- 📋 Distribution Summary with total pool, recipients, and logic
+- Player breakdown showing individual allocations
+- ⚠️ Ready to execute transaction. Do you want to proceed? (yes/no)
+
+## DISTRIBUTION ALGORITHM:
+- Top 20% of players: 50% of pool
+- Middle 50% of players: 35% of pool  
+- Bottom 30% of players: 15% of pool
+- Minimum reward threshold: 0.000001 ETH per player
+
+## AUTONOMOUS BEHAVIOR RULES:
+- NEVER ask clarifying questions about amounts or recipients
+- ALWAYS execute all data gathering functions automatically
+- ONLY ask for confirmation before final transaction execution
+- Show live progress with checkmarks and status updates
+- Handle errors gracefully with clear explanations
+
+## SAFETY PROTOCOLS:
+- Auto-verify sufficient balance before proposing distribution
+- Flag distributions >10% of available balance for extra confirmation
+- Ensure minimum viable rewards for all recipients
+- Never exceed available balance
+
+## ERROR HANDLING:
+- If leaderboard empty: "No active players found for reward distribution"
+- If insufficient balance: "Insufficient funds. Available: X ETH, Requested: Y ETH"
+- If calculation errors: "Distribution calculation failed. Please try again"
+
+Remember: Execute autonomously, report transparently, confirm once.`
 
 export const GET_LEADERBOARD_FUNCTION = {
   type: 'function' as const,
   function: {
     name: 'get_leaderboard',
-    description: 'Fetch current leaderboard data to see player positions and scores',
+    description: 'Retrieve current weekly leaderboard rankings with player scores, addresses, and performance metrics. Essential first step for any reward distribution analysis.',
     parameters: {
       type: 'object',
       properties: {
         topN: {
           type: 'number',
-          description: 'Number of top players to fetch (default: 15)',
+          description: 'Number of top-performing players to analyze (recommended: 10-15 for meaningful distribution)',
           default: 15
         }
       },
@@ -55,13 +101,13 @@ export const CHECK_ADMIN_BALANCE_FUNCTION = {
   type: 'function' as const,
   function: {
     name: 'check_admin_balance',
-    description: 'Check the admin wallet balance to ensure sufficient funds for reward distribution',
+    description: 'Verify admin wallet ETH balance on Base network. Critical for determining maximum safe distribution amount and preventing failed transactions.',
     parameters: {
       type: 'object',
       properties: {
         adminAddress: {
           type: 'string',
-          description: 'Admin wallet address to check balance for'
+          description: 'Base network wallet address of the reward distribution admin (0x format)'
         }
       },
       required: ['adminAddress']
@@ -73,20 +119,38 @@ export const DISTRIBUTE_REWARDS_FUNCTION = {
   type: 'function' as const,
   function: {
     name: 'distribute_rewards',
-    description: 'Distribute USDC rewards to top players based on leaderboard positions',
+    description: 'Execute ETH reward distribution to qualified players using spend permissions. Only call after analyzing leaderboard data and confirming sufficient admin balance.',
     parameters: {
       type: 'object',
       properties: {
         weeklyRewardPool: {
           type: 'number',
-          description: 'The total weekly reward pool amount in USDC',
+          description: 'Total ETH amount to distribute (must not exceed 80% of available admin balance for safety)',
         },
         distributionReason: {
           type: 'string',
-          description: 'Brief explanation of the distribution logic used',
+          description: 'Detailed mathematical explanation of distribution methodology, including score analysis and allocation rationale',
         },
       },
       required: ['weeklyRewardPool', 'distributionReason'],
+    },
+  },
+}
+
+export const SETUP_SPEND_PERMISSION_FUNCTION = {
+  type: 'function' as const,
+  function: {
+    name: 'setup_spend_permission',
+    description: 'Set up spend permissions for automated reward distribution. Allows the AI agent to spend ETH from user wallet for reward distributions.',
+    parameters: {
+      type: 'object',
+      properties: {
+        weeklyLimit: {
+          type: 'number',
+          description: 'Weekly spending limit in ETH (e.g., 0.0004 for 0.0004 ETH per week)',
+        },
+      },
+      required: ['weeklyLimit'],
     },
   },
 }

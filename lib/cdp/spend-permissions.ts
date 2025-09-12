@@ -17,7 +17,7 @@ export interface SpendPermission {
   signature?: string
 }
 
-export const USDC_BASE_ADDRESS = '0x036CbD53842c5426634e7929541eC2318f3dCF7e'
+export const ETH_BASE_ADDRESS = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
 
 export async function requestUserSpendPermission(
   userAccount: string,
@@ -31,7 +31,7 @@ export async function requestUserSpendPermission(
     const permission = await requestSpendPermission({
       account: userAccount as `0x${string}`,
       spender: spenderAccount as `0x${string}`,
-      token: USDC_BASE_ADDRESS as `0x${string}`,
+      token: ETH_BASE_ADDRESS as `0x${string}`,
       chainId: 84532, // Base mainnet
       allowance: allowanceUSDC,
       periodInDays: 1, // Daily limit
@@ -43,7 +43,7 @@ export async function requestUserSpendPermission(
     return {
       account: userAccount,
       spender: spenderAccount,
-      token: USDC_BASE_ADDRESS,
+      token: ETH_BASE_ADDRESS,
       chainId: 84532,
       allowance: allowanceUSDC,
       periodInDays: 1,
@@ -71,7 +71,7 @@ export async function getUserSpendPermissions(
     console.log('  - account:', userAccount)
     console.log('  - chainId: 84532')
     console.log('  - spender:', spenderAccount)
-    console.log('  - USDC_BASE_ADDRESS:', USDC_BASE_ADDRESS)
+    console.log('  - ETH_BASE_ADDRESS:', ETH_BASE_ADDRESS)
 
     const permissions = await fetchPermissions({
       account: userAccount as `0x${string}`,
@@ -87,7 +87,7 @@ export async function getUserSpendPermissions(
     if (permissions.length > 0) {
       permissions.forEach((permission, index) => {
         const tokenAddress = permission.permission?.token?.toLowerCase()
-        const usdcAddress = USDC_BASE_ADDRESS.toLowerCase()
+        const usdcAddress = ETH_BASE_ADDRESS.toLowerCase()
         console.log(`🔍 Permission ${index + 1} before filtering:`, {
           token: permission.permission?.token,
           tokenLowercase: tokenAddress,
@@ -101,7 +101,7 @@ export async function getUserSpendPermissions(
     }
 
     const filteredPermissions = permissions.filter(p => 
-      p.permission?.token?.toLowerCase() === USDC_BASE_ADDRESS.toLowerCase()
+      p.permission?.token?.toLowerCase() === ETH_BASE_ADDRESS.toLowerCase()
     )
     console.log('✅ Filtered USDC permissions:', filteredPermissions.length)
 

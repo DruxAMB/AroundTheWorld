@@ -7,6 +7,7 @@ import { getRewardDistributorAddressesClient } from '@/lib/utils/wallet-storage'
 import { motion } from 'framer-motion';
 import { SignInWithBaseButton } from './SignInWithBase';
 import { RewardChatInterface } from './RewardChatInterface';
+import Image from 'next/image';
 
 interface DistributionHistory {
   timestamp: string;
@@ -23,16 +24,14 @@ interface RewardDistributionPanelProps {
 
 export default function RewardDistributionPanel({ onDistribute, onAdminConnect }: RewardDistributionPanelProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const [walletBalance, setWalletBalance] = useState('0');
   const [adminWalletBalance, setAdminWalletBalance] = useState('0');
   const [distributionHistory, setDistributionHistory] = useState<DistributionHistory[]>([]);
-  const [selectedTimeframe, setSelectedTimeframe] = useState<'week' | 'month' | 'all-time'>('week');
+  const [selectedTimeframe, ] = useState<'week'>('week');
   const [currentLeaderboard, setCurrentLeaderboard] = useState<any[]>([]);
   const [rewardPool, setRewardPool] = useState('0.1');
   const [isWalletAuthenticated, setIsWalletAuthenticated] = useState(false);
   const [adminAddress, setAdminAddress] = useState<string>('');
   const [spendPermissionStatus, setSpendPermissionStatus] = useState<'none' | 'valid' | 'invalid' | 'expired'>('none');
-  const [serverWallet, setServerWallet] = useState<any>(null);
 
   useEffect(() => {
     checkWalletAuthStatus();
@@ -83,12 +82,7 @@ export default function RewardDistributionPanel({ onDistribute, onAdminConnect }
       onAdminConnect(address);
     }
     
-    // Load reward distributor addresses from storage
     try {
-      const addresses = await getRewardDistributorAddressesClient();
-      setServerWallet(addresses);
-      console.log('Loaded reward distributor addresses from storage:', addresses);
-      
       // Fetch admin wallet balance
       await fetchAdminWalletBalance(address);
     } catch (error) {
@@ -110,18 +104,19 @@ export default function RewardDistributionPanel({ onDistribute, onAdminConnect }
 
   const loadDistributionStatus = async () => {
     try {
-      // Fetch leaderboard data from the correct endpoint
-      const leaderboardResponse = await fetch('/api/leaderboard');
+      // Fetch weekly leaderboard data with correct timeframe parameter
+      const params = new URLSearchParams({
+        timeframe: 'week',
+        limit: '15'
+      });
+      
+      const leaderboardResponse = await fetch(`/api/leaderboard?${params}`);
       if (leaderboardResponse.ok) {
         const leaderboardData = await leaderboardResponse.json();
         setCurrentLeaderboard(leaderboardData.leaderboard || []);
       }
-      
-      // You may want to fetch other distribution status data from a different endpoint
-      // For now, setting default values
-      setWalletBalance('0');
       setDistributionHistory([]);
-      setRewardPool('0.5'); // Default reward pool
+      setRewardPool('0.005'); // Default reward pool
     } catch (error) {
       console.error('Failed to load distribution status:', error);
     }
@@ -401,15 +396,9 @@ export default function RewardDistributionPanel({ onDistribute, onAdminConnect }
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Timeframe
             </label>
-            <select
-              value={selectedTimeframe}
-              onChange={(e) => setSelectedTimeframe(e.target.value as 'week' | 'month' | 'all-time')}
-              className="px-3 py-2 text-black border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="week">Weekly</option>
-              <option value="month">Monthly</option>
-              <option value="all-time">All-Time</option>
-            </select>
+            <div className="px-3 py-2 text-black border border-gray-300 rounded-md bg-gray-50">
+              Current Week
+            </div>
           </div>
           
           <div className="flex-1"></div>
@@ -457,22 +446,64 @@ export default function RewardDistributionPanel({ onDistribute, onAdminConnect }
                 
                 {/* Current Leaderboard Preview */}
                 <div className="mb-6">
-                  <h4 className="font-medium mb-3">Current {selectedTimeframe} Leaderboard (Top 5)</h4>
+                  <h4 className="font-medium mb-3 text-black">Current Week Leaderboard (Top 15)</h4>
                   <div className="bg-gray-50 rounded-lg p-4 max-h-48 overflow-y-auto">
-                    {currentLeaderboard.slice(0, 5).map((player, index) => (
-                      <div key={`${player.playerId}-${index}`} className="flex items-center justify-between py-2 border-b border-gray-200 last:border-b-0">
+                    {currentLeaderboard
+                      .filter(player => player.farcasterProfile?.pfpUrl && player.farcasterProfile?.displayName)
+                      .slice(0, 15)
+                      .map((player, index) => (
+                      <div key={`${player.playerId}-${index}`} className="flex items-center justify-between py-2 border-b border-gray-200 last:border-b-0 text-black">
                         <div className="flex items-center">
-                          <span className="w-6 h-6 bg-blue-100 text-blue-800 rounded-full flex items-center justify-center text-xs font-medium mr-2">
+                          <span className="w-6 h-6 text-blue-800 rounded-full flex items-center justify-center text-xs font-medium mr-2">
                             {index + 1}
                           </span>
+                          
+                          {/* Avatar */}
+                          <div className="flex-shrink-0 mr-3">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-700 to-blue-500 border-2 border-blue-600 flex items-center justify-center overflow-hidden">
+                              {player.farcasterProfile?.pfpUrl ? (
+                                <Image
+                                  src={player.farcasterProfile.pfpUrl}
+                                  alt={player.farcasterProfile.displayName || player.name}
+                                  width={32}
+                                  height={32}
+                                  className="w-auto h-auto rounded-full object-cover"
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                    (target.nextElementSibling as HTMLElement)!.style.display = 'flex';
+                                  }}
+                                />
+                              ) : null}
+                              {/* Emoji fallback */}
+                              <div 
+                                className="w-8 h-8 rounded-full flex items-center justify-center text-lg"
+                                style={{ 
+                                  display: player.farcasterProfile?.pfpUrl ? 'none' : 'flex' 
+                                }}
+                              >
+                                {player.avatar}
+                              </div>
+                            </div>
+                          </div>
+                          
                           <div>
-                            <p className="font-medium text-sm">{player.name}</p>
+                            <div className="flex items-center space-x-2">
+                              <p className="font-medium text-sm text-black">
+                                {player.farcasterProfile?.displayName || player.name}
+                              </p>
+                              {player.farcasterProfile?.username && (
+                                <span className="text-xs text-purple-400">
+                                  @{player.farcasterProfile.username}
+                                </span>
+                              )}
+                            </div>
                             <p className="text-xs text-gray-500">{player.playerId.slice(0, 8)}...</p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="font-medium text-sm">{player.score.toLocaleString()}</p>
-                          <p className="text-xs text-gray-500">Level {player.bestLevel}</p>
+                          <p className="font-medium text-sm text-black">{player.score.toLocaleString()}</p>
+                          <p className="text-xs text-gray-500">Level {player.levelsCompleted}</p>
                         </div>
                       </div>
                     ))}

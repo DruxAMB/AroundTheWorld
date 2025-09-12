@@ -41,20 +41,20 @@ export function SpendPermissionSetup({
       console.log("Smart account address (spender):", spenderAddress);
       console.log("Server wallet address:", walletData.address);
 
-      // USDC address on Base mainnet
-      const USDC_BASE_ADDRESS = "0x036CbD53842c5426634e7929541eC2318f3dCF7e";
+      // ETH address on Base mainnet
+      const ETH_BASE_ADDRESS = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 
-      // Convert USD to USDC (6 decimals)
-      const allowanceUSDC = BigInt(weeklyLimit * 1_000_000);
+      // Convert ETH to wei (18 decimals)
+      const allowanceETH = BigInt(Math.floor(weeklyLimit * 1_000_000_000_000_000_000));
 
       // Request spend permission from user's wallet (this requires user signature)
       console.log("Requesting spend permission from user...");
       const permission = await requestSpendPermission({
         account: userAddress as `0x${string}`,
         spender: spenderAddress as `0x${string}`,
-        token: USDC_BASE_ADDRESS as `0x${string}`,
-        chainId: 84532, // Base mainnet
-        allowance: allowanceUSDC,
+        token: ETH_BASE_ADDRESS as `0x${string}`,
+        chainId: 84532, // Base sepolia
+        allowance: allowanceETH,
         periodInDays: 7, // Weekly limit
         provider: createBaseAccountSDK({
           appName: "AroundTheWorld Game",
@@ -83,7 +83,7 @@ export function SpendPermissionSetup({
 
       <p className="text-gray-600 text-sm mb-6">
         Grant spend permissions for weekly reward distribution. This allows the AI agent to 
-        pull USDC from your wallet and distribute rewards to players automatically.
+        pull ETH from your wallet and distribute rewards to players automatically.
       </p>
 
       <div className="space-y-4">
@@ -92,23 +92,23 @@ export function SpendPermissionSetup({
             htmlFor="weeklyLimit"
             className="block text-sm font-medium text-gray-700"
           >
-            Weekly Spend Permission (USD)
+            Weekly Spend Permission (ETH)
           </label>
           <div className="mt-1">
             <input
               type="range"
               id="weeklyLimit"
-              min="1"
-              max="20"
-              step="1"
+              min="0.00001"
+              max="0.0005"
+              step="0.00001"
               value={weeklyLimit}
               onChange={(e) => setWeeklyLimit(Number(e.target.value))}
               className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
             />
             <div className="flex justify-between text-xs text-gray-500 mt-1">
-              <span>$1.00</span>
-              <span className="font-medium text-blue-600">${weeklyLimit.toFixed(2)}</span>
-              <span>$20.00</span>
+              <span>0.00001 ETH</span>
+              <span className="font-medium text-blue-600">{weeklyLimit.toFixed(6)} ETH</span>
+              <span>0.0005 ETH</span>
             </div>
           </div>
         </div>
@@ -126,7 +126,7 @@ export function SpendPermissionSetup({
         >
           {isLoading
             ? "Setting up..."
-            : `Grant $${weeklyLimit.toFixed(2)}/week Spend Permission`}
+            : `Grant ${weeklyLimit.toFixed(6)} ETH/week Spend Permission`}
         </button>
       </div>
 

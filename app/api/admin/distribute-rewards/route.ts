@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { executeSpendPermissionAndDistribute, USDC_BASE_ADDRESS } from '@/lib/cdp/cdp'
-import { parseUnits, formatUnits } from 'viem'
+import { executeSpendPermissionAndDistribute} from '@/lib/cdp/cdp'
+import { parseUnits } from 'viem'
 
 interface RewardDistribution {
   address: string
