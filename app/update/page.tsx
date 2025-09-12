@@ -6,7 +6,7 @@ import RewardCalculator from '@/app/components/RewardCalculator';
 import LeaderboardReset from '@/app/components/LeaderboardReset';
 import PinAuth from '@/app/components/PinAuth';
 import RewardDistributionPanel from '@/app/components/RewardDistributionPanel';
-import { SpendPermissionSetup } from '@/app/components/SpendPermissionSetup';
+// import { SpendPermissionSetup } from '@/app/components/SpendPermissionSetup';
 
 type TabType = 'rewards' | 'broadcast' | 'leaderboard';
 
@@ -120,7 +120,7 @@ export default function AdminPage() {
                       onAdminConnect={(address: string) => setAdminAddress(address)}
                     />
 
-                    {/* Spend Permission Setup */}
+                    {/* Spend Permission Setup
                     {adminAddress && (
                       <div className="border-t pt-8">
                         <h3 className="text-xl font-bold text-gray-800 mb-4">🔐 Spend Permission Setup</h3>
@@ -134,7 +134,7 @@ export default function AdminPage() {
                           }}
                         />
                       </div>
-                    )}
+                    )} */}
                   </div>
                 )}
 

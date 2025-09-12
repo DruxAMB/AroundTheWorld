@@ -264,7 +264,7 @@ export function RewardChatInterface({ isAuthenticated, userAddress }: RewardChat
       // Auto-redirect to Base Account activity page after successful distribution
       if (distributeResult.success && distributeResult.transactionHash) {
         setTimeout(() => {
-          window.open(`https://account.base.app/activity`, '_blank')
+          window.open(`https://sepolia.basescan.org/tx/${distributeResult.transactionHash}`, '_blank')
         }, 2000)
       }
 
@@ -347,6 +347,9 @@ export function RewardChatInterface({ isAuthenticated, userAddress }: RewardChat
       }
       setMessageCounter(prev => prev + 1)
       setMessages(prev => [...prev, errorMessage])
+    } finally {
+      setIsLoading(false)
+      setLoadingStage('thinking')
     }
   }
 
