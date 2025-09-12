@@ -123,6 +123,19 @@ Ready to proceed with distribution calculation. Please confirm the reward amount
     })
   }
   
+  if (toolCall.function.name === 'setup_spend_permission') {
+    return NextResponse.json({
+      message: choice.message.content || 'I\'ll help you set up spend permissions. Let me prepare this...',
+      toolCall: true,
+      details: {
+        function: {
+          name: toolCall.function.name,
+          arguments: toolCall.function.arguments,
+        }
+      },
+    })
+  }
+  
   // Regular chat response
   return NextResponse.json({
     message: choice.message.content,

@@ -28,19 +28,20 @@ You are an autonomous Reward Distribution Agent for the AroundTheWorld blockchai
 
 # AUTONOMOUS EXECUTION MODE
 
-## INTENT PARSING
-When users request distributions (e.g., "distribute 0.0002 eth to top 15 players"):
-- Extract: amount (0.0002 ETH), recipient count (15 players)
-- Auto-execute: leaderboard fetch → balance check → calculation → confirmation request
-- NO questions or clarifications - proceed with available information
+When users request reward distribution (e.g., "distribute 0.0002 eth to top 15 players"):
 
-## AUTONOMOUS WORKFLOW:
-1. **IMMEDIATE RESPONSE**: "🔄 Processing your distribution request..."
-2. **AUTO-FETCH DATA**: Call get_leaderboard() automatically
-3. **AUTO-CHECK BALANCE**: Call check_admin_balance() automatically  
-4. **AUTO-CALCULATE**: Apply distribution algorithm
-5. **PRESENT SUMMARY**: Show complete breakdown with progress indicators
-6. **REQUEST CONFIRMATION**: Single yes/no question: "Ready to execute transaction. Proceed?"
+1. **PARSE INTENT**: Extract distribution amount and target criteria
+2. **FETCH DATA**: Call get_leaderboard to retrieve current weekly rankings
+3. **CHECK BALANCE**: Call check_admin_balance to verify sufficient funds (optional but recommended)
+4. **ANALYZE & CALCULATE**: Determine qualifying players and reward allocation
+5. **EXECUTE**: Call distribute_rewards with calculated parameters
+6. **CONFIRM ONLY ONCE**: Present summary and ask for final confirmation before blockchain transaction
+
+When users request spend permission setup (e.g., "set spend permission of 0.0004 eth" or "setup weekly spending limit"):
+
+1. **PARSE INTENT**: Extract weekly spending limit amount
+2. **EXECUTE**: Call setup_spend_permission with the specified limit
+3. **GUIDE USER**: Explain that they need to confirm the wallet transaction
 
 ## PROGRESS REPORTING TEMPLATE:
 Use this format for autonomous execution responses:
@@ -157,7 +158,7 @@ export const SETUP_SPEND_PERMISSION_FUNCTION = {
 
 export async function generateChatResponse(
   messages: ChatMessage[],
-  tools: any[] = [GET_LEADERBOARD_FUNCTION, CHECK_ADMIN_BALANCE_FUNCTION, DISTRIBUTE_REWARDS_FUNCTION],
+  tools: any[] = [GET_LEADERBOARD_FUNCTION, CHECK_ADMIN_BALANCE_FUNCTION, DISTRIBUTE_REWARDS_FUNCTION, SETUP_SPEND_PERMISSION_FUNCTION],
   adminAddress?: string
 ) {
   try {
@@ -234,7 +235,7 @@ export async function generateChatResponse(
 
 export async function streamChatResponse(
   messages: ChatMessage[],
-  tools: any[] = [GET_LEADERBOARD_FUNCTION, CHECK_ADMIN_BALANCE_FUNCTION, DISTRIBUTE_REWARDS_FUNCTION],
+  tools: any[] = [GET_LEADERBOARD_FUNCTION, CHECK_ADMIN_BALANCE_FUNCTION, DISTRIBUTE_REWARDS_FUNCTION, SETUP_SPEND_PERMISSION_FUNCTION],
   adminAddress?: string
 ) {
   try {

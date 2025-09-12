@@ -10,6 +10,11 @@ interface Message {
   timestamp: Date
   toolCall?: boolean
   details?: any
+  requiresConfirmation?: boolean
+  pendingAction?: {
+    type: string
+    args: any
+  }
 }
 
 interface RewardChatInterfaceProps {
@@ -43,18 +48,18 @@ export function RewardChatInterface({ isAuthenticated, userAddress }: RewardChat
   const sendMessage = async () => {
     if (!inputValue.trim() || isLoading) return
 
+
     const userMessage: Message = {
       id: `user-${Date.now()}-${messageCounter}`,
       content: inputValue,
       sender: 'user',
       timestamp: new Date(),
     }
-
+    setMessageCounter(prev => prev + 1)
     setMessages(prev => [...prev, userMessage])
     setInputValue('')
     setIsLoading(true)
-    setLoadingStage('processing request')
-    setMessageCounter(prev => prev + 1)
+    setLoadingStage('thinking')
 
     try {
       // Prepare messages for API
@@ -87,6 +92,28 @@ export function RewardChatInterface({ isAuthenticated, userAddress }: RewardChat
       if (data.toolCall && data.details?.function?.name === 'distribute_rewards') {
         setLoadingStage('preparing transaction')
         await handleRewardDistribution(data.details.function.arguments)
+        return
+      }
+
+      // If this is a spend permission setup tool call
+      if (data.toolCall && data.details?.function?.name === 'setup_spend_permission') {
+        const args = typeof data.details.function.arguments === 'string' 
+          ? JSON.parse(data.details.function.arguments) 
+          : data.details.function.arguments
+        
+        const confirmationMessage: Message = {
+          id: `spend-confirm-${Date.now()}-${messageCounter}`,
+          content: `🔐 **Spend Permission Setup**\n\nI'll help you set up a spend permission for **${args.weeklyLimit} ETH per week**.\n\nThis will allow me to automatically distribute rewards on your behalf. You'll need to confirm this transaction in your wallet.`,
+          sender: 'agent',
+          timestamp: new Date(),
+          requiresConfirmation: true,
+          pendingAction: {
+            type: 'setup_spend_permission',
+            args: data.details.function.arguments
+          }
+        }
+        setMessageCounter(prev => prev + 1)
+        setMessages(prev => [...prev, confirmationMessage])
         return
       }
 
@@ -195,7 +222,7 @@ export function RewardChatInterface({ isAuthenticated, userAddress }: RewardChat
       // Auto-redirect to Base Account activity page after successful distribution
       if (distributeResult.success && distributeResult.transactionHash) {
         setTimeout(() => {
-          window.open(`https://sepolia.basescan.org/tx/${distributeResult.transactionHash}`, '_blank')
+          window.open(`https://account.base.app/activity`, '_blank')
         }, 2000)
       }
 
@@ -204,6 +231,75 @@ export function RewardChatInterface({ isAuthenticated, userAddress }: RewardChat
       const errorMessage: Message = {
         id: `dist-error-${Date.now()}-${messageCounter}`,
         content: `❌ Failed to distribute rewards: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        sender: 'agent',
+        timestamp: new Date(),
+      }
+      setMessageCounter(prev => prev + 1)
+      setMessages(prev => [...prev, errorMessage])
+    }
+  }
+
+  const handleSpendPermissionSetup = async (args: any) => {
+    try {
+      // Parse the function arguments
+      const { weeklyLimit } = typeof args === 'string' ? JSON.parse(args) : args
+
+      // Get server wallet address directly (same as manual setup)
+      const walletResponse = await fetch("/api/wallet/create", {
+        method: "POST",
+      })
+
+      if (!walletResponse.ok) {
+        throw new Error("Failed to create server wallet")
+      }
+
+      const walletData = await walletResponse.json()
+      const spenderAddress = walletData.smartAccountAddress
+
+      if (!spenderAddress) {
+        throw new Error("Smart account address not found")
+      }
+
+      // Import spend permission utilities dynamically (client-side only)
+      const { requestSpendPermission } = await import('@base-org/account/spend-permission')
+      const { createBaseAccountSDK } = await import('@base-org/account')
+
+      // ETH address on Base
+      const ETH_BASE_ADDRESS = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
+      
+      // Convert ETH to wei (18 decimals)
+      const allowanceETH = BigInt(Math.floor(weeklyLimit * 1_000_000_000_000_000_000))
+
+      // Request spend permission from user
+      const permission = await requestSpendPermission({
+        account: userAddress as `0x${string}`,
+        spender: spenderAddress as `0x${string}`,
+        token: ETH_BASE_ADDRESS as `0x${string}`,
+        chainId: 84532, // Base sepolia
+        allowance: allowanceETH,
+        periodInDays: 7, // Weekly limit
+        provider: createBaseAccountSDK({
+          appName: "AroundTheWorld Game",
+        }).getProvider(),
+      })
+
+      // Store the permission for future use
+      localStorage.setItem('spendPermission', JSON.stringify(permission))
+
+      const successMessage: Message = {
+        id: `spend-success-${Date.now()}-${messageCounter}`,
+        content: `✅ Spend permission successfully set up! Weekly limit: ${weeklyLimit} ETH. You can now use commands like "distribute 0.0002 eth to top 15 players" for automated reward distribution.`,
+        sender: 'agent',
+        timestamp: new Date(),
+      }
+      setMessageCounter(prev => prev + 1)
+      setMessages(prev => [...prev, successMessage])
+
+    } catch (error) {
+      console.error('Spend permission setup error:', error)
+      const errorMessage: Message = {
+        id: `spend-error-${Date.now()}-${messageCounter}`,
+        content: `❌ Failed to set up spend permission: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again or check your wallet connection.`,
         sender: 'agent',
         timestamp: new Date(),
       }
@@ -252,6 +348,17 @@ export function RewardChatInterface({ isAuthenticated, userAddress }: RewardChat
               <p className={`text-sm whitespace-pre-wrap leading-relaxed ${
                 message.sender === 'user' ? 'text-white' : 'text-slate-900'
               }`}>{message.content}</p>
+              {message.requiresConfirmation && message.pendingAction?.type === 'setup_spend_permission' && (
+                <div className="mt-3">
+                  <button
+                    onClick={() => handleSpendPermissionSetup(message.pendingAction!.args)}
+                    disabled={isLoading}
+                    className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                  >
+                    {isLoading ? "Setting up..." : `Grant Permission`}
+                  </button>
+                </div>
+              )}
               {message.toolCall && message.details && message.details.success && (
                 <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg text-sm">
                   <p className="font-medium text-green-800 mb-2">🎉 Reward distribution completed!</p>
