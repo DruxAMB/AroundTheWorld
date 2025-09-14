@@ -405,45 +405,51 @@ export function Match3Game({ level, onLevelComplete, onBackToLevels }: Match3Gam
   });
   
   const [isCompleting, setIsCompleting] = useState(false);
+  const [dragStart, setDragStart] = useState<Position | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
-  const handleCandyInteraction = useCallback((position: Position) => {
+  const handleDragStart = useCallback((position: Position) => {
     if (gameState.animating || gameState.gameStatus !== 'playing' || isCompleting) {
       return;
     }
+    setDragStart(position);
+    setIsDragging(true);
+  }, [gameState.animating, gameState.gameStatus, isCompleting]);
 
-    const { row, col } = position;
-    
-    if (!gameState.selectedCandy) {
-      // Select first candy
-      if (gameState.soundEnabled) {
-        soundManager.play('click');
-      }
-      setGameState(prev => ({
-        ...prev,
-        selectedCandy: position,
-      }));
-    } else if (gameState.selectedCandy.row === row && gameState.selectedCandy.col === col) {
-      // Deselect if clicking the same candy
-      if (gameState.soundEnabled) {
-        soundManager.play('click');
-      }
-      setGameState(prev => ({
-        ...prev,
-        selectedCandy: null,
-      }));
-    } else if (areAdjacent(gameState.selectedCandy, position)) {
+  const handleDragEnd = useCallback((position: Position) => {
+    if (!dragStart || gameState.animating || gameState.gameStatus !== 'playing' || isCompleting) {
+      setDragStart(null);
+      return;
+    }
+
+    // If dragged to same position, just clear drag
+    if (dragStart.row === position.row && dragStart.col === position.col) {
+      setDragStart(null);
+      return;
+    }
+
+    // Check if positions are adjacent
+    if (areAdjacent(dragStart, position)) {
       // Swap adjacent candies
       const newGrid = gameState.grid.map(row => [...row]);
-      const temp = newGrid[gameState.selectedCandy.row][gameState.selectedCandy.col];
-      newGrid[gameState.selectedCandy.row][gameState.selectedCandy.col] = newGrid[row][col];
-      newGrid[row][col] = temp;
+      const temp = newGrid[dragStart.row][dragStart.col];
+      newGrid[dragStart.row][dragStart.col] = newGrid[position.row][position.col];
+      newGrid[position.row][position.col] = temp;
       
-      // Check for matches
+      // Show the swap visually first
+      setGameState(prev => ({
+        ...prev,
+        grid: newGrid,
+        animating: true,
+      }));
+      
+      // Check for matches after visual update
       const { matches, specialCandies } = findMatches(newGrid);
       
       if (matches.length > 0) {
-        // Play match sound
+        // Play correct sound for successful match
         if (gameState.soundEnabled) {
+          soundManager.play('correct');
           soundManager.playMatchSound(matches.length);
           
           // Play special candy sounds if any were created
@@ -524,26 +530,42 @@ export function Match3Game({ level, onLevelComplete, onBackToLevels }: Match3Gam
           });
         }, 200);
       } else {
-        // Invalid move - swap back
-        if (gameState.soundEnabled) {
-          soundManager.play('wrong'); // Wrong move sound effect
-        }
-        setGameState(prev => ({
-          ...prev,
-          selectedCandy: null,
-        }));
+        // Invalid move - swap back after showing the swap
+        setTimeout(() => {
+          if (gameState.soundEnabled) {
+            soundManager.play('wrong'); // Wrong move sound effect
+          }
+          
+          // Swap back to original positions
+          const originalGrid = gameState.grid.map(row => [...row]);
+          setGameState(prev => ({
+            ...prev,
+            grid: originalGrid,
+            selectedCandy: null,
+            animating: false,
+          }));
+        }, 300);
       }
-    } else {
-      // Select new candy if not adjacent
-      if (gameState.soundEnabled) {
-        soundManager.play('click');
-      }
-      setGameState(prev => ({
-        ...prev,
-        selectedCandy: position,
-      }));
     }
-  }, [gameState, level, onLevelComplete, isCompleting]);
+    
+    setDragStart(null);
+    setIsDragging(false);
+  }, [dragStart, gameState, level, onLevelComplete, isCompleting]);
+
+  // Add global mouse up handler to complete drag anywhere
+  useEffect(() => {
+    const handleGlobalMouseUp = () => {
+      if (isDragging) {
+        setDragStart(null);
+        setIsDragging(false);
+      }
+    };
+
+    if (isDragging) {
+      document.addEventListener('mouseup', handleGlobalMouseUp);
+      return () => document.removeEventListener('mouseup', handleGlobalMouseUp);
+    }
+  }, [isDragging]);
 
   const resetGame = useCallback(() => {
     const { grid, ids } = createInitialGrid(level.candyTheme);
@@ -603,8 +625,8 @@ export function Match3Game({ level, onLevelComplete, onBackToLevels }: Match3Gam
     
     let stateClasses = '';
     
-    if (isSelected(row, col)) {
-      stateClasses = 'bg-[var(--app-accent)] bg-opacity-40 border-[var(--app-accent)] shadow-lg scale-105';
+    if (dragStart && dragStart.row === row && dragStart.col === col) {
+      stateClasses = 'bg-blue-500 bg-opacity-60 border-blue-400 shadow-lg scale-105';
     } else if (isMatched(row, col)) {
       stateClasses = 'bg-red-500 bg-opacity-60 border-red-400 shadow-md';
     } else {
@@ -612,7 +634,7 @@ export function Match3Game({ level, onLevelComplete, onBackToLevels }: Match3Gam
     }
     
     return `${baseClasses} ${stateClasses}`;
-  }, [isSelected, isMatched]);
+  }, [dragStart, isMatched]);
 
   return (
     <div 
@@ -760,11 +782,38 @@ export function Match3Game({ level, onLevelComplete, onBackToLevels }: Match3Gam
                         damping: 30,
                         layout: { duration: 0.15 }
                       }}
-                      onMouseDown={() => handleCandyInteraction({ row: rowIndex, col: colIndex })}
-                      onTouchStart={(e) => {
-                        handleCandyInteraction({ row: rowIndex, col: colIndex });
+                      onMouseDown={() => handleDragStart({ row: rowIndex, col: colIndex })}
+                      onMouseEnter={() => {
+                        if (dragStart) {
+                          handleDragEnd({ row: rowIndex, col: colIndex });
+                        }
                       }}
-                      style={{ touchAction: 'manipulation' }}
+                      onTouchStart={() => handleDragStart({ row: rowIndex, col: colIndex })}
+                      onTouchMove={(e) => {
+                        if (dragStart) {
+                          e.preventDefault();
+                          const touch = e.touches[0];
+                          const element = document.elementFromPoint(touch.clientX, touch.clientY);
+                          const button = element?.closest('button');
+                          if (button) {
+                            const gridIndex = Array.from(button.parentElement?.children || []).indexOf(button);
+                            if (gridIndex >= 0) {
+                              const targetRow = Math.floor(gridIndex / 6);
+                              const targetCol = gridIndex % 6;
+                              if (targetRow !== dragStart.row || targetCol !== dragStart.col) {
+                                handleDragEnd({ row: targetRow, col: targetCol });
+                              }
+                            }
+                          }
+                        }
+                      }}
+                      onTouchEnd={() => {
+                        if (dragStart) {
+                          setDragStart(null);
+                          setIsDragging(false);
+                        }
+                      }}
+                      style={{ touchAction: 'none' }}
                       className={getCandyStyle(rowIndex, colIndex)}
                       disabled={gameState.moves <= 0 || gameState.animating}
                     >
