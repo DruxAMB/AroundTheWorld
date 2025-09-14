@@ -30,6 +30,7 @@ class SoundManager {
       gameOver: '/sounds/game-over.mp3',
       win: '/sounds/win.mp3',
       shuffle: '/sounds/shuffle.mp3',
+      wrong: '/sounds/wrong.mp3',
     };
 
     Object.entries(soundFiles).forEach(([key, path]) => {

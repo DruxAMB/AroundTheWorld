@@ -406,7 +406,7 @@ export function Match3Game({ level, onLevelComplete, onBackToLevels }: Match3Gam
   
   const [isCompleting, setIsCompleting] = useState(false);
 
-  const handleCandyClick = useCallback((position: Position) => {
+  const handleCandyInteraction = useCallback((position: Position) => {
     if (gameState.animating || gameState.gameStatus !== 'playing' || isCompleting) {
       return;
     }
@@ -526,7 +526,7 @@ export function Match3Game({ level, onLevelComplete, onBackToLevels }: Match3Gam
       } else {
         // Invalid move - swap back
         if (gameState.soundEnabled) {
-          soundManager.play('click'); // Different sound for invalid move
+          soundManager.play('wrong'); // Wrong move sound effect
         }
         setGameState(prev => ({
           ...prev,
@@ -760,7 +760,11 @@ export function Match3Game({ level, onLevelComplete, onBackToLevels }: Match3Gam
                         damping: 30,
                         layout: { duration: 0.15 }
                       }}
-                      onClick={() => handleCandyClick({ row: rowIndex, col: colIndex })}
+                      onMouseDown={() => handleCandyInteraction({ row: rowIndex, col: colIndex })}
+                      onTouchStart={(e) => {
+                        handleCandyInteraction({ row: rowIndex, col: colIndex });
+                      }}
+                      style={{ touchAction: 'manipulation' }}
                       className={getCandyStyle(rowIndex, colIndex)}
                       disabled={gameState.moves <= 0 || gameState.animating}
                     >
