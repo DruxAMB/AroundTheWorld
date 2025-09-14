@@ -34,6 +34,8 @@ export default function DailyBonusModal({
   const [claimSuccess, setClaimSuccess] = useState(false);
   const [hasInitialLoad, setHasInitialLoad] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [hasShared, setHasShared] = useState(false);
+  const [sharingState, setSharingState] = useState<'idle' | 'sharing' | 'completed'>('idle');
   
   useEffect(() => {
     const fetchBonusStatus = async () => {
@@ -70,6 +72,8 @@ export default function DailyBonusModal({
       setHasInitialLoad(false);
       setStatus(null);
       setErrorMessage(null);
+      setHasShared(false);
+      setSharingState('idle');
     }
   }, [isOpen]);
 
@@ -105,11 +109,11 @@ export default function DailyBonusModal({
           onBonusClaimed(result.bonusAmount);
         }
 
-        // Auto-close after success animation
-        setTimeout(() => {
-          onClose();
-          setClaimSuccess(false);
-        }, 2000);
+        // Don't auto-close anymore - let user share first
+        // setTimeout(() => {
+        //   onClose();
+        //   setClaimSuccess(false);
+        // }, 2000);
       } else {
         console.error('Failed to claim bonus:', result.message || 'Unknown error');
         setErrorMessage(result.message || 'Failed to claim bonus');
@@ -119,6 +123,26 @@ export default function DailyBonusModal({
       setErrorMessage('Failed to claim daily bonus. Please try again.');
     } finally {
       setClaiming(false);
+    }
+  };
+
+  const handleShare = () => {
+    if (!hasShared) {
+      // Update sharing state to show loading
+      setSharingState('sharing');
+      
+      // Create the share URL for Farcaster
+      const shareText = "I just claimed my daily bonus, don't forget to claim yours😉";
+      const shareUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(shareText)}&embeds[]=https://basearoundtheworld.vercel.app`;
+      
+      // Open in new window
+      window.open(shareUrl, '_blank');
+      
+      // Simulate sharing process with a delay
+      setTimeout(() => {
+        setHasShared(true);
+        setSharingState('completed');
+      }, 3000); // 3-second delay
     }
   };
 
@@ -154,10 +178,10 @@ export default function DailyBonusModal({
               <p className="mt-4 text-[var(--app-foreground-muted)]">Loading bonus status...</p>
             </div>
           ) : status ? (
-            <div className="space-y-6">
+            <div className="space-y-2">
               {/* Bonus Amount */}
               <div className="text-center">
-                <div className="bg-[var(--app-background)] border border-[var(--app-card-border)] rounded-xl p-6">
+                <div className="bg-[var(--app-background)] rounded-xl p-6">
                   <div className="text-4xl font-bold text-[var(--app-accent)] mb-2">
                     +{status.availableBonusAmount}
                   </div>
@@ -167,7 +191,7 @@ export default function DailyBonusModal({
 
               {/* Stats */}
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-[var(--app-background)] border border-[var(--app-card-border)] rounded-lg p-4 text-center">
+                <div className="bg-[var(--app-background)] rounded-lg p-4 text-center">
                   <div className="flex items-center justify-center mb-2">
                     <Flame className="text-red-500" size={24} />
                   </div>
@@ -175,7 +199,7 @@ export default function DailyBonusModal({
                   <div className="text-sm text-[var(--app-foreground-muted)]">Day Streak</div>
                 </div>
                 
-                <div className="bg-[var(--app-background)] border border-[var(--app-card-border)] rounded-lg p-4 text-center">
+                <div className="bg-[var(--app-background)] rounded-lg p-4 text-center">
                   <div className="flex items-center justify-center mb-2">
                     <Star className="text-yellow-500" size={24} />
                   </div>
@@ -198,23 +222,33 @@ export default function DailyBonusModal({
 
               {/* Claim Button or Status */}
               {status.alreadyClaimed ? (
-                <div className="text-center py-4">
-                  <div className="bg-green-900/20 border border-green-700/30 text-green-400 rounded-lg p-4">
-                    <div className="font-semibold">✅ Already Claimed Today!</div>
-                    <div className="text-sm mt-1 text-green-300">
-                      Come back tomorrow for another bonus
-                    </div>
-                  </div>
-                </div>
-              ) : claimSuccess ? (
-                <div className="text-center py-4">
-                  <div className="bg-green-900/20 border border-green-700/30 text-green-400 rounded-lg p-4 animate-pulse">
-                    <div className="font-semibold">🎉 Bonus Claimed!</div>
-                    <div className="text-sm mt-1 text-green-300">
-                      +{status.availableBonusAmount} points added to your score
-                    </div>
-                  </div>
-                </div>
+                <>
+                    <div className="text-center space-y-4">
+                      <div className="bg-green-900/20 border border-green-700/30 text-green-400 rounded-lg p-4 animate-pulse">
+                        <div className="font-semibold">🎉 Bonus Claimed!</div>
+                        <div className="text-sm mt-1 text-green-300">
+                          +{status.availableBonusAmount} points added to your score
+                        </div>
+                      </div>
+
+                      {/* Share Button */}
+                      <div className="flex flex-col">
+                        <button
+                          onClick={handleShare}
+                          className="py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold transition-colors"
+                          disabled={hasShared || sharingState === 'sharing'}
+                        >
+                          {hasShared ? 'Shared!' :
+                            sharingState === 'sharing' ? 'Sharing...' : 'Share Daily Bonus'}
+                        </button>
+                        {sharingState === 'sharing' && (
+                          <div className="flex items-center justify-center mt-2">
+                            <div className="animate-spin h-4 w-4 border-2 border-blue-500 rounded-full border-t-transparent mr-2"></div>
+                            <p className="text-blue-500 text-sm">Processing...</p>
+                          </div>
+                        )}
+                      </div>
+                    </div></>
               ) : (
                 <button
                   onClick={claimBonus}

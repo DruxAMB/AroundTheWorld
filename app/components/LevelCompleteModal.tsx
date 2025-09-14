@@ -151,7 +151,7 @@ export default function LevelCompleteModal({
       // Simulate sharing process with a delay
       setTimeout(() => {
         // Simply mark as shared without adding points
-        console.log(`🔍 [LevelCompleteModal] SHARE: Sharing completed`); 
+        // console.log(`🔍 [LevelCompleteModal] SHARE: Sharing completed`); 
         setHasShared(true);
         setSharingState('completed');
       }, 3000); // 3-second delay
