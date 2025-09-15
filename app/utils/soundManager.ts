@@ -32,6 +32,7 @@ class SoundManager {
       shuffle: '/sounds/shuffle.mp3',
       wrong: '/sounds/wrong.mp3',
       correct: '/sounds/correct.mp3',
+      swipe: '/sounds/swipe.mp3',
     };
 
     Object.entries(soundFiles).forEach(([key, path]) => {

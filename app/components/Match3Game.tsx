@@ -412,9 +412,15 @@ export function Match3Game({ level, onLevelComplete, onBackToLevels }: Match3Gam
     if (gameState.animating || gameState.gameStatus !== 'playing' || isCompleting) {
       return;
     }
+    
+    // Play swipe sound when player starts dragging a candy
+    if (gameState.soundEnabled) {
+      soundManager.play('swipe');
+    }
+    
     setDragStart(position);
     setIsDragging(true);
-  }, [gameState.animating, gameState.gameStatus, isCompleting]);
+  }, [gameState.animating, gameState.gameStatus, isCompleting, gameState.soundEnabled]);
 
   const handleDragEnd = useCallback((position: Position) => {
     if (!dragStart || gameState.animating || gameState.gameStatus !== 'playing' || isCompleting) {
