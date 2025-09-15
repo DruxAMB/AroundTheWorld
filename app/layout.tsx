@@ -3,6 +3,7 @@ import "@coinbase/onchainkit/styles.css";
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
+import "@/lib/init-scheduler"; // Initialize scheduler on app start
 
 export const viewport: Viewport = {
   width: "device-width",

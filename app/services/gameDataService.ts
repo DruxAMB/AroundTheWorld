@@ -718,16 +718,16 @@ class GameDataService {
     if (!redis) return { success: false, key: '' };
     
     try {
-      // Import AI agent for automated reward distribution
-      const { rewardAgent } = await import('@/lib/reward-agent');
+      // // Import AI agent for automated reward distribution
+      // const { rewardAgent } = await import('@/lib/reward-agent');
       
-      // Trigger AI agent evaluation before reset
-      if (timeframe === 'week') {
-        console.log('🤖 Triggering AI agent for pre-reset reward evaluation');
-        setTimeout(() => {
-          rewardAgent.onWeeklyLeaderboardReset();
-        }, 1000); // Small delay to ensure reset completes first
-      }
+      // // Trigger AI agent evaluation before reset
+      // if (timeframe === 'week') {
+      //   console.log('🤖 Triggering AI agent for pre-reset reward evaluation');
+      //   setTimeout(() => {
+      //     rewardAgent.onWeeklyLeaderboardReset();
+      //   }, 1000); // Small delay to ensure reset completes first
+      // }
       const now = new Date();
       let key: string;
       
@@ -748,6 +748,30 @@ class GameDataService {
         // Get all entries from the existing leaderboard before deleting it
         const entries = await redis.zrange(key, 0, -1);
         console.log(`🔄 [GameDataService] Resetting ${timeframe} leaderboard with ${entries.length} entries`);
+        
+        // Also find and reset ALL player progress keys, not just those in leaderboard
+        // Use SCAN instead of KEYS to avoid "too many keys" error
+        const allPlayerKeys: string[] = [];
+        let cursor = 0;
+        
+        do {
+          const result = await redis.scan(cursor, {
+            match: `${this.PLAYER_PREFIX}*`,
+            count: 100
+          });
+          cursor = Number(result[0]);
+          allPlayerKeys.push(...result[1]);
+        } while (cursor !== 0);
+        
+        const progressKeys = allPlayerKeys.filter(key => key.includes(':progress'));
+        
+        console.log(`🔄 Found ${progressKeys.length} progress keys to reset`);
+        
+        // Delete all progress keys
+        if (progressKeys.length > 0) {
+          await redis.del(...progressKeys);
+          console.log(`🔄 Deleted ${progressKeys.length} progress keys`);
+        }
         
         // For each player in the leaderboard, perform complete reset
         for (const entry of entries) {
@@ -800,6 +824,8 @@ class GameDataService {
               
               // Set empty progress array (completely reset progress)
               await redis.set(`${playerKey}:progress`, JSON.stringify([]));
+              
+              console.log(`🔄 Reset player ${playerData.name} (${playerId}) - cleared progress and reset scores`);
               
               // Create leaderboard entry with reset stats
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
