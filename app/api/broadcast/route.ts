@@ -4,7 +4,7 @@ import { BroadcastNotificationService } from '@/lib/broadcast-notifications';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { type, title, body: messageBody, amount, symbol, contributor } = body;
+    const { type, title, body: messageBody, amount, symbol, contributor, link } = body;
 
     // Validate required fields based on type
     if (!type) {
@@ -41,7 +41,11 @@ export async function POST(request: NextRequest) {
         result = await BroadcastNotificationService.broadcastToAllPlayers(
           title,
           messageBody,
-          { type: 'general_announcement', timestamp: new Date().toISOString() }
+          { 
+            type: 'general_announcement', 
+            timestamp: new Date().toISOString(),
+            ...(link && { link })
+          }
         );
         break;
 

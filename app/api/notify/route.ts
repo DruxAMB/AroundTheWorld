@@ -42,6 +42,7 @@ export async function POST(request: Request) {
       title: notification.title,
       body: notification.body,
       notificationDetails: storedNotificationDetails,
+      customLink: notification.notificationDetails?.link,
     });
 
     if (result.state === "error") {

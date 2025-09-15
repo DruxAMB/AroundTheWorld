@@ -21,13 +21,15 @@ export default function BroadcastNotifications() {
 
   const [customData, setCustomData] = useState({
     title: '🎮 Game Update!',
-    message: 'The game is now easier than ever, more moves has been added, less special candies required!'
+    message: 'The game is now easier than ever, more moves has been added, less special candies required!',
+    link: ''
   });
 
   const [targetedData, setTargetedData] = useState({
     fid: '',
     title: '👋 Personal Message',
-    message: 'Hey! We noticed you haven\'t played in a while. Come back and check out the new updates!'
+    message: 'Hey! We noticed you haven\'t played in a while. Come back and check out the new updates!',
+    link: ''
   });
 
   const sendRewardPoolUpdate = async () => {
@@ -74,6 +76,7 @@ export default function BroadcastNotifications() {
           type: 'general',
           title: customData.title,
           body: customData.message,
+          link: customData.link,
         }),
       });
 
@@ -104,6 +107,9 @@ export default function BroadcastNotifications() {
           notification: {
             title: targetedData.title,
             body: targetedData.message,
+            notificationDetails: {
+              ...(targetedData.link && { link: targetedData.link })
+            }
           },
         }),
       });
@@ -251,6 +257,17 @@ export default function BroadcastNotifications() {
               placeholder="Hey! We noticed you haven't played in a while. Come back and check out the new updates!"
             />
           </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-1">Link (Optional)</label>
+            <input
+              type="url"
+              value={targetedData.link}
+              onChange={(e) => setTargetedData({ ...targetedData, link: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 text-black"
+              placeholder="https://warpcast.com/druxamb/0x4e9b0b2a"
+            />
+          </div>
         </div>
         
         <button
@@ -286,6 +303,17 @@ export default function BroadcastNotifications() {
               rows={3}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black resize-none"
               placeholder="The game is now easier than ever, more moves has been added, less special candies required!"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-1">Link (Optional)</label>
+            <input
+              type="url"
+              value={customData.link}
+              onChange={(e) => setCustomData({ ...customData, link: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+              placeholder="https://warpcast.com/druxamb/0x4e9b0b2a"
             />
           </div>
         </div>

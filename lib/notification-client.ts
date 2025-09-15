@@ -21,11 +21,13 @@ export async function sendFrameNotification({
   title,
   body,
   notificationDetails,
+  customLink,
 }: {
   fid: number;
   title: string;
   body: string;
   notificationDetails?: MiniAppNotificationDetails | null;
+  customLink?: string;
 }): Promise<SendFrameNotificationResult> {
   if (!notificationDetails) {
     notificationDetails = await getUserNotificationDetails(fid);
@@ -43,7 +45,7 @@ export async function sendFrameNotification({
       notificationId: crypto.randomUUID(),
       title,
       body,
-      targetUrl: appUrl,
+      targetUrl: customLink ? `${appUrl}?intent=notification&title=${encodeURIComponent(title)}&message=${encodeURIComponent(body)}&redirect=${encodeURIComponent(customLink)}` : appUrl,
       tokens: [notificationDetails.token],
     } satisfies SendNotificationRequest),
   });

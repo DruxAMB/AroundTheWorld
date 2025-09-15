@@ -24,6 +24,7 @@ import { Leaderboard } from "./components/Leaderboard";
 import { UserProfile } from "./components/UserProfile";
 import { SettingsModal } from "./components/SettingsModal";
 import { InfoModal } from "./components/InfoModal";
+import { NotificationModal } from "./components/NotificationModal";
 import SmartSaveButton from "./components/SmartSaveButton";
 import { soundManager } from "./utils/soundManager";
 import { useGameData } from "./hooks/useGameData";
@@ -41,6 +42,11 @@ export default function App() {
   const [showUserProfile, setShowUserProfile] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
+  const [notificationIntent, setNotificationIntent] = useState<{
+    title: string;
+    message: string;
+    redirectUrl?: string;
+  } | null>(null);
 
   // const addFrame = useAddFrame();
   // const openUrl = useOpenUrl();
@@ -50,6 +56,30 @@ export default function App() {
       setFrameReady();
     }
   }, [setFrameReady, isFrameReady]);
+
+  // Check for notification intent in URL parameters
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const intent = urlParams.get('intent');
+    
+    if (intent === 'notification') {
+      const title = urlParams.get('title');
+      const message = urlParams.get('message');
+      const redirect = urlParams.get('redirect');
+      
+      if (title && message) {
+        setNotificationIntent({
+          title: decodeURIComponent(title),
+          message: decodeURIComponent(message),
+          redirectUrl: redirect ? decodeURIComponent(redirect) : undefined
+        });
+        
+        // Clean up URL parameters
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, '', newUrl);
+      }
+    }
+  }, []);
 
   // const handleAddFrame = useCallback(async () => {
   //   const frameAdded = await addFrame();
@@ -227,6 +257,17 @@ export default function App() {
         isOpen={showInfo}
         onClose={() => setShowInfo(false)}
       />
+      
+      {/* Notification Intent Modal */}
+      {notificationIntent && (
+        <NotificationModal
+          isOpen={true}
+          onClose={() => setNotificationIntent(null)}
+          title={notificationIntent.title}
+          message={notificationIntent.message}
+          redirectUrl={notificationIntent.redirectUrl}
+        />
+      )}
       
 
       
