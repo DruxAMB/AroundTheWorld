@@ -585,10 +585,6 @@ export function Match3Game({ level, onLevelComplete, onBackToLevels }: Match3Gam
       specialCandiesCreated: 0
     });
   }, [level, gameState.soundEnabled]);
-
-  const isSelected = useCallback((row: number, col: number) => {
-    return gameState.selectedCandy?.row === row && gameState.selectedCandy?.col === col;
-  }, [gameState.selectedCandy]);
   
   const isMatched = useCallback((row: number, col: number) => {
     return gameState.matchedCandies.some(pos => pos.row === row && pos.col === col);

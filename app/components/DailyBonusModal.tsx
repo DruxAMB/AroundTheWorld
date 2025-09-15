@@ -31,7 +31,6 @@ export default function DailyBonusModal({
   const [status, setStatus] = useState<DailyBonusStatus | null>(null);
   const [loading, setLoading] = useState(false);
   const [claiming, setClaiming] = useState(false);
-  const [claimSuccess, setClaimSuccess] = useState(false);
   const [hasInitialLoad, setHasInitialLoad] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [hasShared, setHasShared] = useState(false);
@@ -68,7 +67,6 @@ export default function DailyBonusModal({
   // Reset state when modal closes
   useEffect(() => {
     if (!isOpen) {
-      setClaimSuccess(false);
       setHasInitialLoad(false);
       setStatus(null);
       setErrorMessage(null);
@@ -97,7 +95,6 @@ export default function DailyBonusModal({
       const result = await response.json();
       
       if (result.success) {
-        setClaimSuccess(true);
         setStatus(prev => prev ? {
           ...prev,
           alreadyClaimed: true,
