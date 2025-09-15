@@ -1,9 +1,9 @@
 // script: curl -X POST http://localhost:3000/api/admin/reset-player-scores -H "Content-Type: application/json"
 // {"success":true,"message":"Reset totalScore and progress for 348 players. Deleted 206 progress keys.","playersReset":348,"progressKeysDeleted":206,"timestamp":"2025-09-15T17:53:45.931Z"}
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { redis } from '@/lib/redis';
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
     if (!redis) {
       return NextResponse.json({ error: 'Redis not configured' }, { status: 500 });
