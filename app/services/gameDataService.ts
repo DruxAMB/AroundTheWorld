@@ -657,8 +657,19 @@ class GameDataService {
   }
 
   private getWeekKey(date: Date): string {
-    const year = date.getFullYear();
-    const week = this.getWeekNumber(date);
+    // Adjust for 5pm UTC Monday reset time
+    // We need to check if current time is before 5pm Monday, then use previous week
+    const currentDate = new Date(date);
+    const dayOfWeek = currentDate.getUTCDay(); // 0=Sunday, 1=Monday, etc.
+    const currentHour = currentDate.getUTCHours();
+    
+    // If it's Monday (day 1) and before 5pm (17:00), use previous week
+    if (dayOfWeek === 1 && currentHour < 17) {
+      currentDate.setUTCDate(currentDate.getUTCDate() - 7); // Go back 7 days to previous week
+    }
+    
+    const year = currentDate.getFullYear();
+    const week = this.getWeekNumber(currentDate);
     return `${year}-W${week}`;
   }
 
@@ -670,9 +681,9 @@ class GameDataService {
 
   private getWeekNumber(date: Date): number {
     // Use ISO 8601 week numbering (Monday = start of week)
-    // This ensures weeks always start on Monday and are consistent
+    // Adjusted for 5pm UTC Monday reset time
     const target = new Date(date.valueOf());
-    const dayNr = (date.getDay() + 6) % 7; // Make Monday = 0
+    const dayNr = (target.getDay() + 6) % 7; // Make Monday = 0
     target.setDate(target.getDate() - dayNr + 3); // Thursday of this week
     const firstThursday = target.valueOf();
     target.setMonth(0, 1); // January 1st
@@ -786,6 +797,9 @@ class GameDataService {
               
               // Set the reset player data
               await redis.hset(playerKey, resetPlayerData);
+              
+              // Set empty progress array (completely reset progress)
+              await redis.set(`${playerKey}:progress`, JSON.stringify([]));
               
               // Create leaderboard entry with reset stats
               // eslint-disable-next-line @typescript-eslint/no-explicit-any

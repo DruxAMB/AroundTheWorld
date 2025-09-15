@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { soundManager } from "../utils/soundManager";
@@ -18,9 +18,69 @@ type TimeFilter = 'week' | 'month' | 'all-time';
 
 export function Leaderboard({ onClose }: LeaderboardProps) {
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('week');
+  const [timeRemaining, setTimeRemaining] = useState<string>('');
   const { data: leaderboardData, loading } = useLeaderboard(timeFilter);
   const { context } = useMiniKit();
   const { address } = useAccount();
+
+  // Calculate time remaining until next reset
+  useEffect(() => {
+    const calculateTimeRemaining = () => {
+      const now = new Date();
+      let nextReset: Date;
+
+      if (timeFilter === 'week') {
+        // Next Monday 5pm UTC
+        const dayOfWeek = now.getUTCDay(); // 0=Sunday, 1=Monday, etc.
+        const currentHour = now.getUTCHours();
+        
+        // Calculate days until next Monday
+        let daysUntilMonday = (1 - dayOfWeek + 7) % 7;
+        if (dayOfWeek === 1 && currentHour < 17) {
+          // If it's Monday before 5pm, reset is today
+          daysUntilMonday = 0;
+        } else if (dayOfWeek === 1 && currentHour >= 17) {
+          // If it's Monday after 5pm, reset is next Monday
+          daysUntilMonday = 7;
+        }
+        
+        nextReset = new Date(now);
+        nextReset.setUTCDate(now.getUTCDate() + daysUntilMonday);
+        nextReset.setUTCHours(17, 0, 0, 0); // 5pm UTC
+      } else if (timeFilter === 'month') {
+        // First day of next month at midnight UTC
+        nextReset = new Date(now.getUTCFullYear(), now.getUTCMonth() + 1, 1, 0, 0, 0, 0);
+      } else {
+        // All-time doesn't reset
+        setTimeRemaining('Never resets');
+        return;
+      }
+
+      const diff = nextReset.getTime() - now.getTime();
+      
+      if (diff <= 0) {
+        setTimeRemaining('Resetting...');
+        return;
+      }
+
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+      if (days > 0) {
+        setTimeRemaining(`${days}d ${hours}h ${minutes}m`);
+      } else if (hours > 0) {
+        setTimeRemaining(`${hours}h ${minutes}m ${seconds}s`);
+      } else {
+        setTimeRemaining(`${minutes}m ${seconds}s`);
+      }
+    };
+
+    calculateTimeRemaining();
+    const interval = setInterval(calculateTimeRemaining, 1000);
+    return () => clearInterval(interval);
+  }, [timeFilter]);
   
 
   const handleTimeFilterChange = (newFilter: TimeFilter) => {
@@ -368,6 +428,18 @@ export function Leaderboard({ onClose }: LeaderboardProps) {
                 })}
               </div>
             )}
+          </div>
+
+          {/* Countdown Timer Footer */}
+          <div className="p-4 border-t border-[var(--app-card-border)] bg-[var(--app-background)]">
+            <div className="text-center flex justify-center gap-2">
+              <div className="text-xs text-[var(--app-foreground-muted)] mb-1">
+                {timeFilter === 'all-time' ? 'Leaderboard Status' : `${timeFilter.charAt(0).toUpperCase() + timeFilter.slice(1)} Ends In`}
+              </div>
+              <div className="text-sm font-bold text-[var(--app-accent)]">
+                {timeRemaining}
+              </div>
+            </div>
           </div>
         </div>
       </motion.div>
