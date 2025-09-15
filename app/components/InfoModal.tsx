@@ -54,7 +54,7 @@ export function InfoModal({ isOpen, onClose }: InfoModalProps) {
             <div className="space-y-2 text-sm text-[var(--app-foreground-muted)]">
               <div className="flex items-center space-x-2">
                 <span className="text-lg">👆</span>
-                <span>Click a candy, then click an adjacent one to swap</span>
+                <span>Swipe a candy to an adjacent position to swap</span>
               </div>
               <div className="flex items-center space-x-2">
                 <span className="text-lg">🔗</span>
@@ -237,7 +237,7 @@ export function InfoModal({ isOpen, onClose }: InfoModalProps) {
           <div className="bg-[var(--app-card-bg)] p-4 rounded-lg border border-[var(--app-card-border)]">
             <h4 className="font-bold mb-2 text-[var(--app-foreground)]">Customize Your Experience</h4>
             <div className="text-sm text-[var(--app-foreground-muted)]">
-              Click the ⚙️ settings icon to adjust music volume, sound effects, animations, and vibration to your preference.
+              Tap the ⚙️ settings icon to adjust music volume, sound effects, animations, and vibration to your preference.
             </div>
           </div>
         </div>
